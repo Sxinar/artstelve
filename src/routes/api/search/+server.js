@@ -3,7 +3,7 @@ import { json } from '@sveltejs/kit';
 // WARNING: Storing API keys directly in code is insecure, even on the backend.
 // Use environment variables for production.
 const BRAVE_API_KEY = 'BSAuFJ0CRuCgoNsyYopbiFg6hItXpsL'; 
-const GEMINI_API_KEY = 'AIzaSyCMzBYlXo59WRINlviNcYTt0CbXOfLNHng'; // Switched to Gemini
+const GEMINI_API_KEY = 'AIzaSyBFk0rmuDqJoG0rdVeurS3hU2skd5YsjDw'; // Switched to Gemini
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
 // Bang komutları için yönlendirme URL'leri
