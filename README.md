@@ -33,9 +33,10 @@ To create a production version of your app:
 npm run build
 ```
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/f1a8c6b2-e54a-4018-90b6-a23e1e378f31/deploy-status)](https://app.netlify.com/projects/artstelve/deploys)
-
-
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/f1a8c6b2-e54a-4018-90b6-a23e1e378f31/deploy-status)](https://app.netlify.com/projects/artstelve/deploys)
+
