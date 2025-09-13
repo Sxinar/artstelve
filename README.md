@@ -1,6 +1,7 @@
 # sv
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+[![Netlify Status](https://api.netlify.com/api/v1/badges/f1a8c6b2-e54a-4018-90b6-a23e1e378f31/deploy-status)](https://app.netlify.com/projects/artstelve/deploys)
 
 ## Creating a project
 
