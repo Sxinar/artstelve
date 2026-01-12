@@ -2,13 +2,6 @@
 	import { onMount, setContext, getContext } from "svelte";
 	import { writable } from "svelte/store";
 	import { page } from "$app/stores"; // Import page store
-<<<<<<< HEAD
-	import { slide } from "svelte/transition"; // Import slide transition
-	import { browser } from "$app/environment"; // Import browser check
-	import "../app.css";
-	import "../global.css";
-
-=======
 	import { slide, fade } from "svelte/transition"; // Import transitions
 	import { browser } from "$app/environment"; // Import browser check
 	import { goto, afterNavigate } from "$app/navigation";
@@ -21,7 +14,6 @@
 		isSidebarOpen.set(false);
 	});
 
->>>>>>> 7f9df2b (İlk commit)
 	// --- Import Stores ---
 	import {
 		selectedTheme,
@@ -94,17 +86,6 @@
 			} else {
 				document.body.classList.remove("sidebar-open");
 			}
-<<<<<<< HEAD
-			// console.log('Applied sidebar class:', isOpen);
-		}
-	}
-
-	// --- Custom CSS Application ---
-	let customStyleElement;
-
-	// Subscribe might be called before body exists, applyTheme handles this now.
-	selectedTheme.subscribe(applyTheme);
-=======
 		}
 	}
 
@@ -179,7 +160,6 @@
 	// Subscribe might be called before body exists, applyTheme handles this now.
 	selectedTheme.subscribe(applyTheme);
 	selectedTheme.subscribe(applyExternalTheme);
->>>>>>> 7f9df2b (İlk commit)
 	isSidebarOpen.subscribe(applySidebarClass);
 
 	// --- Apply design variables to body ---
@@ -301,11 +281,7 @@
 	aria-labelledby="sidebar-title"
 >
 	<div class="sidebar-header">
-<<<<<<< HEAD
-		<h2 id="sidebar-title">{$t("menu")}</h2>
-=======
 		<h2 id="sidebar-title">Menü</h2>
->>>>>>> 7f9df2b (İlk commit)
 		<button
 			class="close-sidebar"
 			on:click={toggleSidebar}
@@ -355,30 +331,6 @@
 			</div>
 		</section>
 
-<<<<<<< HEAD
-		<!-- AI Toggle Section -->
-		<section class="sidebar-section toggle-section">
-			<h3 class="section-title">
-				<i class="fas fa-brain icon" aria-hidden="true"></i>
-				{$t("aiSummary")}
-			</h3>
-			<div class="setting-item">
-				<label for="aiSummaryToggleSidebar" class="toggle-label"
-					>{$t("showAiSummary")}</label
-				>
-				<label class="switch">
-					<input
-						id="aiSummaryToggleSidebar"
-						type="checkbox"
-						bind:checked={$aiSummaryEnabled}
-					/>
-					<span class="slider round"></span>
-				</label>
-			</div>
-		</section>
-
-=======
->>>>>>> 7f9df2b (İlk commit)
 		<hr class="divider" />
 
 		<section class="sidebar-section">
@@ -393,15 +345,10 @@
 				>
 					<option value="Brave">Brave Search</option>
 					<option value="DuckDuckGo">DuckDuckGo</option>
-<<<<<<< HEAD
-					<option disabled>Google (Yakında)</option>
-					<option disabled>Bing (Yakında)</option>
-=======
 					<option value="Google">Google</option>
 					<option value="Bing">Bing</option>
 					<option value="Yahoo">Yahoo</option>
 					<option value="Yandex">Yandex</option>
->>>>>>> 7f9df2b (İlk commit)
 				</select>
 				<i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
 				></i>

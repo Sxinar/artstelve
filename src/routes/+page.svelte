@@ -3,18 +3,12 @@
   import { writable } from "svelte/store"; // For local state if needed
   import { goto } from "$app/navigation"; // Import goto for navigation
 
-<<<<<<< HEAD
-  // Get stores from context provided by layout
-  const selectedTheme = getContext("theme"); // Read-only access is enough here
-  import { searchHomeDesign } from "$lib/stores.js";
-=======
   import { fade } from "svelte/transition";
 
   // Get stores from context provided by layout
   const selectedTheme = getContext("theme"); // Read-only access is enough here
   import { searchHomeDesign, selectedEngine } from "$lib/stores.js";
   import { searchHistory } from "$lib/searchHistory.js";
->>>>>>> 7f9df2b (İlk commit)
   // const isSidebarOpen = getContext('sidebar'); // Not directly needed here
 
   let searchQuery = "";
@@ -25,10 +19,7 @@
 
   function performSearchNavigation() {
     if (!searchQuery.trim()) return;
-<<<<<<< HEAD
-=======
     searchHistory.addSearch(searchQuery.trim(), $selectedEngine, "web");
->>>>>>> 7f9df2b (İlk commit)
     // Navigate to the search page with the query
     goto(`/search?i=${encodeURIComponent(searchQuery.trim())}`);
   }
@@ -80,11 +71,7 @@
       window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       console.warn("Tarayıcınız Web Speech API desteklemiyor.");
-<<<<<<< HEAD
-      alert("Üzgünüz, tarayıcınız sesli arama özelliğini desteklemiyor.");
-=======
       // alert("Üzgünüz, tarayıcınız sesli arama özelliğini desteklemiyor."); // Removed alert for better UX
->>>>>>> 7f9df2b (İlk commit)
       return null;
     }
 
@@ -110,19 +97,11 @@
         event.error === "not-allowed"
       ) {
         // Handle common non-critical errors gracefully
-<<<<<<< HEAD
-        alert(
-          `Ses tanıma hatası: ${event.error === "not-allowed" ? "Mikrofon izni reddedildi." : "Ses algılanamadı veya mikrofon sorunu."}`,
-        );
-      } else {
-        alert(`Bir ses tanıma hatası oluştu: ${event.error}`);
-=======
         // alert(
         //   `Ses tanıma hatası: ${event.error === "not-allowed" ? "Mikrofon izni reddedildi." : "Ses algılanamadı veya mikrofon sorunu."}`,
         // );
       } else {
         // alert(`Bir ses tanıma hatası oluştu: ${event.error}`);
->>>>>>> 7f9df2b (İlk commit)
       }
       isListening = false; // Update state
     };
@@ -151,11 +130,7 @@
         console.log("Listening started...");
       } catch (err) {
         console.error("Error starting speech recognition:", err);
-<<<<<<< HEAD
-        alert("Ses tanıma başlatılamadı.");
-=======
         // alert("Ses tanıma başlatılamadı.");
->>>>>>> 7f9df2b (İlk commit)
         isListening = false;
       }
     }
@@ -190,10 +165,7 @@
   class="home-container"
   class:modern={$searchHomeDesign === "modern"}
   class:artistic={$searchHomeDesign === "artistic"}
-<<<<<<< HEAD
-=======
   in:fade={{ duration: 400 }}
->>>>>>> 7f9df2b (İlk commit)
 >
   <div class="logo-container">
     <img src="/logo.png" alt="Artado Search" class="logo" />

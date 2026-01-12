@@ -3,14 +3,9 @@
     import { goto } from "$app/navigation";
     import { onMount, getContext } from "svelte";
     import { writable } from "svelte/store";
-<<<<<<< HEAD
-    import { aiSummaryEnabled } from "$lib/stores.js"; // Import AI summary setting
-    import { safeSearch, blockedSites } from "$lib/stores.js";
-=======
     import { aiSummaryEnabled, selectedEngine } from "$lib/stores.js"; // Import AI summary setting
     import { safeSearch, blockedSites } from "$lib/stores.js";
     import { searchHistory } from "$lib/searchHistory.js";
->>>>>>> 7f9df2b (İlk commit)
     import { t } from "$lib/i18n.js";
     import { fade, slide } from "svelte/transition";
 
@@ -138,10 +133,7 @@
 
     function handleSearchSubmit(type = activeSearchType) {
         if (!inputQuery.trim()) return;
-<<<<<<< HEAD
-=======
         searchHistory.addSearch(inputQuery.trim(), $selectedEngine, type);
->>>>>>> 7f9df2b (İlk commit)
         goto(`/search?i=${encodeURIComponent(inputQuery.trim())}&t=${type}`);
     }
 
@@ -531,11 +523,6 @@
     <div class="main-content-area">
         <main class="results-container" aria-live="polite">
             {#if isLoading}
-<<<<<<< HEAD
-                <div class="loading-indicator">
-                    <i class="fas fa-spinner fa-spin fa-2x" aria-hidden="true"
-                    ></i> Loading...
-=======
                 <div
                     class="loading-skeleton-container"
                     in:fade={{ duration: 200 }}
@@ -551,7 +538,6 @@
                             <div class="skeleton-desc"></div>
                         </div>
                     {/each}
->>>>>>> 7f9df2b (İlk commit)
                 </div>
             {:else if $error}
                 <div class="error-message" role="alert">
@@ -562,37 +548,6 @@
 
                 <!-- === WEB RESULTS === -->
             {:else if activeSearchType === "web"}
-<<<<<<< HEAD
-                <!-- === AI Query Summary Box (Only shown if enabled) === -->
-                {#if $aiSummaryEnabled}
-                    {#if $queryAiSummary && $queryAiSummary !== "AI_ERROR"}
-                        <div
-                            class="ai-query-summary-box result-item-card enhanced-ai-box"
-                        >
-                            <div class="ai-box-header">
-                                <i class="fas fa-brain ai-icon"></i>
-                                <span class="ai-box-title">AI Özeti</span>
-                            </div>
-                            <p class="ai-summary">
-                                {@html $queryAiSummary}
-                            </p>
-                        </div>
-                    {:else if $queryAiSummary === "AI_ERROR"}
-                        <div
-                            class="ai-query-summary-box result-item-card enhanced-ai-box error-ai-box"
-                        >
-                            <div class="ai-box-header">
-                                <i class="fas fa-exclamation-triangle ai-icon"
-                                ></i>
-                                <span class="ai-box-title">AI Hatası</span>
-                            </div>
-                            <p class="ai-error">AI sorgu özeti alınamadı.</p>
-                        </div>
-                    {/if}
-                {/if}
-
-=======
->>>>>>> 7f9df2b (İlk commit)
                 {#if filteredResults.length > 0}
                     <div class="results-list web-results">
                         {#each filteredResults as result (result.url)}
@@ -2030,8 +1985,6 @@
     .infobox-card strong {
         color: var(--text-color);
     }
-<<<<<<< HEAD
-=======
 
     /* Skeleton Loading & Animation Enhancements */
     .loading-skeleton-container {
@@ -2139,5 +2092,4 @@
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
         border-color: var(--primary-color-light);
     }
->>>>>>> 7f9df2b (İlk commit)
 </style>

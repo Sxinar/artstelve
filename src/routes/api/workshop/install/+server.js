@@ -16,14 +16,8 @@ export async function POST({ request }) {
 
         console.log(`[API Install] Request to install ${type}: ${name} from ${downloadUrl}`);
 
-<<<<<<< HEAD
-        // Define target directory relative to current working directory (project root)
-        // We put themes in 'themes' folder and plugins in 'plugins' folder in the root
-        const targetBaseDir = path.resolve(type === 'theme' ? 'themes' : 'plugins');
-=======
         // We put themes in 'static/themes' folder and plugins in 'static/plugins' folder
         const targetBaseDir = path.resolve(type === 'theme' ? 'static/themes' : 'static/plugins');
->>>>>>> 7f9df2b (İlk commit)
 
         // Create base directory if it doesn't exist
         if (!fs.existsSync(targetBaseDir)) {
@@ -38,38 +32,6 @@ export async function POST({ request }) {
             fs.mkdirSync(targetDir, { recursive: true });
         }
 
-<<<<<<< HEAD
-        const tempFilePath = path.join(targetDir, `${safeName}.zip`);
-
-        // Fetch the file
-        const response = await fetch(downloadUrl);
-        if (!response.ok) {
-            throw new Error(`Download failed: ${response.statusText}`);
-        }
-
-        // Save to file
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        fs.writeFileSync(tempFilePath, buffer);
-
-        console.log(`[API Install] Downloaded to ${tempFilePath}`);
-
-        // Extract using PowerShell (Windows)
-        try {
-            console.log(`[API Install] Extracting...`);
-            // Escape paths for PowerShell
-            const psCmd = `powershell -command "Expand-Archive -Force '${tempFilePath}' '${targetDir}'"`;
-            await execAsync(psCmd);
-
-            // Delete the zip file after extraction
-            fs.unlinkSync(tempFilePath);
-
-            return json({ success: true, message: 'Successfully installed' });
-        } catch (extractErr) {
-            console.error('[API Install] Extraction failed:', extractErr);
-            // Decide whether to keep the zip or not. Let's keep it if extraction failed so user can manually unzip.
-            return json({ success: true, message: 'Downloaded, but auto-extraction failed.', path: tempFilePath });
-=======
         // Determine extension from downloadUrl
         const urlObj = new URL(downloadUrl);
         const urlPath = urlObj.pathname;
@@ -126,9 +88,13 @@ export async function POST({ request }) {
         if (isZip) {
             try {
                 console.log(`[API Install] Extracting ZIP...`);
-                // Escape paths for PowerShell
-                const psCmd = `powershell -command "Expand-Archive -Force '${tempFilePath}' '${targetDir}'"`;
-                await execAsync(psCmd);
+                // Cross-platform extraction: Windows uses PowerShell, Linux uses unzip
+                const isWindows = process.platform === 'win32';
+                const cmd = isWindows
+                    ? `powershell -command "Expand-Archive -Force '${tempFilePath}' '${targetDir}'"`
+                    : `unzip -o "${tempFilePath}" -d "${targetDir}"`;
+
+                await execAsync(cmd);
                 fs.unlinkSync(tempFilePath);
                 return json({ success: true, message: 'Successfully installed and extracted' });
             } catch (extractErr) {
@@ -148,7 +114,6 @@ export async function POST({ request }) {
             }
 
             return json({ success: true, message: 'Successfully installed' });
->>>>>>> 7f9df2b (İlk commit)
         }
 
     } catch (err) {
