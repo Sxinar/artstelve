@@ -42,6 +42,14 @@ const translations = {
         source: "Kaynak",
         dateFrom: "Başlangıç Tarihi",
         dateTo: "Bitiş Tarihi",
+<<<<<<< HEAD
+=======
+        history: "Geçmiş",
+        interface: "Arayüz",
+        customCSS: "Özel CSS",
+        advanced: "Gelişmiş",
+        plugins: "Eklentiler",
+>>>>>>> 7f9df2b (İlk commit)
         // Add more translations as needed
     },
     en: {
@@ -83,6 +91,14 @@ const translations = {
         source: "Source",
         dateFrom: "Start Date",
         dateTo: "End Date",
+<<<<<<< HEAD
+=======
+        history: "History",
+        interface: "Interface",
+        customCSS: "Custom CSS",
+        advanced: "Advanced",
+        plugins: "Plugins",
+>>>>>>> 7f9df2b (İlk commit)
         // Add more translations as needed
     },
     fr: {
@@ -124,6 +140,14 @@ const translations = {
         source: "Source",
         dateFrom: "Date de début",
         dateTo: "Date de fin",
+<<<<<<< HEAD
+=======
+        history: "Historique",
+        interface: "Interface",
+        customCSS: "CSS Personnalisé",
+        advanced: "Avancé",
+        plugins: "Eklentiler",
+>>>>>>> 7f9df2b (İlk commit)
         // Add more translations as needed
     }
 };

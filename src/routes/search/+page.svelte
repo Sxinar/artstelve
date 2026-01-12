@@ -3,8 +3,14 @@
     import { goto } from "$app/navigation";
     import { onMount, getContext } from "svelte";
     import { writable } from "svelte/store";
+<<<<<<< HEAD
     import { aiSummaryEnabled } from "$lib/stores.js"; // Import AI summary setting
     import { safeSearch, blockedSites } from "$lib/stores.js";
+=======
+    import { aiSummaryEnabled, selectedEngine } from "$lib/stores.js"; // Import AI summary setting
+    import { safeSearch, blockedSites } from "$lib/stores.js";
+    import { searchHistory } from "$lib/searchHistory.js";
+>>>>>>> 7f9df2b (İlk commit)
     import { t } from "$lib/i18n.js";
     import { fade, slide } from "svelte/transition";
 
@@ -132,6 +138,10 @@
 
     function handleSearchSubmit(type = activeSearchType) {
         if (!inputQuery.trim()) return;
+<<<<<<< HEAD
+=======
+        searchHistory.addSearch(inputQuery.trim(), $selectedEngine, type);
+>>>>>>> 7f9df2b (İlk commit)
         goto(`/search?i=${encodeURIComponent(inputQuery.trim())}&t=${type}`);
     }
 
@@ -521,9 +531,27 @@
     <div class="main-content-area">
         <main class="results-container" aria-live="polite">
             {#if isLoading}
+<<<<<<< HEAD
                 <div class="loading-indicator">
                     <i class="fas fa-spinner fa-spin fa-2x" aria-hidden="true"
                     ></i> Loading...
+=======
+                <div
+                    class="loading-skeleton-container"
+                    in:fade={{ duration: 200 }}
+                >
+                    <!-- Skeleton Items -->
+                    {#each Array(5) as _, i}
+                        <div class="skeleton-card">
+                            <div class="skeleton-header">
+                                <div class="skeleton-icon"></div>
+                                <div class="skeleton-domain"></div>
+                            </div>
+                            <div class="skeleton-title"></div>
+                            <div class="skeleton-desc"></div>
+                        </div>
+                    {/each}
+>>>>>>> 7f9df2b (İlk commit)
                 </div>
             {:else if $error}
                 <div class="error-message" role="alert">
@@ -534,6 +562,7 @@
 
                 <!-- === WEB RESULTS === -->
             {:else if activeSearchType === "web"}
+<<<<<<< HEAD
                 <!-- === AI Query Summary Box (Only shown if enabled) === -->
                 {#if $aiSummaryEnabled}
                     {#if $queryAiSummary && $queryAiSummary !== "AI_ERROR"}
@@ -562,6 +591,8 @@
                     {/if}
                 {/if}
 
+=======
+>>>>>>> 7f9df2b (İlk commit)
                 {#if filteredResults.length > 0}
                     <div class="results-list web-results">
                         {#each filteredResults as result (result.url)}
@@ -1999,4 +2030,114 @@
     .infobox-card strong {
         color: var(--text-color);
     }
+<<<<<<< HEAD
+=======
+
+    /* Skeleton Loading & Animation Enhancements */
+    .loading-skeleton-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        padding-top: 1rem;
+    }
+
+    .skeleton-card {
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--card-background);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .skeleton-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .skeleton-icon {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: var(--hover-background);
+        animation: pulse 1.5s infinite;
+    }
+
+    .skeleton-domain {
+        width: 120px;
+        height: 14px;
+        background-color: var(--hover-background);
+        border-radius: 4px;
+        animation: pulse 1.5s infinite;
+    }
+
+    .skeleton-title {
+        width: 60%;
+        height: 22px;
+        background-color: var(--hover-background);
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+        animation: pulse 1.5s infinite;
+    }
+
+    .skeleton-desc {
+        width: 90%;
+        height: 16px;
+        background-color: var(--hover-background);
+        border-radius: 4px;
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            opacity: 0.6;
+        }
+        50% {
+            opacity: 0.3;
+        }
+        100% {
+            opacity: 0.6;
+        }
+    }
+
+    .enhanced-ai-box {
+        border-top: 4px solid #8e24aa; /* Purple accent */
+        background: linear-gradient(
+            180deg,
+            rgba(142, 36, 170, 0.03) 0%,
+            var(--card-background) 100%
+        );
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(142, 36, 170, 0.08);
+    }
+
+    .ai-box-header {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin-bottom: 0.8rem;
+        color: #8e24aa;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .ai-icon {
+        font-size: 1.2rem;
+    }
+
+    .result-item-card {
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease,
+            background-color 0.2s;
+    }
+
+    .result-item-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        border-color: var(--primary-color-light);
+    }
+>>>>>>> 7f9df2b (İlk commit)
 </style>

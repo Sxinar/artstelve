@@ -2,11 +2,26 @@
 	import { onMount, setContext, getContext } from "svelte";
 	import { writable } from "svelte/store";
 	import { page } from "$app/stores"; // Import page store
+<<<<<<< HEAD
 	import { slide } from "svelte/transition"; // Import slide transition
 	import { browser } from "$app/environment"; // Import browser check
 	import "../app.css";
 	import "../global.css";
 
+=======
+	import { slide, fade } from "svelte/transition"; // Import transitions
+	import { browser } from "$app/environment"; // Import browser check
+	import { goto, afterNavigate } from "$app/navigation";
+	import { searchHistory } from "$lib/searchHistory.js";
+	import "../app.css";
+	import "../global.css";
+
+	// --- Navigation Handling ---
+	afterNavigate(() => {
+		isSidebarOpen.set(false);
+	});
+
+>>>>>>> 7f9df2b (İlk commit)
 	// --- Import Stores ---
 	import {
 		selectedTheme,
@@ -79,6 +94,7 @@
 			} else {
 				document.body.classList.remove("sidebar-open");
 			}
+<<<<<<< HEAD
 			// console.log('Applied sidebar class:', isOpen);
 		}
 	}
@@ -88,6 +104,82 @@
 
 	// Subscribe might be called before body exists, applyTheme handles this now.
 	selectedTheme.subscribe(applyTheme);
+=======
+		}
+	}
+
+	// --- External Theme Application ---
+	let externalThemeElement;
+	function applyExternalTheme(theme) {
+		if (!browser) return;
+
+		// Remove existing external theme link if it exists
+		if (externalThemeElement) {
+			externalThemeElement.remove();
+			externalThemeElement = null;
+		}
+
+		// If it's a built-in theme, applyTheme handles classes (it's already subscribed)
+		if (themes.includes(theme)) {
+			return;
+		}
+
+		// Otherwise, try to load it as an external theme
+		// Assuming external themes are in /themes/[themeName]/[themeName].css
+		console.log("Layout: Applying external theme:", theme);
+		externalThemeElement = document.createElement("link");
+		externalThemeElement.rel = "stylesheet";
+		externalThemeElement.href = `/themes/${theme}/${theme}.css`;
+		externalThemeElement.onerror = () => {
+			console.error(`Failed to load external theme: ${theme}`);
+			// Fallback to default if load fails? Maybe not, just logo error
+		};
+		document.head.appendChild(externalThemeElement);
+	}
+
+	// --- Custom CSS Application ---
+	let customStyleElement;
+
+	// --- Keyboard Shortcuts ---
+	function handleKeyDown(event) {
+		// Ctrl+K or / to focus search
+		if (
+			(event.ctrlKey && event.key === "k") ||
+			(event.key === "/" &&
+				event.target.tagName !== "INPUT" &&
+				event.target.tagName !== "TEXTAREA")
+		) {
+			event.preventDefault();
+			const searchInput = document.querySelector(
+				".search-input, .search-input-header",
+			);
+			if (searchInput) searchInput.focus();
+		}
+
+		// Esc to close sidebar
+		if (event.key === "Escape" && $isSidebarOpen) {
+			isSidebarOpen.set(false);
+		}
+
+		// Ctrl+, to open settings
+		if (event.ctrlKey && event.key === ",") {
+			event.preventDefault();
+			goto("/settings");
+		}
+	}
+
+	// Initialize on mount
+	onMount(() => {
+		if (browser) {
+			window.addEventListener("keydown", handleKeyDown);
+			return () => window.removeEventListener("keydown", handleKeyDown);
+		}
+	});
+
+	// Subscribe might be called before body exists, applyTheme handles this now.
+	selectedTheme.subscribe(applyTheme);
+	selectedTheme.subscribe(applyExternalTheme);
+>>>>>>> 7f9df2b (İlk commit)
 	isSidebarOpen.subscribe(applySidebarClass);
 
 	// --- Apply design variables to body ---
@@ -209,7 +301,11 @@
 	aria-labelledby="sidebar-title"
 >
 	<div class="sidebar-header">
+<<<<<<< HEAD
 		<h2 id="sidebar-title">{$t("menu")}</h2>
+=======
+		<h2 id="sidebar-title">Menü</h2>
+>>>>>>> 7f9df2b (İlk commit)
 		<button
 			class="close-sidebar"
 			on:click={toggleSidebar}
@@ -259,6 +355,7 @@
 			</div>
 		</section>
 
+<<<<<<< HEAD
 		<!-- AI Toggle Section -->
 		<section class="sidebar-section toggle-section">
 			<h3 class="section-title">
@@ -280,6 +377,8 @@
 			</div>
 		</section>
 
+=======
+>>>>>>> 7f9df2b (İlk commit)
 		<hr class="divider" />
 
 		<section class="sidebar-section">
@@ -294,8 +393,15 @@
 				>
 					<option value="Brave">Brave Search</option>
 					<option value="DuckDuckGo">DuckDuckGo</option>
+<<<<<<< HEAD
 					<option disabled>Google (Yakında)</option>
 					<option disabled>Bing (Yakında)</option>
+=======
+					<option value="Google">Google</option>
+					<option value="Bing">Bing</option>
+					<option value="Yahoo">Yahoo</option>
+					<option value="Yandex">Yandex</option>
+>>>>>>> 7f9df2b (İlk commit)
 				</select>
 				<i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
 				></i>
