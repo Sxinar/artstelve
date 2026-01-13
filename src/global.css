@@ -1,0 +1,339 @@
+/* Apply base variables to the html element for global scope */
+/* Klasik theme uses :root defaults */
+:root {
+  --primary-color: #1a73e8; /* Google Blue */
+  --primary-color-dark: #1558b8;
+  --primary-color-light: rgba(26, 115, 232, 0.2);
+  --header-color: #1a73e8;
+  --link-color: #1a0dab; /* Standard link blue */
+  --link-color-visited: #006621; /* Dark green for visited */
+  --text-color: #202124; /* Near black */
+  --text-color-secondary: #5f6368; /* Medium Gray */
+  --background-color: #ffffff; /* White */
+  --card-background: #ffffff;
+  --input-background: #ffffff;
+  --border-color: #dfe1e5; /* Light Gray */
+  --hover-background: rgba(60, 64, 67, 0.08); /* Subtle gray hover */
+  --disabled-background: #f1f3f4; /* Lighter Gray */
+  --danger-color: #d93025; /* Google Red */
+}
+
+/* Dark Theme */
+body.koyu {
+  --primary-color: #8ab4f8; /* Lighter Blue for contrast */
+  --primary-color-dark: #aecbfa;
+  --primary-color-light: rgba(138, 180, 248, 0.2);
+  --header-color: #8ab4f8;
+  --link-color: #8ab4f8; /* Lighter blue links */
+  --link-color-visited: #99c6a6; /* Lighter green for visited */
+  --text-color: #e8eaed; /* Light Gray text */
+  --text-color-secondary: #bdc1c6; /* Medium Light Gray */
+  --background-color: #202124; /* Dark Gray background */
+  --card-background: #2d2e31; /* Slightly Lighter Dark Gray */
+  --input-background: #3c4043; /* Even Lighter Dark Gray */
+  --border-color: #5f6368; /* Medium Gray border */
+  --hover-background: rgba(232, 234, 237, 0.08); /* Subtle light hover */
+  --disabled-background: #3c4043;
+  --danger-color: #f28b82; /* Lighter Red */
+}
+
+/* Blue Theme */
+body.mavi {
+  --primary-color: #0d47a1; /* Darker Blue */
+  --primary-color-dark: #002171;
+  --primary-color-light: rgba(13, 71, 161, 0.2);
+  --header-color: #ffffff; /* White header text on blue bg */
+  --link-color: #4285f4; /* Google Blue for links */
+  --link-color-visited: #0d47a1;
+  --text-color: #000000; /* Black text */
+  --text-color-secondary: #333333;
+  --background-color: #e3f2fd; /* Very Light Blue */
+  --card-background: #bbdefb; /* Light Blue */
+  --input-background: #ffffff; /* White input */
+  --border-color: #90caf9; /* Medium Light Blue */
+  --hover-background: rgba(66, 133, 244, 0.1);
+  --disabled-background: #e3f2fd;
+  --danger-color: #c62828; /* Darker Red */
+
+  /* Override header background for blue theme */
+  /* Assuming header has a specific class or use global selector carefully */
+  /* Example: .header { background-color: var(--primary-color); } */
+}
+
+/* Pastel Theme */
+body.pastel {
+    --background-color: #fef6e4; /* Soft cream */
+    --background-alt-color: #fae1dd;
+    --card-background: #ffffff;
+    --card-background-rgb: 255, 255, 255;
+    --text-color: #8a7e72;
+    --text-color-secondary: #a79a8e;
+    --text-muted-color: #c1b7ad;
+    --border-color: #f3d5c0;
+    --border-color-soft: #fae1dd;
+    --input-background: #ffffff;
+    --hover-background: rgba(255, 226, 211, 0.4);
+    --primary-color: #ffc09f; /* Soft Peach */
+    --primary-color-rgb: 255, 192, 159;
+    --primary-light-background: rgba(255, 192, 159, 0.15);
+    --primary-color-dark: #f0a07e;
+    --link-color: #d99ec4; /* Soft Pink/Purple */
+    --link-visited-color: #b18ea6;
+    --button-text-color: #6d635b;
+    --footer-background: #fef6e4;
+    --toggle-background: #e1d6cb;
+    --danger-color: #f08080; /* Light Coral */
+    --danger-color-rgb: 240, 128, 128;
+}
+
+/* Doğa Theme */
+body.doga {
+    --background-color: #f0f4f0; /* Light greenish grey */
+    --background-alt-color: #e6eae6;
+    --card-background: #ffffff;
+    --card-background-rgb: 255, 255, 255;
+    --text-color: #3c4d39; /* Dark Green */
+    --text-color-secondary: #5c6d59;
+    --text-muted-color: #8f9d8c;
+    --border-color: #c2d1c2;
+    --border-color-soft: #d4ddd4;
+    --input-background: #ffffff;
+    --hover-background: rgba(118, 152, 118, 0.1);
+    --primary-color: #769876; /* Muted Green */
+    --primary-color-rgb: 118, 152, 118;
+    --primary-light-background: rgba(118, 152, 118, 0.1);
+    --primary-color-dark: #5e7a5e;
+    --link-color: #4f6a4f; /* Darker Green */
+    --link-visited-color: #85a585;
+    --button-text-color: #ffffff;
+    --footer-background: #e6eae6;
+    --toggle-background: #b8c4b8;
+    --danger-color: #c16257; /* Muted Red/Brown */
+    --danger-color-rgb: 193, 98, 87;
+}
+
+/* Terminal Theme */
+body.terminal {
+    --background-color: #1e1e1e; /* Dark background */
+    --background-alt-color: #161616;
+    --card-background: #252526;
+    --card-background-rgb: 37, 37, 38;
+    --text-color: #cccccc; /* Light grey text */
+    --text-color-secondary: #9cdcfe; /* Light blue */
+    --text-muted-color: #6a9955; /* Green comments */
+    --border-color: #4e4e4e;
+    --border-color-soft: #333333;
+    --input-background: #3c3c3c;
+    --hover-background: rgba(204, 204, 204, 0.1);
+    --primary-color: #569cd6; /* Blue keywords */
+    --primary-color-rgb: 86, 156, 214;
+    --primary-light-background: rgba(86, 156, 214, 0.1);
+    --primary-color-dark: #4787bf;
+    --link-color: #ce9178; /* Orange strings/links */
+    --link-visited-color: #d7ba7d; /* Yellowish visited */
+    --button-text-color: #ffffff;
+    --footer-background: #1e1e1e;
+    --toggle-background: #6a9955;
+    --danger-color: #f44747; /* Red errors */
+    --danger-color-rgb: 244, 71, 71;
+}
+
+/* Gece Yarısı Theme */
+body.gece-yarisi {
+    --background-color: #1a1a2e; /* Very dark blue/purple */
+    --background-alt-color: #162447; 
+    --card-background: #1f4068; /* Darker blue cards */
+    --card-background-rgb: 31, 64, 104;
+    --text-color: #e0fbfc; /* Light cyan text */
+    --text-color-secondary: #9ba4b4;
+    --text-muted-color: #6b7a8f;
+    --border-color: #162447; 
+    --border-color-soft: #1f4068;
+    --input-background: #162447;
+    --hover-background: rgba(224, 251, 252, 0.1);
+    --primary-color: #e43f5a; /* Contrasting pink/red */
+    --primary-color-rgb: 228, 63, 90;
+    --primary-light-background: rgba(228, 63, 90, 0.1);
+    --primary-color-dark: #bf2e44;
+    --link-color: #e43f5a;
+    --link-visited-color: #f17a8d;
+    --button-text-color: #ffffff;
+    --footer-background: #162447;
+    --toggle-background: #6b7a8f;
+    --danger-color: #ff6b6b;
+    --danger-color-rgb: 255, 107, 107;
+}
+
+/* Güneşli Theme */
+body.gunesli {
+    --background-color: #fffde7; /* Very light yellow */
+    --background-alt-color: #fff9c4;
+    --card-background: #ffffff;
+    --card-background-rgb: 255, 255, 255;
+    --text-color: #4e342e; /* Dark brown text */
+    --text-color-secondary: #795548;
+    --text-muted-color: #a1887f;
+    --border-color: #fff59d; /* Light yellow border */
+    --border-color-soft: #fff9c4;
+    --input-background: #ffffff;
+    --hover-background: rgba(255, 235, 59, 0.15); /* Yellow hover */
+    --primary-color: #ff8f00; /* Amber/Orange */
+    --primary-color-rgb: 255, 143, 0;
+    --primary-light-background: rgba(255, 143, 0, 0.1);
+    --primary-color-dark: #e68100;
+    --link-color: #ff6f00; /* Darker amber */
+    --link-visited-color: #ffa000;
+    --button-text-color: #ffffff;
+    --footer-background: #fff9c4;
+    --toggle-background: #d7ccc8;
+    --danger-color: #e53935;
+    --danger-color-rgb: 229, 57, 53;
+}
+
+/* Retro Theme */
+body.retro {
+    --background-color: #fdf0d5; /* Creamy background */
+    --background-alt-color: #ffe8cc;
+    --card-background: #ffffff;
+    --card-background-rgb: 255, 255, 255;
+    --text-color: #3d405b; /* Dark muted blue/grey */
+    --text-color-secondary: #81b29a; /* Muted teal */
+    --text-muted-color: #a4a4a4;
+    --border-color: #e07a5f; /* Terracotta border */
+    --border-color-soft: #f2cc8f; /* Muted yellow */
+    --input-background: #ffffff;
+    --hover-background: rgba(244, 162, 97, 0.1); /* Pale orange hover */
+    --primary-color: #e07a5f; /* Terracotta primary */
+    --primary-color-rgb: 224, 122, 95;
+    --primary-light-background: rgba(224, 122, 95, 0.1);
+    --primary-color-dark: #c66a50;
+    --link-color: #3d405b;
+    --link-visited-color: #81b29a;
+    --button-text-color: #ffffff;
+    --footer-background: #fdf0d5;
+    --toggle-background: #b2a4a4;
+    --danger-color: #d62828;
+    --danger-color-rgb: 214, 40, 40;
+}
+
+/* Kömür Theme */
+body.komur {
+    --background-color: #121212; /* Near black */
+    --background-alt-color: #1a1a1a;
+    --card-background: #1e1e1e;
+    --card-background-rgb: 30, 30, 30;
+    --text-color: #e0e0e0;
+    --text-color-secondary: #a0a0a0;
+    --text-muted-color: #757575;
+    --border-color: #424242;
+    --border-color-soft: #303030;
+    --input-background: #333333;
+    --hover-background: rgba(255, 255, 255, 0.08);
+    --primary-color: #bb86fc; /* Purple accent */
+    --primary-color-rgb: 187, 134, 252;
+    --primary-light-background: rgba(187, 134, 252, 0.1);
+    --primary-color-dark: #a46edb;
+    --link-color: #bb86fc;
+    --link-visited-color: #e1bee7;
+    --button-text-color: #000000;
+    --footer-background: #121212;
+    --toggle-background: #757575;
+    --danger-color: #cf6679;
+    --danger-color-rgb: 207, 102, 121;
+}
+
+/* Okyanus Theme */
+body.okyanus {
+    --background-color: #e6f7ff; /* Very light blue */
+    --background-alt-color: #d1f0ff;
+    --card-background: #ffffff;
+    --card-background-rgb: 255, 255, 255;
+    --text-color: #003a4d;
+    --text-color-secondary: #005c7a;
+    --text-muted-color: #007a9e;
+    --border-color: #b3e0ff;
+    --border-color-soft: #ccefff;
+    --input-background: #ffffff;
+    --hover-background: rgba(0, 163, 217, 0.1);
+    --primary-color: #00a3d9; /* Bright Blue */
+    --primary-color-rgb: 0, 163, 217;
+    --primary-light-background: rgba(0, 163, 217, 0.1);
+    --primary-color-dark: #008abd;
+    --link-color: #007a9e; /* Tealish blue */
+    --link-visited-color: #005c7a;
+    --button-text-color: #ffffff;
+    --footer-background: #e6f7ff;
+    --toggle-background: #b3e0ff;
+    --danger-color: #e55353;
+    --danger-color-rgb: 229, 83, 83;
+}
+
+/* Scaling variables with sensible defaults */
+html {
+  font-size: calc(16px * var(--font-scale, 1));
+}
+
+/* Apply the theme variables to the body - DEFINED ONCE */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --radius-base: var(--radius-base, 6px);
+  --density-scale: var(--density-scale, 1);
+}
+
+/* Ensure links use the correct theme color - DEFINED ONCE */
+a {
+    color: var(--link-color);
+}
+
+/* Density helpers: apply to common interactive elements */
+button,
+input,
+select,
+textarea {
+  border-radius: var(--radius-base);
+  padding: calc(0.5rem * var(--density-scale)) calc(0.75rem * var(--density-scale));
+}
+
+.search-box {
+  border-radius: calc(50px * var(--density-scale));
+}
+
+.result-item,
+.sidebar-links a,
+.select-wrapper select,
+.button,
+.minimal-footer.simple-footer,
+.sidebar,
+.settings-sidebar nav button,
+.theme-options button {
+  border-radius: var(--radius-base);
+}
+
+/* Optional: Style scrollbar for dark mode */
+body.koyu::-webkit-scrollbar,
+body.terminal::-webkit-scrollbar,
+body.gece-yarisi::-webkit-scrollbar {
+  width: 8px;
+}
+
+body.koyu::-webkit-scrollbar-track,
+body.terminal::-webkit-scrollbar-track,
+body.gece-yarisi::-webkit-scrollbar-track {
+  background: var(--card-background);
+}
+
+body.koyu::-webkit-scrollbar-thumb,
+body.terminal::-webkit-scrollbar-thumb,
+body.gece-yarisi::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 4px;
+}
+
+/* ... rest of global.css ... */ 
