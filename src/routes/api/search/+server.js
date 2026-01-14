@@ -159,6 +159,7 @@ export async function GET({ url }) {
     const proxyBaseUrl = url.searchParams.get('proxyBaseUrl') || PROXY_SEARCH_BASE_URL;
     const proxyEngines = url.searchParams.get('proxyEngines');
     const proxyLimitPerEngineRaw = url.searchParams.get('proxyLimitPerEngine');
+    const proxyLimitTotalRaw = url.searchParams.get('proxyLimitTotal');
     const proxyTimeoutMsRaw = url.searchParams.get('proxyTimeoutMs');
     const proxyCacheRaw = url.searchParams.get('proxyCache');
     const safe = url.searchParams.get('safe') || 'on'; // 'on' | 'off'
@@ -189,7 +190,8 @@ export async function GET({ url }) {
 
     if (searchType === 'web' && engine === 'Hybrid Proxy') {
         try {
-            const limitTotal = Math.max(1, Math.min(100, offset + count));
+            const configuredLimitTotal = Math.max(1, Math.min(100, Number(proxyLimitTotalRaw ?? 20)));
+            const limitTotal = Math.max(1, Math.min(100, Math.max(configuredLimitTotal, offset + count)));
             const proxyLimitPerEngine = Math.max(1, Math.min(20, Number(proxyLimitPerEngineRaw ?? Math.ceil(limitTotal / 4))));
             const timeoutMs = Math.max(3000, Math.min(30000, Number(proxyTimeoutMsRaw ?? 20000)));
             const cacheEnabled = proxyCacheRaw == null ? true : !(String(proxyCacheRaw) === '0' || String(proxyCacheRaw).toLowerCase() === 'false');

@@ -16,6 +16,7 @@
         hybridProxyBaseUrl,
         hybridProxyEngines,
         hybridProxyLimitPerEngine,
+        hybridProxyLimitTotal,
         hybridProxyTimeoutMs,
         hybridProxyCache,
         themeMode,
@@ -115,6 +116,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             hybridProxyBaseUrl: $hybridProxyBaseUrl,
             hybridProxyEngines: $hybridProxyEngines,
             hybridProxyLimitPerEngine: $hybridProxyLimitPerEngine,
+            hybridProxyLimitTotal: $hybridProxyLimitTotal,
             hybridProxyTimeoutMs: $hybridProxyTimeoutMs,
             hybridProxyCache: $hybridProxyCache,
             themeMode: $themeMode,
@@ -164,6 +166,8 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                     hybridProxyEngines.set(settings.hybridProxyEngines);
                 if (settings.hybridProxyLimitPerEngine)
                     hybridProxyLimitPerEngine.set(settings.hybridProxyLimitPerEngine);
+                if (settings.hybridProxyLimitTotal)
+                    hybridProxyLimitTotal.set(settings.hybridProxyLimitTotal);
                 if (settings.hybridProxyTimeoutMs)
                     hybridProxyTimeoutMs.set(settings.hybridProxyTimeoutMs);
                 if (settings.hybridProxyCache !== undefined)
@@ -549,13 +553,13 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>Proxy Base URL</h3>
-                                <p>Örn: http://localhost:8787 veya kendi proxy adresiniz.</p>
+                                <p>Varsayılan: https://artstelve-proxy.vercel.app/ — self host ederek kendi sunucunuzu kullanabilirsiniz.</p>
                             </div>
                             <input
                                 class="text-input"
                                 type="text"
                                 bind:value={$hybridProxyBaseUrl}
-                                placeholder="http://localhost:8787"
+                                placeholder="https://artstelve-proxy.vercel.app/"
                             />
                         </div>
 
@@ -564,13 +568,13 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>Engines</h3>
-                                <p>Virgülle ayırın. Örn: brave,startpage,qwant</p>
+                                <p>Virgülle ayırın. Varsayılan: duckduckgo,yahoo,yandex,brave,startpage,qwant,ecosia,mojeek,ask,aol</p>
                             </div>
                             <input
                                 class="text-input"
                                 type="text"
                                 bind:value={$hybridProxyEngines}
-                                placeholder="brave,startpage,qwant"
+                                placeholder="duckduckgo,yahoo,yandex,brave,startpage,qwant,ecosia,mojeek,ask,aol"
                             />
                         </div>
 
@@ -587,6 +591,22 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 min="1"
                                 max="20"
                                 bind:value={$hybridProxyLimitPerEngine}
+                            />
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>Toplam Sonuç</h3>
+                                <p>Arama başına getirilecek toplam sonuç (1-100). Varsayılan: 20</p>
+                            </div>
+                            <input
+                                class="text-input"
+                                type="number"
+                                min="1"
+                                max="100"
+                                bind:value={$hybridProxyLimitTotal}
                             />
                         </div>
 

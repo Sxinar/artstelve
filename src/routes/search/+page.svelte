@@ -9,6 +9,7 @@
         hybridProxyBaseUrl,
         hybridProxyEngines,
         hybridProxyLimitPerEngine,
+        hybridProxyLimitTotal,
         hybridProxyTimeoutMs,
         hybridProxyCache,
     } from "$lib/stores.js"; // Import AI summary setting
@@ -43,6 +44,8 @@
     let infoBoxResult = writable(null);
     let queryAiSummary = writable(null); // Store for the query AI summary
 
+    $: count = $selectedEngine === "Hybrid Proxy" ? $hybridProxyLimitTotal : 20;
+
     // Fetch results from our backend API endpoint
     async function fetchSearchResults(query, type = "web") {
         if (!query) {
@@ -68,6 +71,7 @@
                 params.set("proxyBaseUrl", $hybridProxyBaseUrl);
                 params.set("proxyEngines", $hybridProxyEngines);
                 params.set("proxyLimitPerEngine", String($hybridProxyLimitPerEngine));
+                params.set("proxyLimitTotal", String($hybridProxyLimitTotal));
                 params.set("proxyTimeoutMs", String($hybridProxyTimeoutMs));
                 params.set("proxyCache", $hybridProxyCache ? "1" : "0");
             }
