@@ -49,7 +49,7 @@ export const selectedLanguage = createPersistentStore('selectedLanguage', 'tr');
 // Search Engine Store (persisted)
 export const selectedEngine = createPersistentStore('selectedEngine', 'Brave'); // Default Brave 
 
-export const hybridProxyBaseUrl = createPersistentStore('hybridProxyBaseUrl', 'http://45.141.150.121:8787/');
+export const hybridProxyBaseUrl = createPersistentStore('hybridProxyBaseUrl', 'https://artstelve-proxy.vercel.app/');
 export const hybridProxyEngines = createPersistentStore('hybridProxyEngines', 'duckduckgo,yahoo,yandex,brave,startpage,qwant,ecosia,mojeek,ask,aol');
 export const hybridProxyLimitPerEngine = createPersistentStore('hybridProxyLimitPerEngine', 5);
 export const hybridProxyLimitTotal = createPersistentStore('hybridProxyLimitTotal', 20);
