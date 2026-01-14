@@ -1715,8 +1715,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         .setting-control {
             width: 100%;
         }
-        .setting-control select,
-        .setting-control input {
+        .setting-control select {
             width: 100%;
         }
         .section-heading {
