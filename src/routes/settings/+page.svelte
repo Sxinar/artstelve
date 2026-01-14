@@ -553,13 +553,13 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>Proxy Base URL</h3>
-                                <p>Varsayılan: https://artstelve-proxy.vercel.app/ — self host ederek kendi sunucunuzu kullanabilirsiniz.</p>
+                                <p>Varsayılan: http://45.141.150.121:8787/ — self host ederek kendi sunucunuzu kullanabilirsiniz.</p>
                             </div>
                             <input
                                 class="text-input"
                                 type="text"
                                 bind:value={$hybridProxyBaseUrl}
-                                placeholder="https://artstelve-proxy.vercel.app/"
+                                placeholder="http://45.141.150.121:8787/"
                             />
                         </div>
 
