@@ -37,6 +37,11 @@
 
     let notifications = false;
     let activeTab = "Temel Ayarlar";
+    let historySearchQuery = "";
+
+    $: filteredHistory = $searchHistory.filter((item) =>
+        item.query.toLowerCase().includes(historySearchQuery.toLowerCase()),
+    );
 
     const tabs = [
         {
@@ -1182,6 +1187,19 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                             <p style="margin: 0;">
                                 Son yaptığınız aramalar (Maksimum 50 adet).
                             </p>
+                            {#if !$enableHistory}
+                                <div class="history-disabled-banner" in:fade>
+                                    <i class="fas fa-info-circle"></i>
+                                    <span
+                                        >Geçmiş kapalı, açmak için <button
+                                            class="link-btn-history"
+                                            on:click={() =>
+                                                ($enableHistory = true)}
+                                            >buraya tıklayın</button
+                                        >.</span
+                                    >
+                                </div>
+                            {/if}
                             <button
                                 class="button danger"
                                 on:click={() => {
@@ -1199,8 +1217,31 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         </div>
 
                         {#if $searchHistory.length > 0}
+                            <div class="history-filter-container">
+                                <div class="history-search-wrapper">
+                                    <i class="fas fa-search"></i>
+                                    <input
+                                        type="text"
+                                        bind:value={historySearchQuery}
+                                        placeholder="Geçmişte ara..."
+                                        class="history-filter-input"
+                                    />
+                                    {#if historySearchQuery}
+                                        <button
+                                            class="clear-history-search"
+                                            on:click={() =>
+                                                (historySearchQuery = "")}
+                                        >
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    {/if}
+                                </div>
+                            </div>
+                        {/if}
+
+                        {#if filteredHistory.length > 0}
                             <div class="history-list">
-                                {#each $searchHistory as item (item.id)}
+                                {#each filteredHistory as item (item.id)}
                                     <div class="history-item">
                                         <div class="history-item-info">
                                             <i
@@ -1245,7 +1286,11 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                     class="fas fa-history fa-3x"
                                     style="margin-bottom: 1rem; opacity: 0.2;"
                                 ></i>
-                                <p>Henüz bir arama geçmişiniz yok.</p>
+                                <p>
+                                    {historySearchQuery
+                                        ? "Aramanızla eşleşen geçmiş bulunamadı."
+                                        : "Henüz bir arama geçmişiniz yok."}
+                                </p>
                             </div>
                         {/if}
                     </div>
@@ -1721,6 +1766,78 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
     .link-btn:hover {
         opacity: 0.7;
     }
+    .history-disabled-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        background: rgba(var(--primary-color-rgb), 0.1);
+        padding: 0.6rem 1.2rem;
+        border-radius: 50px;
+        color: var(--primary-color);
+        font-size: 0.9rem;
+        font-weight: 500;
+        border: 1px solid rgba(var(--primary-color-rgb), 0.2);
+    }
+
+    .link-btn-history {
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 0;
+        font-size: inherit;
+        font-weight: 700;
+    }
+
+    .history-filter-container {
+        margin-bottom: 1.5rem;
+    }
+
+    .history-search-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        background: var(--background-color-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0 1rem;
+        transition: all 0.2s;
+    }
+
+    .history-search-wrapper:focus-within {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
+    }
+
+    .history-search-wrapper i {
+        color: var(--text-color-secondary);
+        font-size: 0.9rem;
+    }
+
+    .history-filter-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        outline: none;
+        padding: 0.8rem;
+        color: var(--text-color);
+        font-size: 0.95rem;
+    }
+
+    .clear-history-search {
+        background: none;
+        border: none;
+        color: var(--text-color-secondary);
+        cursor: pointer;
+        padding: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .clear-history-search:hover {
+        color: var(--text-color);
+    }
+
     .history-delete-btn {
         background: none;
         border: none;
