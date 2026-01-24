@@ -8,6 +8,7 @@
     // --- Import Stores ---
     import {
         selectedTheme,
+        customLogo,
         customCssStore,
         aiSummaryEnabled,
         isSidebarOpen,
@@ -19,12 +20,15 @@
         hybridProxyLimitTotal,
         hybridProxyTimeoutMs,
         hybridProxyCache,
+        enableHistory,
+        enableSuggestions,
         themeMode,
         uiDensity,
         fontScale,
         cornerRadius,
         accentColor,
         safeSearch,
+        searchRegion,
         searchHomeDesign,
         blockedSites,
         showNavbarSubCategory,
@@ -42,8 +46,12 @@
         },
         { id: "Görünüm", icon: "fas fa-paint-brush", label: "appearance" },
         { id: "Arayüz", icon: "fas fa-desktop", label: "interface" },
-        { id: "Hybrid Proxy", icon: "fas fa-network-wired", label: "hybridProxy" },
-        { id: "Temalar", icon: "fas fa-palette", label: "themes" },
+        {
+            id: "Hybrid Proxy",
+            icon: "fas fa-network-wired",
+            label: "hybridProxy",
+        },
+
         { id: "Gelişmiş", icon: "fas fa-tools", label: "advanced" },
         { id: "Eklentiler", icon: "fas fa-puzzle-piece", label: "plugins" },
         { id: "Geçmiş", icon: "fas fa-history", label: "history" },
@@ -142,6 +150,10 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         URL.revokeObjectURL(url);
     }
 
+    function resetCustomLogo() {
+        customLogo.set("/logo.png");
+    }
+
     function restoreSettings(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -165,7 +177,9 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                 if (settings.hybridProxyEngines)
                     hybridProxyEngines.set(settings.hybridProxyEngines);
                 if (settings.hybridProxyLimitPerEngine)
-                    hybridProxyLimitPerEngine.set(settings.hybridProxyLimitPerEngine);
+                    hybridProxyLimitPerEngine.set(
+                        settings.hybridProxyLimitPerEngine,
+                    );
                 if (settings.hybridProxyLimitTotal)
                     hybridProxyLimitTotal.set(settings.hybridProxyLimitTotal);
                 if (settings.hybridProxyTimeoutMs)
@@ -203,6 +217,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
     // --- Workshop Items (Legacy but kept) ---
     let themes = writable([]);
     let plugins = writable([]);
+    let logos = writable([]);
     let workshopError = writable(null);
     let isLoadingWorkshop = writable(true);
     let installingId = null;
@@ -215,7 +230,31 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                 const data = await response.json();
                 if (data.success) {
                     themes.set(data.themes || []);
-                    plugins.set(data.plugins || []);
+
+                    // Separate plugins and logos
+                    const allPlugins = data.plugins || [];
+                    const _plugins = [];
+                    const _logos = [];
+
+                    allPlugins.forEach((p) => {
+                        // Check fast file extensions for images
+                        const u = (p.download_url || "").toLowerCase();
+                        if (
+                            u.endsWith(".png") ||
+                            u.endsWith(".jpg") ||
+                            u.endsWith(".jpeg") ||
+                            u.endsWith(".gif") ||
+                            u.endsWith(".svg") ||
+                            u.endsWith(".webp")
+                        ) {
+                            _logos.push(p);
+                        } else {
+                            _plugins.push(p);
+                        }
+                    });
+
+                    plugins.set(_plugins);
+                    logos.set(_logos);
                     workshopError.set(null);
                 } else {
                     workshopError.set(
@@ -403,7 +442,9 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                             </div>
                             <div class="select-wrapper">
                                 <select bind:value={$selectedEngine}>
-                                    <option value="Hybrid Proxy">Hybrid Proxy Sonuçları</option>
+                                    <option value="Hybrid Proxy"
+                                        >Hybrid Proxy Sonuçları</option
+                                    >
                                     <option value="Brave">Brave Search</option>
                                     <option value="DuckDuckGo"
                                         >DuckDuckGo</option
@@ -419,13 +460,13 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>Güvenli Arama</h3>
-                                <p>Uygunsuz içerikleri filtreleyin.</p>
+                                <h3>Otomatik Tamamlama</h3>
+                                <p>Arama çubuğunda önerileri göster.</p>
                             </div>
                             <label class="switch">
                                 <input
                                     type="checkbox"
-                                    bind:checked={$safeSearch}
+                                    bind:checked={$enableSuggestions}
                                 />
                                 <span class="slider"></span>
                             </label>
@@ -435,16 +476,39 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>AI Özetini Göster</h3>
-                                <p>
-                                    Arama sonuçlarında yapay zeka özetini
-                                    görüntüleyin.
-                                </p>
+                                <h3>Arama Geçmişi</h3>
+                                <p>Son aramaları hatırlamasını sağla.</p>
+                                {#if !$enableHistory}
+                                    <p class="history-disabled-notice">
+                                        Geçmiş kapalı, açmak için <button
+                                            class="link-btn"
+                                            on:click={() =>
+                                                ($enableHistory = true)}
+                                            >buraya tıklayın</button
+                                        >.
+                                    </p>
+                                {/if}
                             </div>
                             <label class="switch">
                                 <input
                                     type="checkbox"
-                                    bind:checked={$aiSummaryEnabled}
+                                    bind:checked={$enableHistory}
+                                />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>Güvenli Arama</h3>
+                                <p>Uygunsuz içerikleri filtreleyin.</p>
+                            </div>
+                            <label class="switch">
+                                <input
+                                    type="checkbox"
+                                    bind:checked={$safeSearch}
                                 />
                                 <span class="slider"></span>
                             </label>
@@ -500,8 +564,119 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 class="color-picker"
                             />
                         </div>
+
+                        <div class="divider"></div>
+
+                        <div
+                            class="setting-row"
+                            style="align-items: flex-start; flex-direction: column; gap:1rem;"
+                        >
+                            <div class="setting-info">
+                                <h3>Özel Logo</h3>
+                                <p>
+                                    Workshop'tan logo seçerek görünümü
+                                    kişiselleştirin.
+                                </p>
+                            </div>
+
+                            <div
+                                class="logo-grid"
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; width: 100%;"
+                            >
+                                <button
+                                    class="logo-option"
+                                    class:active={$customLogo === "/logo.png"}
+                                    on:click={resetCustomLogo}
+                                    title="Varsayılan"
+                                >
+                                    <div class="logo-preview default">
+                                        <img
+                                            src="/logo.png"
+                                            alt="Varsayılan"
+                                            style="max-height: 50px; width: auto;"
+                                        />
+                                    </div>
+                                    <span class="logo-name">Varsayılan</span>
+                                </button>
+
+                                {#each $logos as logo}
+                                    <button
+                                        class="logo-option"
+                                        class:active={$customLogo ===
+                                            logo.download_url}
+                                        on:click={() =>
+                                            customLogo.set(logo.download_url)}
+                                        title={logo.name}
+                                    >
+                                        <div class="logo-preview">
+                                            <img
+                                                src={logo.image_url ||
+                                                    logo.download_url}
+                                                alt={logo.name}
+                                            />
+                                        </div>
+                                        <span class="logo-name"
+                                            >{logo.name}</span
+                                        >
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
                     </div>
                 </section>
+
+                <style>
+                    .logo-option {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        border: 2px solid transparent; /* Prepare for border */
+                        border-radius: 12px;
+                        padding: 0.8rem;
+                        background: var(--card-background);
+                        transition: all 0.2s;
+                        cursor: pointer;
+                        border: 1px solid var(--border-color);
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+                    }
+                    .logo-option:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                    }
+                    .logo-option.active {
+                        border-color: var(--primary-color);
+                        background: rgba(var(--primary-color-rgb), 0.08);
+                        box-shadow: 0 0 0 2px var(--primary-color); /* Strong outline */
+                    }
+                    .logo-preview {
+                        height: 80px;
+                        width: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-bottom: 0.5rem;
+                        border-radius: 8px;
+                        background: var(
+                            --background-image,
+                            #f5f5f5
+                        ); /* Fallback */
+                        overflow: hidden;
+                    }
+                    .logo-preview img {
+                        max-width: 100%;
+                        max-height: 100%;
+                        object-fit: contain;
+                    }
+                    .logo-name {
+                        font-size: 0.85rem;
+                        text-align: center;
+                        color: var(--text-color);
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                    }
+                </style>
             {:else if activeTab === "Arayüz"}
                 <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">Arayüz ve Navigasyon</h2>
@@ -522,7 +697,6 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                     <option value="modern"
                                         >Modern & Canlı</option
                                     >
-                                    <option value="artistic">Sanatsal</option>
                                 </select>
                                 <i class="fas fa-chevron-down dropdown-icon"
                                 ></i>
@@ -553,7 +727,12 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>Proxy Base URL</h3>
-                                <p>Varsayılan: https://artstelve-proxy.vercel.app/ — self host ederek kendi sunucunuzu kullanabilirsiniz.</p>
+                                <p>
+                                    Varsayılan:
+                                    https://artstelve-proxy.vercel.app/ — self
+                                    host ederek kendi sunucunuzu
+                                    kullanabilirsiniz.
+                                </p>
                             </div>
                             <input
                                 class="text-input"
@@ -568,7 +747,10 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>Engines</h3>
-                                <p>Virgülle ayırın. Varsayılan: duckduckgo,yahoo,yandex,brave,startpage,qwant,ecosia,mojeek,ask,aol</p>
+                                <p>
+                                    Virgülle ayırın. Varsayılan:
+                                    duckduckgo,yahoo,yandex,brave,startpage,qwant,ecosia,mojeek,ask,aol
+                                </p>
                             </div>
                             <input
                                 class="text-input"
@@ -583,7 +765,9 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>Limit (per engine)</h3>
-                                <p>Her motor için maksimum sonuç sayısı (1-20).</p>
+                                <p>
+                                    Her motor için maksimum sonuç sayısı (1-20).
+                                </p>
                             </div>
                             <input
                                 class="text-input"
@@ -599,7 +783,10 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>Toplam Sonuç</h3>
-                                <p>Arama başına getirilecek toplam sonuç (1-100). Varsayılan: 20</p>
+                                <p>
+                                    Arama başına getirilecek toplam sonuç
+                                    (1-100). Varsayılan: 20
+                                </p>
                             </div>
                             <input
                                 class="text-input"
@@ -632,10 +819,15 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>Cache</h3>
-                                <p>Proxy cache kullanımı (aynı sorgularda hız).</p>
+                                <p>
+                                    Proxy cache kullanımı (aynı sorgularda hız).
+                                </p>
                             </div>
                             <label class="switch">
-                                <input type="checkbox" bind:checked={$hybridProxyCache} />
+                                <input
+                                    type="checkbox"
+                                    bind:checked={$hybridProxyCache}
+                                />
                                 <span class="slider"></span>
                             </label>
                         </div>
@@ -1498,10 +1690,36 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
     .history-query:hover {
         text-decoration: underline;
     }
-    .history-meta {
-        font-size: 0.8rem;
+    .setting-info p {
+        font-size: 0.95rem;
         color: var(--text-color-secondary);
-        margin-top: 0.2rem;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .history-disabled-notice {
+        margin-top: 0.5rem !important;
+        font-size: 0.9rem !important;
+        color: var(--primary-color) !important;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+
+    .link-btn {
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 0;
+        font-size: inherit;
+        font-family: inherit;
+        font-weight: 700;
+        transition: opacity 0.2s;
+    }
+
+    .link-btn:hover {
+        opacity: 0.7;
     }
     .history-delete-btn {
         background: none;

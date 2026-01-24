@@ -1,5 +1,6 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
+import { enableHistory } from './stores.js';
 
 // Maximum number of history items to keep
 const MAX_HISTORY_ITEMS = 50;
@@ -17,6 +18,16 @@ function createSearchHistory() {
         subscribe,
         addSearch: (query, engine = 'Brave', type = 'web') => {
             if (!query || query.trim() === '') return;
+
+            // Check if history is enabled using the store
+            if (browser) {
+                try {
+                    const isHistoryEnabled = get(enableHistory);
+                    if (!isHistoryEnabled) return;
+                } catch (e) {
+                    console.error("Error checking history setting:", e);
+                }
+            }
 
             update(history => {
                 // Remove duplicate if exists

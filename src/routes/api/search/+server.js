@@ -150,8 +150,13 @@ async function fetchDuckDuckGoResults(query, searchType) {
     }
 }
 
-export async function GET({ url }) {
+export async function GET({ url, setHeaders }) {
     console.log("[API LIFECYCLE] GET /api/search endpoint hit!");
+
+    // Cache search results for 5 minutes (browser) and 10 minutes (CDN/Edge)
+    setHeaders({
+        'Cache-Control': 'public, max-age=300, s-maxage=600'
+    });
 
     const query = url.searchParams.get('i');
     const searchType = url.searchParams.get('t') || 'web'; // Renamed variable from 'type'
@@ -162,6 +167,7 @@ export async function GET({ url }) {
     const proxyLimitTotalRaw = url.searchParams.get('proxyLimitTotal');
     const proxyTimeoutMsRaw = url.searchParams.get('proxyTimeoutMs');
     const proxyCacheRaw = url.searchParams.get('proxyCache');
+    const region = url.searchParams.get('region') || 'all'; // 'all', 'TR', 'US', etc.
     const safe = url.searchParams.get('safe') || 'on'; // 'on' | 'off'
     const size = url.searchParams.get('size') || ''; // images: small|medium|large
     const color = url.searchParams.get('color') || ''; // images: color filter
@@ -202,6 +208,7 @@ export async function GET({ url }) {
             params.set('limitPerEngine', String(proxyLimitPerEngine));
             params.set('timeoutMs', String(timeoutMs));
             params.set('cache', cacheEnabled ? '1' : '0');
+            if (region && region !== 'all') params.set('region', region); // Pass region to proxy if supported
             if (proxyEngines) params.set('engines', proxyEngines);
 
             const proxyUrl = `${proxyBaseUrl}/search?${params.toString()}`;
@@ -214,9 +221,8 @@ export async function GET({ url }) {
 
             const data = await response.json();
             const all = Array.isArray(data.results) ? data.results : [];
-            const pageItems = all.slice(Math.max(0, offset), Math.max(0, offset) + count);
-
-            const searchResults = pageItems.map((item) => {
+            // Slice correctly using offset and count
+            const searchResults = all.slice(offset, offset + count).map((item) => {
                 return {
                     title: item.title || 'Başlık Yok',
                     url: item.url || '#',
@@ -254,6 +260,8 @@ export async function GET({ url }) {
         if (!Number.isNaN(offset) && offset > 0) params.set('offset', String(offset));
         if (!Number.isNaN(count) && count > 0) params.set('count', String(count));
         if (safe === 'on') params.set('safesearch', 'strict');
+        if (region && region !== 'all') params.set('country', region); // Map region to country for Brave
+
         // Image specific filters (Brave supports some via query params)
         if (searchType === 'images') {
             if (size) params.set('size', size);
@@ -263,7 +271,7 @@ export async function GET({ url }) {
             if (palette) params.set('palette', palette);
         }
         apiUrl = `https://api.search.brave.com/res/v1/${searchType}/search?${params.toString()}`;
-        console.log(`[API] Fetching ${searchType} results for: ${query} from Brave`);
+        console.log(`[API] Fetching ${searchType} results for: ${query} from Brave (Region: ${region})`);
     }
 
     try {

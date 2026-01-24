@@ -3,34 +3,49 @@ import { browser } from '$app/environment';
 
 // Helper function to create a writable store synced with localStorage
 function createPersistentStore(key, startValue) {
-    const initialValue = browser ? localStorage.getItem(key) ?? JSON.stringify(startValue) : JSON.stringify(startValue);
-    let parsedValue;
-    try {
-        parsedValue = JSON.parse(initialValue);
-    } catch (e) {
-        console.error(`Failed to parse localStorage key "${key}":`, e);
-        parsedValue = startValue; // Fallback to startValue
-    }
-    
-    const store = writable(parsedValue);
+    let initialValue = startValue;
 
     if (browser) {
-        store.subscribe(value => {
+        const stored = localStorage.getItem(key);
+        if (stored !== null) {
             try {
-                localStorage.setItem(key, JSON.stringify(value));
+                initialValue = JSON.parse(stored);
             } catch (e) {
-                console.error(`Failed to save localStorage key "${key}":`, e);
+                console.error(`Failed to parse localStorage key "${key}":`, e);
+                initialValue = startValue;
             }
-        });
+        }
     }
 
-    return store;
+    const { subscribe, set, update } = writable(initialValue);
+
+    return {
+        subscribe,
+        set: (value) => {
+            if (browser) {
+                localStorage.setItem(key, JSON.stringify(value));
+            }
+            set(value);
+        },
+        update: (fn) => {
+            update(u => {
+                const value = fn(u);
+                if (browser) {
+                    localStorage.setItem(key, JSON.stringify(value));
+                }
+                return value;
+            });
+        }
+    };
 }
 
 // --- Global Stores ---
 
 // Theme Store (persisted)
 export const selectedTheme = createPersistentStore('selectedTheme', 'klasik'); // Default theme is klasik (lowercase, kebab-case)
+
+// Custom Logo Store (persisted)
+export const customLogo = createPersistentStore('customLogo', '/logo.png');
 
 // Sidebar State (not persisted, resets on refresh)
 export const isSidebarOpen = writable(false);
@@ -47,7 +62,7 @@ export const aiSummaryEnabled = createPersistentStore('aiSummaryEnabled', true);
 export const selectedLanguage = createPersistentStore('selectedLanguage', 'tr'); // Default key 'tr'
 
 // Search Engine Store (persisted)
-export const selectedEngine = createPersistentStore('selectedEngine', 'Brave'); // Default Brave 
+export const selectedEngine = createPersistentStore('selectedEngine', 'Hybrid Proxy'); // Default Hybrid Proxy 
 
 export const hybridProxyBaseUrl = createPersistentStore('hybridProxyBaseUrl', 'https://artstelve-proxy.vercel.app/');
 export const hybridProxyEngines = createPersistentStore('hybridProxyEngines', 'duckduckgo, google, yahoo, brave, startpage, qwant, ecosia, mojeek, ask, aol');
@@ -74,6 +89,11 @@ export const accentColor = createPersistentStore('accentColor', '#1a73e8');
 
 // Safe search (persisted)
 export const safeSearch = createPersistentStore('safeSearch', true);
+
+// --- Privacy & Features ---
+export const enableHistory = createPersistentStore('enableHistory', true);
+export const enableSuggestions = createPersistentStore('enableSuggestions', true);
+export const searchRegion = createPersistentStore('searchRegion', 'all'); // 'all', 'tr', 'us', etc.
 
 // --- New Features Stores ---
 // Search Home Design: 'simple' | 'modern' | 'artistic'

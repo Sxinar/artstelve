@@ -2,7 +2,8 @@
 	import { onMount, setContext, getContext } from "svelte";
 	import { writable } from "svelte/store";
 	import { page } from "$app/stores"; // Import page store
-	import { slide, fade } from "svelte/transition"; // Import transitions
+	import { slide, fade, fly } from "svelte/transition"; // Import transitions
+	import { quintOut } from "svelte/easing";
 	import { browser } from "$app/environment"; // Import browser check
 	import { goto, afterNavigate } from "$app/navigation";
 	import { searchHistory } from "$lib/searchHistory.js";
@@ -28,6 +29,7 @@
 		cornerRadius,
 		accentColor,
 		showNavbarSubCategory,
+		customLogo,
 	} from "$lib/stores.js";
 	import { t } from "$lib/i18n.js"; // Import translation function
 
@@ -262,6 +264,11 @@
 			footer.scrollIntoView({ behavior: "smooth" });
 		}
 	}
+
+	let showFooter = false;
+	function toggleFooter() {
+		showFooter = !showFooter;
+	}
 </script>
 
 <svelte:head>
@@ -445,9 +452,79 @@
 		<slot />
 	</div>
 
-	<!-- NEW Simplified Footer -->
-	<footer class="minimal-footer simple-footer">
-		<span>{$t("footerCopyright")}</span>
+	<!-- NEW Complex Footer (Hidden by default, toggled via button) -->
+
+	<button
+		class="footer-toggle-btn"
+		class:home-pos={$page.url.pathname === "/"}
+		on:click={toggleFooter}
+		aria-label="Footer Toggle"
+	>
+		{#if showFooter}
+			<i class="fas fa-chevron-down"></i>
+		{:else}
+			<i class="fas fa-grip-lines"></i> Gelişmiş Footer
+		{/if}
+	</button>
+
+	<footer
+		class="footer complex-footer"
+		class:visible={showFooter}
+		transition:fly={{ y: 100, duration: 600, opacity: 0, easing: quintOut }}
+	>
+		<div class="footer-backdrop"></div>
+		<div class="footer-handle" on:click={toggleFooter}></div>
+		<div class="footer-content">
+			<div class="footer-column">
+				<h4><i class="fas fa-compass"></i> Hakkında</h4>
+				<ul>
+					<li><a href="/manifesto">Manifesto</a></li>
+					<li><a href="/developers">Geliştiriciler</a></li>
+					<li><a href="/workshop">Workshop</a></li>
+				</ul>
+			</div>
+			<div class="footer-column">
+				<h4><i class="fas fa-users"></i> Topluluk</h4>
+				<ul>
+					<li><a href="/forum">Forum</a></li>
+					<li>
+						<a href="https://discord.gg/artado" target="_blank"
+							>Discord</a
+						>
+					</li>
+					<li>
+						<a
+							href="https://github.com/artadosearch"
+							target="_blank">GitHub</a
+						>
+					</li>
+				</ul>
+			</div>
+			<div class="footer-column">
+				<h4><i class="fas fa-scale-balanced"></i> Yasal</h4>
+				<ul>
+					<li><a href="/privacy">Gizlilik Politikası</a></li>
+					<li><a href="/terms">Kullanım Şartları</a></li>
+				</ul>
+			</div>
+			<div class="footer-column brand-column">
+				<img src={$customLogo} alt="Artado Logo" class="footer-logo" />
+				<p class="footer-tagline">
+					İnterneti özgürce keşfetmenin en modern yolu.
+				</p>
+				<div class="social-icons">
+					<a href="#" aria-label="Twitter"
+						><i class="fab fa-twitter"></i></a
+					>
+					<a href="#" aria-label="Instagram"
+						><i class="fab fa-instagram"></i></a
+					>
+				</div>
+			</div>
+		</div>
+		<div class="footer-bottom">
+			<span>&copy; {new Date().getFullYear()} Artado Search.</span>
+		</div>
 	</footer>
 </div>
 
@@ -689,18 +766,226 @@
 		padding-bottom: 0; /* Remove bottom padding */
 	}
 
-	/* Styles for the NEW simple footer */
-	.minimal-footer.simple-footer {
+	/* Styles for the NEW complex footer */
+	.footer-toggle-btn {
+		position: fixed;
+		bottom: 2rem;
+		/* Default: Bottom Right (Settings, Search, etc.) */
+		right: 2rem;
+		left: auto;
+		transform: none;
+
+		background: rgba(var(--card-background-rgb, 255, 255, 255), 0.85);
+		-webkit-backdrop-filter: blur(16px);
+		backdrop-filter: blur(16px);
+		border: 1px solid rgba(255, 255, 255, 0.3);
+		border-radius: 16px; /* Squircle */
+		padding: 0.8rem 1.6rem;
+		cursor: pointer;
+		z-index: 999;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		font-weight: 600;
+		color: var(--text-color);
+		font-size: 0.95rem;
+		transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+	}
+
+	/* Home Position: Bottom Center */
+	.footer-toggle-btn.home-pos {
+		right: auto;
+		left: 50%;
+		transform: translateX(-50%);
+		bottom: 3rem; /* Slightly higher on home */
+	}
+
+	.footer-toggle-btn:hover {
+		transform: translateY(-6px); /* Works for default */
+		background: var(--primary-color);
+		color: white;
+		box-shadow: 0 12px 30px rgba(var(--primary-color-rgb), 0.5);
+		border-color: var(--primary-color);
+	}
+
+	.footer-toggle-btn.home-pos:hover {
+		transform: translateX(-50%) translateY(-6px); /* Maintain centering */
+	}
+
+	.footer-toggle-btn:active {
+		transform: scale(0.95) translateY(0);
+	}
+
+	.footer-toggle-btn.home-pos:active {
+		transform: translateX(-50%) scale(0.95);
+	}
+
+	.footer.complex-footer {
+		background: transparent; /* Handled by backdrop */
+		border-top: none;
+		padding: 0;
+		color: var(--text-color);
+
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		z-index: 998;
+		transform: translateY(100%);
+		transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+	}
+
+	.footer-backdrop {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba(var(--card-background-rgb, 255, 255, 255), 0.95);
+		-webkit-backdrop-filter: blur(40px);
+		backdrop-filter: blur(40px);
+		border-top: 1px solid rgba(var(--primary-color-rgb), 0.15);
+		border-left: 1px solid rgba(255, 255, 255, 0.1);
+		border-right: 1px solid rgba(255, 255, 255, 0.1);
+		z-index: -1;
+		box-shadow: 0 -30px 100px rgba(0, 0, 0, 0.2);
+		border-radius: 40px 40px 0 0;
+	}
+
+	.footer-handle {
+		width: 60px;
+		height: 6px;
+		background: var(--border-color);
+		border-radius: 10px;
+		margin: 1.5rem auto 0;
+		cursor: pointer;
+		opacity: 0.5;
+		transition: opacity 0.3s;
+	}
+
+	.footer-handle:hover {
+		opacity: 1;
+	}
+
+	.premium-tag {
+		color: var(--primary-color);
+		font-weight: 700;
+		margin-left: 1rem;
+		font-size: 0.75rem;
+		background: rgba(var(--primary-color-rgb), 0.1);
+		padding: 0.2rem 0.6rem;
+		border-radius: 50px;
+	}
+
+	.footer.complex-footer.visible {
+		transform: translateY(0);
+	}
+
+	.footer-content {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		max-width: 1200px;
+		margin: 0 auto;
+		gap: 2rem;
+		padding: 3rem 2rem 1rem; /* Padding moves here */
+		position: relative;
+		z-index: 1;
+	}
+
+	.footer-column {
+		flex: 1;
+		min-width: 160px;
+	}
+
+	.footer-column h4 {
+		font-size: 1rem;
+		font-weight: 600;
+		margin-bottom: 1.2rem;
+		color: var(--primary-color);
+	}
+
+	.footer-column ul {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	.footer-column ul li {
+		margin-bottom: 0.6rem;
+	}
+
+	.footer-column ul li a {
+		text-decoration: none;
+		color: var(--text-color-secondary);
+		font-size: 0.9rem;
+		transition: color 0.2s;
+	}
+
+	.footer-column ul li a:hover {
+		color: var(--primary-color);
+	}
+
+	.brand-column {
+		flex: 1.5;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.footer-logo {
+		height: 35px;
+		margin-bottom: 0.8rem;
+		opacity: 0.9;
+	}
+
+	.footer-tagline {
+		font-size: 0.9rem;
+		color: var(--text-color-secondary);
+		margin-bottom: 1.2rem;
+	}
+
+	.social-icons {
+		display: flex;
+		gap: 1rem;
+	}
+
+	.social-icons a {
+		color: var(--text-color-secondary);
+		font-size: 1.2rem;
+		transition:
+			transform 0.2s,
+			color 0.2s;
+	}
+
+	.social-icons a:hover {
+		color: var(--primary-color);
+		transform: translateY(-2px);
+	}
+
+	.footer-bottom {
 		text-align: center;
-		padding: 1rem;
+		margin-top: 3rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--border-color);
 		font-size: 0.85rem;
 		color: var(--text-color-secondary);
-		margin-top: auto; /* Push to bottom */
-		flex-shrink: 0;
-		border-top: 1px solid var(--border-color);
-		background-color: var(
-			--card-background
-		); /* Use card background or specific footer var */
+	}
+
+	@media (max-width: 768px) {
+		.footer-content {
+			flex-direction: column;
+			gap: 2.5rem;
+		}
+		.footer-column {
+			min-width: 100%;
+			text-align: center;
+		}
+		.brand-column {
+			align-items: center;
+			order: -1;
+		}
 	}
 
 	/* Styles for right-aligned button */

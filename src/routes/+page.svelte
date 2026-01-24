@@ -7,7 +7,12 @@
 
   // Get stores from context provided by layout
   const selectedTheme = getContext("theme"); // Read-only access is enough here
-  import { searchHomeDesign, selectedEngine } from "$lib/stores.js";
+  import {
+    searchHomeDesign,
+    selectedEngine,
+    enableSuggestions,
+    customLogo,
+  } from "$lib/stores.js";
   import { searchHistory } from "$lib/searchHistory.js";
   // const isSidebarOpen = getContext('sidebar'); // Not directly needed here
 
@@ -54,6 +59,8 @@
 
   function handleKeyPress(event) {
     if (event.key === "Enter") {
+      clearTimeout(suggestTimeout);
+      showSuggestions = false;
       performSearchNavigation(); // Use the new navigation function
     }
   }
@@ -61,8 +68,57 @@
   function clearSearch() {
     searchQuery = "";
     searchResults = [];
+    suggestions = [];
+    showSuggestions = false;
+    clearTimeout(suggestTimeout);
     // Optionally focus the input after clearing
     // document.querySelector('.search-box input[type="text"] ').focus();
+  }
+
+  // --- Autosuggest Logic ---
+  let suggestions = [];
+  let showSuggestions = false;
+  let suggestTimeout;
+
+  async function fetchSuggestions(q) {
+    if (!$enableSuggestions || !q || q.length < 2) {
+      suggestions = [];
+      return;
+    }
+    try {
+      const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
+      if (res.ok) {
+        suggestions = await res.json();
+      }
+    } catch (e) {
+      console.error("Suggestion fetch error", e);
+    }
+  }
+
+  function handleInput(event) {
+    const val = event.target.value;
+    searchQuery = val;
+    clearTimeout(suggestTimeout);
+    if (val.trim().length > 1) {
+      suggestTimeout = setTimeout(() => {
+        fetchSuggestions(val);
+        showSuggestions = true;
+      }, 300);
+    } else {
+      showSuggestions = false;
+    }
+  }
+
+  function selectSuggestion(s) {
+    searchQuery = s;
+    showSuggestions = false;
+    performSearchNavigation();
+  }
+
+  function clickOutsideSuggestions(event) {
+    if (!event.target.closest(".search-box")) {
+      showSuggestions = false;
+    }
   }
 
   // --- Web Speech API Logic ---
@@ -161,6 +217,8 @@
   <title>Artado Search</title>
 </svelte:head>
 
+<svelte:window on:click={clickOutsideSuggestions} />
+
 <div
   class="home-container"
   class:modern={$searchHomeDesign === "modern"}
@@ -168,7 +226,7 @@
   in:fade={{ duration: 400 }}
 >
   <div class="logo-container">
-    <img src="/logo.png" alt="Artado Search" class="logo" />
+    <img src={$customLogo} alt="Artado Search" class="logo" />
     <h1>Artado Search</h1>
     <p class="subtitle">İnterneti Keşfet</p>
   </div>
@@ -176,14 +234,49 @@
   <div class="search-container">
     <div class="search-box">
       <i class="fas fa-search search-icon"></i>
-      <input
-        type="text"
-        bind:value={searchQuery}
-        on:keypress={handleKeyPress}
-        placeholder="Ne aramıştınız?"
-        aria-label="Arama"
-        class="search-input"
-      />
+      <div class="input-wrapper" style="flex:1; width:100%; display: flex;">
+        <input
+          type="text"
+          value={searchQuery}
+          on:input={handleInput}
+          on:keypress={handleKeyPress}
+          on:focus={() => {
+            if (searchQuery.length > 1 && suggestions.length > 0)
+              showSuggestions = true;
+          }}
+          placeholder="Ne aramıştınız?"
+          aria-label="Arama"
+          class="search-input"
+          autocomplete="off"
+        />
+        {#if showSuggestions && suggestions.length > 0}
+          <div
+            class="suggestions-dropdown"
+            in:fade={{ duration: 200, delay: 0 }}
+          >
+            <div class="suggestions-header">
+              <i class="fas fa-magic"></i> Öneriler
+            </div>
+            {#each suggestions as s}
+              <button
+                class="suggestion-item"
+                on:click={() => selectSuggestion(s)}
+              >
+                <div class="suggestion-icon-wrapper">
+                  <i class="fas fa-search"></i>
+                </div>
+                <span
+                  >{@html s.replace(
+                    new RegExp(searchQuery, "gi"),
+                    (match) => `<b>${match}</b>`,
+                  )}</span
+                >
+                <i class="fas fa-arrow-up suggestion-arrow"></i>
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
       {#if searchQuery}
         <button
           class="clear-button"
@@ -309,7 +402,7 @@
       box-shadow 0.3s ease,
       border-color 0.3s ease;
     position: relative;
-    overflow: hidden;
+    /* overflow: hidden; -- Removed to allow dropdown visibility */
   }
 
   .search-box:focus-within {
@@ -396,6 +489,111 @@
 
   .search-action-icon {
     font-size: 1.1rem;
+  }
+
+  /* Autosuggest Styles */
+  .suggestions-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: rgba(var(--card-background-rgb, 255, 255, 255), 0.8);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    border-radius: 20px;
+    z-index: 2000;
+    overflow: hidden;
+    padding: 0.5rem;
+  }
+
+  .suggestions-header {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-color-secondary);
+    padding: 0.6rem 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0.7;
+  }
+
+  .suggestion-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.85rem 1.4rem;
+    background: transparent;
+    border: none;
+    text-align: left;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 1.05rem;
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    border-radius: 18px;
+    gap: 1.4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .suggestion-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 5px;
+    height: 0;
+    background: var(--primary-color);
+    transition: height 0.3s ease;
+    border-radius: 0 5px 5px 0;
+  }
+
+  .suggestion-item:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 10px 25px rgba(var(--primary-color-rgb), 0.3);
+  }
+
+  .suggestion-item:hover::before {
+    height: 60%;
+    background: white;
+  }
+
+  .suggestion-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    background: var(--hover-background);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--text-color-secondary);
+    transition: all 0.3s;
+  }
+
+  .suggestion-item:hover .suggestion-icon-wrapper {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    transform: rotate(15deg);
+  }
+
+  .suggestion-arrow {
+    margin-left: auto;
+    font-size: 0.85rem;
+    opacity: 0;
+    transform: rotate(-45deg);
+    transition: all 0.3s;
+  }
+
+  .suggestion-item:hover .suggestion-arrow {
+    opacity: 1;
+    transform: rotate(-45deg) translate(2px, -2px);
   }
 
   .results {
