@@ -1180,6 +1180,7 @@
         border-radius: 25px;
         border: 1px solid var(--border-color);
         padding: 0 0.5rem 0 1rem;
+        max-width: 650px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         transition:
             border-color 0.2s,
