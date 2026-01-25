@@ -1153,6 +1153,7 @@
     .search-header {
         display: flex;
         align-items: center;
+        justify-content: flex-start;
         padding: 0.8rem 1.5rem;
         border-bottom: 1px solid var(--border-color);
         background-color: var(--card-background);
@@ -1172,14 +1173,13 @@
     }
 
     .search-bar-container {
-        flex-grow: 1;
+        flex: 1;
         display: flex;
         align-items: center;
         background-color: var(--input-background);
         border-radius: 25px;
         border: 1px solid var(--border-color);
         padding: 0 0.5rem 0 1rem;
-        max-width: 700px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         transition:
             border-color 0.2s,
