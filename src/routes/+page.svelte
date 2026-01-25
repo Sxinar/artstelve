@@ -865,4 +865,39 @@
       padding: 0 1rem;
     }
   }
+  /* --- Homepage Responsive Design --- */
+  @media (max-width: 600px) {
+    .logo-container {
+      margin: 2rem 0 1.5rem 0;
+    }
+    .logo {
+      width: 80px;
+      height: 80px;
+    }
+    h1 {
+      font-size: 2rem;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+    }
+    .search-container {
+      width: 100%;
+      padding: 0 10px;
+    }
+    .search-box {
+      padding: 0.5rem 1rem;
+    }
+    .search-input {
+      font-size: 1rem;
+    }
+    .suggestions-dropdown {
+      top: calc(100% + 10px);
+      border-radius: 20px;
+    }
+    .suggestion-item {
+      padding: 10px 14px;
+      gap: 10px;
+      font-size: 0.95rem;
+    }
+  }
 </style>

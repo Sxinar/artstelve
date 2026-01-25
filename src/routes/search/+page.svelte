@@ -348,6 +348,7 @@
     let suggestions = [];
     let showSuggestions = false;
     let suggestTimeout;
+    let focusedSuggestionIndex = -1;
 
     async function fetchSuggestions(q) {
         if (!q || q.length < 2) {
@@ -367,6 +368,7 @@
     function handleInput(event) {
         const val = event.target.value;
         inputQuery = val;
+        focusedSuggestionIndex = -1; // Reset focus on input
         clearTimeout(suggestTimeout);
         if (val.trim().length > 1) {
             suggestTimeout = setTimeout(() => {
@@ -376,6 +378,42 @@
         } else {
             showSuggestions = false;
         }
+    }
+
+    function handleKeyDown(event) {
+        if (event.key === "Enter") {
+            clearTimeout(suggestTimeout);
+            if (showSuggestions && focusedSuggestionIndex > -1) {
+                event.preventDefault();
+                selectSuggestion(suggestions[focusedSuggestionIndex]);
+            } else {
+                showSuggestions = false;
+                handleSearchSubmit();
+            }
+            return;
+        }
+
+        if (!showSuggestions || suggestions.length === 0) return;
+
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+            focusedSuggestionIndex =
+                (focusedSuggestionIndex + 1) % suggestions.length;
+        } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            focusedSuggestionIndex =
+                (focusedSuggestionIndex - 1 + suggestions.length) %
+                suggestions.length;
+        } else if (event.key === "Escape") {
+            showSuggestions = false;
+        }
+    }
+
+    function handleBlur() {
+        // Small timeout to allow click to fire
+        setTimeout(() => {
+            showSuggestions = false;
+        }, 200);
     }
 
     function selectSuggestion(s) {
@@ -418,27 +456,29 @@
                     type="text"
                     value={inputQuery}
                     on:input={handleInput}
-                    on:keypress={handleKeyPress}
+                    on:keydown={handleKeyDown}
+                    on:blur={handleBlur}
                     on:focus={() => {
                         if (inputQuery.length > 1 && suggestions.length > 0)
                             showSuggestions = true;
                     }}
-                    placeholder={$t("searchPlaceholder")}
+                    placeholder="Artado'da ara..."
                     aria-label="Arama"
-                    class="search-input-header"
+                    class="search-input"
                     autocomplete="off"
                 />
                 {#if showSuggestions && suggestions.length > 0}
                     <div
                         class="suggestions-dropdown"
-                        in:fade={{ duration: 200 }}
+                        transition:fly={{ y: 20, duration: 400, delay: 0 }}
                     >
                         <div class="suggestions-header">
                             <i class="fas fa-magic"></i> Öneriler
                         </div>
-                        {#each suggestions as s}
+                        {#each suggestions as s, i}
                             <button
                                 class="suggestion-item"
+                                class:focused={i === focusedSuggestionIndex}
                                 on:click={() => selectSuggestion(s)}
                             >
                                 <div class="suggestion-icon-wrapper">
@@ -446,7 +486,13 @@
                                 </div>
                                 <span
                                     >{@html s.replace(
-                                        new RegExp(searchQuery, "gi"),
+                                        new RegExp(
+                                            inputQuery.replace(
+                                                /[.*+?^${}()|[\]\\]/g,
+                                                "\\$&",
+                                            ),
+                                            "gi",
+                                        ),
                                         (match) => `<b>${match}</b>`,
                                     )}</span
                                 >
@@ -1150,73 +1196,92 @@
     /* Autosuggest Styles (Premium) */
     .suggestions-dropdown {
         position: absolute;
-        top: calc(100% + 12px);
+        top: calc(100% + 15px);
         left: 0;
         right: 0;
-        background: rgba(var(--card-background-rgb, 255, 255, 255), 0.85);
-        -webkit-backdrop-filter: blur(24px);
-        backdrop-filter: blur(24px);
-        border: 1px solid rgba(var(--primary-color-rgb), 0.15);
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
-        border-radius: 24px;
+        background: rgba(15, 15, 20, 0.85); /* Consistently dark glass */
+        -webkit-backdrop-filter: blur(30px) saturate(160%);
+        backdrop-filter: blur(30px) saturate(160%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow:
+            0 25px 60px rgba(0, 0, 0, 0.5),
+            0 0 30px rgba(var(--primary-color-rgb), 0.1);
+        border-radius: 28px;
         z-index: 2000;
         overflow: hidden;
-        padding: 0.6rem;
+        padding: 10px;
+        transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
     }
 
     .suggestions-header {
         font-size: 0.7rem;
         font-weight: 800;
-        color: var(--text-color-secondary);
-        padding: 0.8rem 1.2rem;
+        color: rgba(255, 255, 255, 0.5);
+        padding: 8px 15px;
+        text-transform: uppercase;
         letter-spacing: 1.5px;
         display: flex;
         align-items: center;
-        gap: 0.6rem;
-        opacity: 0.6;
+        gap: 8px;
     }
 
     .suggestion-item {
         display: flex;
         align-items: center;
         width: 100%;
-        padding: 0.85rem 1.4rem;
+        padding: 12px 18px;
         background: transparent;
         border: none;
         text-align: left;
-        color: var(--text-color);
+        color: #ffffff;
         cursor: pointer;
-        font-size: 1.05rem;
-        transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-        border-radius: 18px;
-        gap: 1.4rem;
+        font-size: 1rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 16px;
+        gap: 15px;
         position: relative;
-        overflow: hidden;
+        margin-bottom: 4px;
     }
 
-    .suggestion-item::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 5px;
-        height: 0;
-        background: var(--primary-color);
-        transition: height 0.3s ease;
-        border-radius: 0 5px 5px 0;
-    }
-
+    .suggestion-item.focused,
     .suggestion-item:hover {
-        background: var(--primary-color);
-        color: white;
-        transform: translateY(-2px) scale(1.01);
-        box-shadow: 0 10px 30px rgba(var(--primary-color-rgb), 0.4);
+        background: rgba(var(--primary-color-rgb), 0.15);
+        padding-left: 24px;
+        color: var(--primary-color);
     }
 
-    .suggestion-item:hover::before {
-        height: 60%;
-        background: white;
+    .suggestion-icon-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        color: var(--text-color-secondary);
+        transition: all 0.3s ease;
+    }
+
+    .suggestion-item.focused .suggestion-icon-wrapper,
+    .suggestion-item:hover .suggestion-icon-wrapper {
+        background: var(--primary-color);
+        color: #fff;
+        transform: scale(1.1);
+    }
+
+    .suggestion-arrow {
+        margin-left: auto;
+        opacity: 0;
+        transform: translateX(10px);
+        transition: all 0.3s ease;
+        font-size: 0.8rem;
+        color: var(--primary-color);
+    }
+
+    .suggestion-item.focused .suggestion-arrow,
+    .suggestion-item:hover .suggestion-arrow {
+        opacity: 1;
+        transform: translateX(0);
     }
 
     .suggestion-icon-wrapper {
@@ -2626,5 +2691,56 @@
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
         border-color: var(--primary-color-light);
+    }
+    /* --- Search Results Mobile Design --- */
+    @media (max-width: 768px) {
+        .search-header {
+            flex-direction: column;
+            padding: 1rem;
+            gap: 1rem;
+        }
+
+        .logo-link {
+            margin-bottom: 0.5rem;
+        }
+
+        .header-logo {
+            height: 28px;
+        }
+
+        .search-bar-container {
+            width: 100%;
+        }
+
+        .search-results-page {
+            padding: 0 10px;
+        }
+
+        .results-container {
+            padding: 10px 0;
+        }
+
+        .result-item-card {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+        }
+
+        .result-description {
+            font-size: 0.9rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .search-header {
+            padding: 0.5rem;
+        }
+
+        .search-action-button {
+            padding: 0 0.8rem;
+        }
     }
 </style>
