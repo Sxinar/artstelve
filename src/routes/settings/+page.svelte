@@ -1297,10 +1297,8 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 </div>
                              </div>
                         </div>
-                    {/if}
                 </section>
 
-            {/if}
         </main>
     </div>
 </div>
