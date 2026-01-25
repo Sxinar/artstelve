@@ -653,7 +653,6 @@
 		font-size: 0.95rem; /* Slightly larger for readability */
 		font-weight: 600;
 		color: var(--text-color-secondary);
-		text-transform: uppercase;
 		letter-spacing: 0.5px;
 		margin: 0 0 0.7rem 0;
 	}
@@ -858,18 +857,28 @@
 	}
 
 	.footer-handle {
-		width: 60px;
-		height: 6px;
-		background: var(--border-color);
-		border-radius: 10px;
-		margin: 1.5rem auto 0;
+		width: 100%;
+		height: 34px;
+		background: #0d0d0d;
+		margin: 0;
 		cursor: pointer;
-		opacity: 0.5;
-		transition: opacity 0.3s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 	}
 
-	.footer-handle:hover {
-		opacity: 1;
+	.footer-handle::after {
+		content: "";
+		width: 50px;
+		height: 4px;
+		background: rgba(255, 255, 255, 0.2);
+		border-radius: 10px;
+		transition: background 0.3s;
+	}
+
+	.footer-handle:hover::after {
+		background: rgba(255, 255, 255, 0.4);
 	}
 
 	.premium-tag {

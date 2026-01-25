@@ -159,6 +159,9 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         customLogo.set("/logo.png");
     }
 
+    // This ensures local storage values are locked in once chosen.
+    // Manual selection in Settings should override everything on refresh.
+
     function restoreSettings(event) {
         const file = event.target.files[0];
         if (!file) return;
