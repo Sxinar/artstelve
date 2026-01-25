@@ -1176,22 +1176,20 @@
         flex: 1;
         display: flex;
         align-items: center;
-        background-color: var(--input-background);
-        border-radius: 25px;
-        border: 1px solid var(--border-color);
-        padding: 0 0.5rem 0 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 0 0.8rem;
         max-width: 650px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-        transition:
-            border-color 0.2s,
-            box-shadow 0.2s;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: all 0.2s ease;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
     .search-bar-container:focus-within {
-        border-color: var(--primary-color);
-        box-shadow:
-            0 0 0 1px var(--primary-color),
-            0 2px 5px rgba(0, 0, 0, 0.08); /* Enhanced focus */
-        z-index: 1001; /* Ensure above other elements */
+        border-color: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        background: rgba(255, 255, 255, 0.08);
     }
 
     /* Autosuggest Styles (Premium) */

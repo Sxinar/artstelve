@@ -469,21 +469,21 @@
   .search-box {
     display: flex;
     align-items: center;
-    background: var(--input-background);
-    border-radius: 50px;
-    padding: 0.5rem 0.8rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--border-color);
-    transition:
-      box-shadow 0.3s ease,
-      border-color 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 24px;
+    padding: 0.6rem 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
     position: relative;
-    /* overflow: hidden; -- Removed to allow dropdown visibility */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .search-box:focus-within {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-    border-color: #1a73e8;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .search-icon {
@@ -495,15 +495,16 @@
   .search-input {
     flex: 1;
     border: none;
-    padding: 0.7rem 0.5rem;
-    font-size: 1.1rem;
+    padding: 0.5rem 0.8rem;
+    font-size: 1rem;
     outline: none;
     background: transparent;
-    color: var(--text-color);
+    color: #ffffff;
     min-width: 0;
     height: 100%;
     cursor: text;
     pointer-events: auto;
+    font-weight: 400;
   }
 
   input[type="text"]::placeholder {
@@ -569,52 +570,44 @@
     font-size: 1.1rem;
   }
 
-  /* Autosuggest Styles - Clean & Compact */
+  /* Autosuggest Styles - DuckDuckGo Style */
   .suggestions-dropdown {
     position: absolute;
-    top: calc(100% + 10px);
+    top: calc(100% + 8px);
     left: 0;
     right: 0;
-    background: rgba(20, 20, 25, 0.95);
+    background: rgba(50, 50, 55, 0.98);
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     border-radius: 16px;
     z-index: 2000;
     overflow: hidden;
-    padding: 8px;
-    transition: all 0.2s ease;
+    padding: 6px;
+    transition: all 0.15s ease;
   }
 
   .suggestions-header {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.4);
-    padding: 6px 12px 4px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    display: none;
   }
 
   .suggestion-item {
     display: flex;
     align-items: center;
     width: 100%;
-    padding: 10px 14px;
+    padding: 8px 12px;
     background: transparent;
     border: none;
     text-align: left;
-    color: #ffffff;
+    color: #e0e0e0;
     cursor: pointer;
-    font-size: 0.95rem;
-    transition: all 0.2s ease;
-    border-radius: 12px;
-    gap: 12px;
+    font-size: 0.9rem;
+    transition: all 0.15s ease;
+    border-radius: 8px;
+    gap: 10px;
     position: relative;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
   }
 
   .suggestion-item.focused,
