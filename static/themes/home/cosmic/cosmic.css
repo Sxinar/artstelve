@@ -1,0 +1,14 @@
+.home-container {
+    background: #0b0d17 radial-gradient(circle at 50% 50%, rgba(100, 50, 255, 0.15), transparent 50%) !important;
+    color: white !important;
+}
+
+.search-box {
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.search-input {
+    color: white !important;
+}

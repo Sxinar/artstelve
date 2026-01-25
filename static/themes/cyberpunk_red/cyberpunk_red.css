@@ -1,0 +1,25 @@
+:root {
+    --primary-color: #ff003c;
+    --primary-color-rgb: 255, 0, 60;
+    --accent-color: #00f3ff;
+    --background-color: #050505;
+    --card-background: #0d0d0d;
+    --text-color: #ffffff;
+    --text-color-secondary: #b0b0b0;
+    --border-color: #202020;
+    --input-background: #111111;
+}
+
+.result-item-card {
+    border-left: 4px solid var(--primary-color) !important;
+    background: linear-gradient(90deg, #111, #0d0d0d) !important;
+    clip-path: polygon(0 0, 100% 0, 100% 90%, 98% 100%, 0 100%) !important;
+}
+
+h1,
+h2,
+h3 {
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important;
+    color: var(--primary-color) !important;
+}

@@ -33,21 +33,11 @@
         blockedSites,
         showNavbarSubCategory,
     } from "$lib/stores.js";
-    import { searchHistory, formatTimestamp } from "$lib/searchHistory.js";
+
 
     let notifications = false;
     let activeTab = "Temel Ayarlar";
-    let historySearchQuery = "";
-    let historyFilterType = "all";
 
-    $: filteredHistory = $searchHistory.filter((item) => {
-        const matchesQuery = item.query
-            .toLowerCase()
-            .includes(historySearchQuery.toLowerCase());
-        const matchesType =
-            historyFilterType === "all" || item.type === historyFilterType;
-        return matchesQuery && matchesType;
-    });
 
     let proxyLatency = null;
     let isTestingProxy = false;
@@ -96,7 +86,7 @@
 
         { id: "Gelişmiş", icon: "fas fa-tools", label: "advanced" },
         { id: "Eklentiler", icon: "fas fa-puzzle-piece", label: "plugins" },
-        { id: "Geçmiş", icon: "fas fa-history", label: "history" },
+
         { id: "Özel CSS", icon: "fas fa-code", label: "customCSS" },
     ];
 
@@ -281,6 +271,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                     const allPlugins = data.plugins || [];
                     const _plugins = [];
                     const _logos = [];
+                    const _homeThemes = [];
 
                     allPlugins.forEach((p) => {
                         const type = (p.category || "").toLowerCase();
@@ -911,7 +902,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 </button>
                             </div>
 
-                            {#if proxyLatency !== null && (proxyLatency > 300 || proxyLatency === "Hata")}
+                            {#if proxyLatency !== null && (proxyLatency > 400 || proxyLatency === "Hata")}
                                 <div class="latency-warning" in:fade>
                                     <i class="fas fa-exclamation-triangle"></i>
                                     <div class="warning-text">
@@ -1308,167 +1299,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         </div>
                     {/if}
                 </section>
-            {:else if activeTab === "Geçmiş"}
-                <section in:slide={{ duration: 300 }}>
-                    <h2 class="section-heading">Arama Geçmişi</h2>
-                    <div class="setting-card">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;"
-                        >
-                            <p style="margin: 0;">
-                                Son yaptığınız aramalar (Maksimum 50 adet).
-                            </p>
-                            {#if !$enableHistory}
-                                <div class="history-disabled-banner" in:fade>
-                                    <i class="fas fa-info-circle"></i>
-                                    <span
-                                        >Geçmiş kapalı, açmak için <button
-                                            class="link-btn-history"
-                                            on:click={() =>
-                                                ($enableHistory = true)}
-                                            >buraya tıklayın</button
-                                        >.</span
-                                    >
-                                </div>
-                            {/if}
-                            <button
-                                class="button danger"
-                                on:click={() => {
-                                    if (
-                                        confirm(
-                                            "Tüm arama geçmişiniz silinecek. Emin misiniz?",
-                                        )
-                                    ) {
-                                        searchHistory.clearHistory();
-                                    }
-                                }}
-                            >
-                                <i class="fas fa-trash"></i> Geçmişi Temizle
-                            </button>
-                        </div>
 
-                        {#if $searchHistory.length > 0}
-                            <div class="history-filter-container">
-                                <div class="history-search-wrapper">
-                                    <i class="fas fa-search"></i>
-                                    <input
-                                        type="text"
-                                        bind:value={historySearchQuery}
-                                        placeholder="Geçmişte ara..."
-                                        class="history-filter-input"
-                                    />
-                                    {#if historySearchQuery}
-                                        <button
-                                            class="clear-history-search"
-                                            on:click={() =>
-                                                (historySearchQuery = "")}
-                                        >
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    {/if}
-                                </div>
-
-                                <div class="filter-chips">
-                                    <button
-                                        class="chip"
-                                        class:active={historyFilterType ===
-                                            "all"}
-                                        on:click={() =>
-                                            (historyFilterType = "all")}
-                                        >Hepsi</button
-                                    >
-                                    <button
-                                        class="chip"
-                                        class:active={historyFilterType ===
-                                            "web"}
-                                        on:click={() =>
-                                            (historyFilterType = "web")}
-                                        >Web</button
-                                    >
-                                    <button
-                                        class="chip"
-                                        class:active={historyFilterType ===
-                                            "image"}
-                                        on:click={() =>
-                                            (historyFilterType = "image")}
-                                        >Görsel</button
-                                    >
-                                    <button
-                                        class="chip"
-                                        class:active={historyFilterType ===
-                                            "video"}
-                                        on:click={() =>
-                                            (historyFilterType = "video")}
-                                        >Video</button
-                                    >
-                                    <button
-                                        class="chip"
-                                        class:active={historyFilterType ===
-                                            "ai"}
-                                        on:click={() =>
-                                            (historyFilterType = "ai")}
-                                        >AI</button
-                                    >
-                                </div>
-                            </div>
-                        {/if}
-
-                        {#if filteredHistory.length > 0}
-                            <div class="history-list">
-                                {#each filteredHistory as item (item.id)}
-                                    <div class="history-item">
-                                        <div class="history-item-info">
-                                            <i
-                                                class="fas fa-search"
-                                                style="opacity: 0.5;"
-                                            ></i>
-                                            <div class="history-item-text">
-                                                <a
-                                                    href="/search?i={encodeURIComponent(
-                                                        item.query,
-                                                    )}&t={item.type}"
-                                                    class="history-query"
-                                                >
-                                                    {item.query}
-                                                </a>
-                                                <span class="history-meta">
-                                                    {item.engine} • {item.type ===
-                                                    "web"
-                                                        ? "Web"
-                                                        : item.type} • {formatTimestamp(
-                                                        item.timestamp,
-                                                    )}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <button
-                                            class="history-delete-btn"
-                                            on:click={() =>
-                                                searchHistory.removeSearch(
-                                                    item.id,
-                                                )}
-                                            title="Sil"
-                                        >
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                {/each}
-                            </div>
-                        {:else}
-                            <div class="empty-state">
-                                <i
-                                    class="fas fa-history fa-3x"
-                                    style="margin-bottom: 1rem; opacity: 0.2;"
-                                ></i>
-                                <p>
-                                    {historySearchQuery
-                                        ? "Aramanızla eşleşen geçmiş bulunamadı."
-                                        : "Henüz bir arama geçmişiniz yok."}
-                                </p>
-                            </div>
-                        {/if}
-                    </div>
-                </section>
             {/if}
         </main>
     </div>

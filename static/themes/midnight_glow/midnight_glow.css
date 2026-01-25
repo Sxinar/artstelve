@@ -1,0 +1,27 @@
+:root {
+    --primary-color: #bb86fc;
+    --primary-color-rgb: 187, 134, 252;
+    --accent-color: #03dac6;
+    --background-color: #0a0a0b;
+    --card-background: #161618;
+    --text-color: #f0f0f5;
+    --text-color-secondary: #a0a0ab;
+    --border-color: #2a2a2e;
+    --input-background: #1e1e20;
+}
+
+body {
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
+}
+
+.result-item-card {
+    background: var(--card-background) !important;
+    border: 1px solid rgba(var(--primary-color-rgb), 0.1) !important;
+    box-shadow: 0 4px 25px rgba(0,0,0,0.4) !important;
+}
+
+.search-box {
+    background: var(--input-background) !important;
+    border-color: var(--border-color) !important;
+}

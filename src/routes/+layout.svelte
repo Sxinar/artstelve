@@ -6,7 +6,6 @@
 	import { quintOut } from "svelte/easing";
 	import { browser } from "$app/environment"; // Import browser check
 	import { goto, afterNavigate } from "$app/navigation";
-	import { searchHistory } from "$lib/searchHistory.js";
 	import "../app.css";
 	import "../global.css";
 

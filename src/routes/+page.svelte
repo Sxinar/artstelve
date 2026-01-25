@@ -13,7 +13,6 @@
     enableSuggestions,
     customLogo,
   } from "$lib/stores.js";
-  import { searchHistory } from "$lib/searchHistory.js";
   import { browser } from "$app/environment";
 
   let searchQuery = "";
@@ -41,7 +40,6 @@
 
   function performSearchNavigation() {
     if (!searchQuery.trim()) return;
-    searchHistory.addSearch(searchQuery.trim(), $selectedEngine, "web");
     // Navigate to the search page with the query
     goto(`/search?i=${encodeURIComponent(searchQuery.trim())}`);
   }

@@ -1,0 +1,12 @@
+.home-container {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%) !important;
+}
+
+.search-box {
+    border: 2px solid #4caf50 !important;
+    box-shadow: 0 10px 30px rgba(76, 175, 80, 0.1) !important;
+}
+
+.subtitle {
+    color: #2e7d32 !important;
+}

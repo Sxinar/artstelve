@@ -1,0 +1,18 @@
+:root {
+    --primary-color: #008080;
+    --primary-color-rgb: 0, 128, 128;
+    --background-color: #001f3f;
+    --card-background: #002b55;
+    --text-color: #e0faff;
+    --text-color-secondary: #8bc3ff;
+    --border-color: #004080;
+    --input-background: #001a33;
+}
+
+.result-title a {
+    color: #4db8ff !important;
+}
+
+.search-box {
+    border: 2px solid var(--primary-color) !important;
+}

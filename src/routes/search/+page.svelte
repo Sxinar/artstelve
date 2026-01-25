@@ -16,9 +16,9 @@
         customLogo,
     } from "$lib/stores.js"; // Import AI summary setting
     import { safeSearch, blockedSites } from "$lib/stores.js";
-    import { searchHistory } from "$lib/searchHistory.js";
     import { t } from "$lib/i18n.js";
-    import { fade, slide } from "svelte/transition";
+    import { fade, slide, fly } from "svelte/transition";
+    import { browser } from "$app/environment";
 
     // Get sidebar store from context
     const isSidebarOpen = getContext("sidebar");
@@ -27,6 +27,7 @@
     let inputQuery = ""; // Separate state for the input field
     let isLoading = false;
     let searchResults = writable([]);
+    let specialResults = writable([]); // Results from plugins
     let error = writable(null); // Use writable store for error
     let activeSearchType = "web"; // 'web', 'images', 'videos', 'news' etc.
     let imageSize = "";
@@ -149,8 +150,52 @@
             queryAiSummary.set(null); // Reset query summary on error
         } finally {
             isLoading = false;
+
+            // Dispatch event for plugins to react
+            if (browser) {
+                specialResults.set([]); // Clear previous
+                window.dispatchEvent(
+                    new CustomEvent("artstelve_search", {
+                        detail: {
+                            query: query,
+                            type: type,
+                            addSpecialResult: (res) => {
+                                specialResults.update((prev) => {
+                                    // Prevent duplicates by ID
+                                    if (prev.some((p) => p.id === res.id))
+                                        return prev;
+                                    return [res, ...prev];
+                                });
+                            },
+                        },
+                    }),
+                );
+            }
         }
     }
+
+    async function loadPlugins() {
+        if (!browser) return;
+        try {
+            const res = await fetch("/api/workshop/plugins");
+            if (res.ok) {
+                const data = await res.json();
+                const plugins = data.plugins || [];
+                plugins.forEach((p) => {
+                    const script = document.createElement("script");
+                    script.src = `/plugins/${p.id}/${p.id}.js`;
+                    script.async = true;
+                    document.head.appendChild(script);
+                });
+            }
+        } catch (e) {
+            console.error("Failed to load plugins:", e);
+        }
+    }
+
+    onMount(() => {
+        loadPlugins();
+    });
 
     async function loadMore() {
         if (isLoading) return;
@@ -173,7 +218,6 @@
 
     function handleSearchSubmit(type = activeSearchType) {
         if (!inputQuery.trim()) return;
-        searchHistory.addSearch(inputQuery.trim(), $selectedEngine, type);
         goto(`/search?i=${encodeURIComponent(inputQuery.trim())}&t=${type}`);
     }
 
@@ -504,8 +548,24 @@
 
                 <!-- === WEB RESULTS === -->
             {:else if activeSearchType === "web"}
-                {#if filteredResults.length > 0}
+                {#if filteredResults.length > 0 || $specialResults.length > 0}
                     <div class="results-list web-results">
+                        <!-- Plugin Special Results -->
+                        {#each $specialResults as res (res.id)}
+                            <div
+                                class="result-item-card special-plugin-card"
+                                in:fly={{ y: 20, duration: 400 }}
+                            >
+                                <div class="special-badge">
+                                    <i class={res.icon}></i>
+                                    {res.plugin}
+                                </div>
+                                <h3 class="result-title">{res.title}</h3>
+                                <div class="result-content plugin-content">
+                                    {@html res.content}
+                                </div>
+                            </div>
+                        {/each}
                         {#each filteredResults as result (result.url)}
                             <div class="result-item-card">
                                 <div class="result-header">
@@ -1383,6 +1443,39 @@
         font-weight: 500;
     }
     /* Menu Container */
+    /* Special Plugin Result Styling */
+    .special-plugin-card {
+        border: 2px solid rgba(var(--primary-color-rgb), 0.3) !important;
+        background: linear-gradient(
+            135deg,
+            var(--card-background),
+            rgba(var(--primary-color-rgb), 0.05)
+        ) !important;
+        position: relative;
+        overflow: hidden;
+    }
+    .special-badge {
+        position: absolute;
+        top: 0.8rem;
+        right: 0.8rem;
+        background: var(--primary-color);
+        color: white;
+        padding: 0.25rem 0.6rem;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        box-shadow: 0 4px 10px rgba(var(--primary-color-rgb), 0.3);
+    }
+    .plugin-content {
+        margin-top: 1rem;
+        padding: 0.5rem 0;
+    }
+
     .result-menu-container {
         position: relative;
         margin-left: auto;

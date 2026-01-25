@@ -91,7 +91,6 @@ export const accentColor = createPersistentStore('accentColor', '#1a73e8');
 export const safeSearch = createPersistentStore('safeSearch', true);
 
 // --- Privacy & Features ---
-export const enableHistory = createPersistentStore('enableHistory', true);
 export const enableSuggestions = createPersistentStore('enableSuggestions', true);
 export const searchRegion = createPersistentStore('searchRegion', 'all'); // 'all', 'tr', 'us', etc.
 

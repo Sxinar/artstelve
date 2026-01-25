@@ -1,0 +1,21 @@
+:root {
+    --primary-color: #e67e22;
+    --primary-color-rgb: 230, 126, 34;
+    --accent-color: #d35400;
+    --background-color: #fdf5e6;
+    --card-background: #ffffff;
+    --text-color: #2c3e50;
+    --text-color-secondary: #7f8c8d;
+    --border-color: #fadec1;
+    --input-background: #fffafa;
+}
+
+body {
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
+}
+
+.result-item-card {
+    border-radius: 12px !important;
+    border: 1px solid var(--border-color) !important;
+}
