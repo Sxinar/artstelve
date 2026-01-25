@@ -107,15 +107,31 @@
 		}
 
 		// Otherwise, try to load it as an external theme
-		// Assuming external themes are in /themes/[themeName]/[themeName].css
-		console.log("Layout: Applying external theme:", theme);
 		externalThemeElement = document.createElement("link");
 		externalThemeElement.rel = "stylesheet";
-		externalThemeElement.href = `/themes/${theme}/${theme}.css`;
-		externalThemeElement.onerror = () => {
-			console.error(`Failed to load external theme: ${theme}`);
-			// Fallback to default if load fails? Maybe not, just logo error
-		};
+
+		// If the theme string contains 'http', it's a remote URL
+		if (
+			theme &&
+			(theme.startsWith("http://") || theme.startsWith("https://"))
+		) {
+			externalThemeElement.href = theme;
+		} else {
+			// Assuming external themes are in /themes/[themeName]/[themeName].css
+			// Or potentially /themes/home/ if it was selected globally (rare but possible)
+			externalThemeElement.href = `/themes/${theme}/${theme}.css`;
+
+			// Fallback mechanism
+			externalThemeElement.onerror = () => {
+				if (
+					externalThemeElement &&
+					!externalThemeElement.href.includes("/home/")
+				) {
+					externalThemeElement.href = `/themes/home/${theme}/${theme}.css`;
+				}
+			};
+		}
+
 		document.head.appendChild(externalThemeElement);
 	}
 

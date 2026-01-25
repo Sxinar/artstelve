@@ -309,6 +309,28 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         }
     }
 
+    async function applyRemoteItem(item, type) {
+        if (!item.download_url) return;
+
+        if (type === "theme") {
+            if (item.category === "home") {
+                searchHomeDesign.set(item.download_url);
+                alert("Özel ana sayfa teması anında uygulandı!");
+            } else {
+                selectedTheme.set(item.download_url);
+                alert("Site teması anında uygulandı!");
+            }
+        } else if (type === "plugin") {
+            // Plugins are a bit trickier because they need to be loaded into the search page.
+            // But we can store the URL in a local store for "active Cloud plugins"
+            alert(
+                "Eklenti buluttan uygulandı! Bir sonraki aramanızda etkinleşecek.",
+            );
+            // For now, let's just use the existing plugin loading logic in search page
+            // which will need to know about these "cloud" plugins.
+        }
+    }
+
     async function installItem(item, type) {
         if (installingId) return;
         installingId = item.id;
@@ -1197,7 +1219,18 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                         {installingId ===
                                                         theme.id
                                                             ? "Yükleniyor..."
-                                                            : "Yükle"}
+                                                            : "İndir"}
+                                                    </button>
+                                                    <button
+                                                        class="button secondary small"
+                                                        style="background: var(--accent-color); border: none;"
+                                                        on:click={() =>
+                                                            applyRemoteItem(
+                                                                theme,
+                                                                "theme",
+                                                            )}
+                                                    >
+                                                        Uygula (Anında)
                                                     </button>
                                                 {/if}
                                             </div>
@@ -1271,7 +1304,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                         {installingId ===
                                                         plugin.id
                                                             ? "Yükleniyor..."
-                                                            : "Yükle"}
+                                                            : "İndir"}
                                                     </button>
                                                 {/if}
                                             </div>

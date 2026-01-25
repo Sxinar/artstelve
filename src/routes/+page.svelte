@@ -33,25 +33,31 @@
     customHomeThemeElement = document.createElement("link");
     customHomeThemeElement.rel = "stylesheet";
 
-    // Try home subfolder first, then direct
-    const paths = [
-      `/themes/home/${theme}/${theme}.css`,
-      `/themes/${theme}/${theme}.css`,
-    ];
+    // Check if it's a remote URL
+    if (
+      theme &&
+      (theme.startsWith("http://") || theme.startsWith("https://"))
+    ) {
+      customHomeThemeElement.href = theme;
+    } else {
+      // Try home subfolder first, then direct
+      const paths = [
+        `/themes/home/${theme}/${theme}.css`,
+        `/themes/${theme}/${theme}.css`,
+      ];
 
-    // Using the first path as default, but we could check existence if needed.
-    // For now, simpler to just set the most likely one or try to detect.
-    customHomeThemeElement.href = paths[0];
+      customHomeThemeElement.href = paths[0];
 
-    // Add an error handler to try fallback if the first one fails
-    customHomeThemeElement.onerror = () => {
-      if (
-        customHomeThemeElement &&
-        customHomeThemeElement.href.includes("/home/")
-      ) {
-        customHomeThemeElement.href = `/themes/${theme}/${theme}.css`;
-      }
-    };
+      // Fallback mechanism
+      customHomeThemeElement.onerror = () => {
+        if (
+          customHomeThemeElement &&
+          customHomeThemeElement.href.includes("/home/")
+        ) {
+          customHomeThemeElement.href = `/themes/${theme}/${theme}.css`;
+        }
+      };
+    }
 
     document.head.appendChild(customHomeThemeElement);
   }

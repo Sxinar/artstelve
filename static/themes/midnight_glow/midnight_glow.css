@@ -2,26 +2,51 @@
     --primary-color: #bb86fc;
     --primary-color-rgb: 187, 134, 252;
     --accent-color: #03dac6;
-    --background-color: #0a0a0b;
-    --card-background: #161618;
-    --text-color: #f0f0f5;
-    --text-color-secondary: #a0a0ab;
-    --border-color: #2a2a2e;
-    --input-background: #1e1e20;
+    --background-color: #050507;
+    --card-background: rgba(22, 22, 28, 0.7);
+    --text-color: #f8f9fa;
+    --text-color-secondary: #adb5bd;
+    --border-color: rgba(187, 134, 252, 0.15);
+    --input-background: rgba(30, 30, 35, 0.8);
+    --hover-background: rgba(187, 134, 252, 0.1);
 }
 
 body {
-    background-color: var(--background-color) !important;
-    color: var(--text-color) !important;
+    background: radial-gradient(circle at top right, #121016, #050507) !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
 }
 
 .result-item-card {
     background: var(--card-background) !important;
-    border: 1px solid rgba(var(--primary-color-rgb), 0.1) !important;
-    box-shadow: 0 4px 25px rgba(0,0,0,0.4) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(187, 134, 252, 0.05) !important;
+    transition: all 0.4s cubic-bezier(0.2, 1, 0.3, 1) !important;
+    margin-bottom: 1.5rem !important;
+}
+
+.result-item-card:hover {
+    transform: translateY(-5px) scale(1.01) !important;
+    border-color: rgba(187, 134, 252, 0.4) !important;
+    box-shadow: 0 20px 50px rgba(187, 134, 252, 0.1) !important;
+}
+
+.result-title a {
+    color: var(--primary-color) !important;
+    text-shadow: 0 0 15px rgba(187, 134, 252, 0.3) !important;
 }
 
 .search-box {
     background: var(--input-background) !important;
-    border-color: var(--border-color) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(187, 134, 252, 0.2) !important;
+    border-radius: 100px !important;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+.search-box:focus-within {
+    box-shadow: 0 0 0 4px rgba(187, 134, 252, 0.1), 0 5px 25px rgba(0, 0, 0, 0.6) !important;
+    border-color: var(--primary-color) !important;
 }

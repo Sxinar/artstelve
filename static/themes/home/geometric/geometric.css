@@ -1,11 +1,22 @@
 .home-container {
-    background-color: #ffffff !important;
-    background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%) !important;
-    background-size: 40px 40px !important;
-    background-position: 0 0, 0 20px, 20px -20px, -20px 0px !important;
+    background-color: #000 !important;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px) !important;
+    background-size: 100px 100px !important;
+    perspective: 1000px !important;
 }
 
 .search-box {
-    border-radius: 4px !important;
-    border: 2px solid #333 !important;
+    border: 2px solid #fff !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    border-radius: 0 !important;
+    transform: rotateX(10deg) !important;
+    box-shadow: 0 50px 100px rgba(255, 255, 255, 0.1) !important;
+}
+
+.search-input {
+    color: #fff !important;
+    letter-spacing: 2px !important;
+    text-transform: uppercase !important;
 }

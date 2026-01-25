@@ -1,21 +1,47 @@
 :root {
-    --primary-color: #e67e22;
-    --primary-color-rgb: 230, 126, 34;
-    --accent-color: #d35400;
-    --background-color: #fdf5e6;
+    --primary-color: #d35400;
+    --primary-color-rgb: 211, 84, 0;
+    --accent-color: #e67e22;
+    --background-color: #fff9f0;
     --card-background: #ffffff;
-    --text-color: #2c3e50;
-    --text-color-secondary: #7f8c8d;
-    --border-color: #fadec1;
-    --input-background: #fffafa;
+    --text-color: #4a3728;
+    --text-color-secondary: #8d7564;
+    --border-color: #efdfd0;
+    --input-background: #ffffff;
 }
 
 body {
-    background-color: var(--background-color) !important;
+    background: #fff9f0 url('https://www.transparenttextures.com/patterns/cream-paper.png') !important;
     color: var(--text-color) !important;
 }
 
 .result-item-card {
-    border-radius: 12px !important;
-    border: 1px solid var(--border-color) !important;
+    background: var(--card-background) !important;
+    border: none !important;
+    border-radius: 2px !important;
+    box-shadow: 0 10px 40px rgba(74, 55, 40, 0.05) !important;
+    border-bottom: 3px solid var(--border-color) !important;
+    transition: all 0.3s ease !important;
+}
+
+.result-item-card:hover {
+    border-bottom-color: var(--primary-color) !important;
+    transform: translateY(-2px) !important;
+}
+
+.result-title a {
+    font-family: 'Playfair Display', serif !important;
+    font-weight: 700 !important;
+    color: var(--primary-color) !important;
+}
+
+.search-box {
+    border-radius: 0 !important;
+    border: none !important;
+    border-bottom: 2px solid var(--border-color) !important;
+    background: transparent !important;
+}
+
+.search-box:focus-within {
+    border-bottom-color: var(--primary-color) !important;
 }

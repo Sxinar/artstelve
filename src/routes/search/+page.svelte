@@ -183,7 +183,22 @@
                 const plugins = data.plugins || [];
                 plugins.forEach((p) => {
                     const script = document.createElement("script");
-                    script.src = `/plugins/${p.id}/${p.id}.js`;
+
+                    // If it's a URL, use it directly. Otherwise use local path.
+                    if (
+                        p.id &&
+                        (p.id.startsWith("http") || p.id.includes(".js"))
+                    ) {
+                        script.src = p.id;
+                    } else if (
+                        p.download_url &&
+                        p.download_url.startsWith("http")
+                    ) {
+                        script.src = p.download_url;
+                    } else {
+                        script.src = `/plugins/${p.id}/${p.id}.js`;
+                    }
+
                     script.async = true;
                     document.head.appendChild(script);
                 });

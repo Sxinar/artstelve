@@ -42,7 +42,7 @@ function createPersistentStore(key, startValue) {
 // --- Global Stores ---
 
 // Theme Store (persisted)
-export const selectedTheme = createPersistentStore('selectedTheme', 'klasik'); // Default theme is klasik (lowercase, kebab-case)
+export const selectedTheme = createPersistentStore('selectedTheme', 'midnight_glow'); // Default theme is midnight_glow (lowercase, kebab-case)
 
 // Custom Logo Store (persisted)
 export const customLogo = createPersistentStore('customLogo', '/logo.png');

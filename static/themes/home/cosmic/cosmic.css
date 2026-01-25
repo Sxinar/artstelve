@@ -1,14 +1,41 @@
 .home-container {
-    background: #0b0d17 radial-gradient(circle at 50% 50%, rgba(100, 50, 255, 0.15), transparent 50%) !important;
-    color: white !important;
+    background: #000B18 !important;
+    overflow: hidden !important;
+}
+
+.home-container::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(white, rgba(255, 255, 255, .2) 2px, transparent 40px),
+        radial-gradient(white, rgba(255, 255, 255, .15) 1px, transparent 30px),
+        radial-gradient(white, rgba(255, 255, 255, .1) 2px, transparent 40px) !important;
+    background-size: 550px 550px, 350px 350px, 250px 250px !important;
+    background-position: 0 0, 40px 60px, 130px 270px !important;
+    animation: cosmicStarScroll 100s linear infinite !important;
+}
+
+@keyframes cosmicStarScroll {
+    from {
+        background-position: 0 0, 40px 60px, 130px 270px;
+    }
+
+    to {
+        background-position: 1000px 1000px, 1040px 1060px, 1130px 1270px;
+    }
 }
 
 .search-box {
     background: rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(15px) !important;
+    border: 1px solid rgba(0, 229, 255, 0.3) !important;
+    border-radius: 40px !important;
+    box-shadow: 0 0 40px rgba(0, 229, 255, 0.1) !important;
 }
 
 .search-input {
-    color: white !important;
+    color: #00e5ff !important;
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.5) !important;
 }
