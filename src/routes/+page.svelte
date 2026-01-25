@@ -545,7 +545,10 @@
     gap: 0.5rem;
     opacity: 0.7;
   }
-
+  .suggestion-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
     padding: 0.75rem 1.4rem;
     background: transparent;
     border: none;
@@ -754,29 +757,42 @@
 
   @media (max-width: 768px) {
     .logo-container {
-      margin-bottom: 2rem;
+      margin-bottom: 2.5rem;
+      gap: 1.2rem;
     }
     .logo {
-      width: 100px;
+      width: 90px;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
     }
     h1 {
-      font-size: 2.2rem;
+      font-size: 2rem;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      opacity: 0.8;
     }
     .search-container {
-      width: 92% !important;
-      max-width: none;
+      width: 94% !important;
+      padding: 0 0.5rem;
+    }
+    .search-box {
+      padding: 0.7rem 1.2rem;
+      height: 56px;
+      margin-top: 0.5rem;
     }
     .suggestion-item {
-      padding: 0.75rem 1rem;
-      gap: 1rem;
-      font-size: 0.95rem;
+      padding: 0.9rem 1.25rem;
+      gap: 1.25rem;
+      font-size: 1.05rem;
     }
     .suggestion-icon-wrapper {
-      width: 30px;
-      height: 30px;
+      width: 34px;
+      height: 34px;
+      font-size: 1rem;
     }
     .results {
-      padding: 0 1.5rem;
+      padding: 0 1rem;
     }
   }
 </style>

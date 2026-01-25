@@ -980,7 +980,7 @@
 	.footer-bottom {
 		text-align: center;
 		margin-top: 3rem;
-		padding-top: 1.5rem;
+		padding: 1.5rem 1rem 3rem; /* Increase bottom padding */
 		border-top: 1px solid var(--border-color);
 		font-size: 0.85rem;
 		color: var(--text-color-secondary);
