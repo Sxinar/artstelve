@@ -303,7 +303,10 @@
 	aria-labelledby="sidebar-title"
 >
 	<div class="sidebar-header">
-		<h2 id="sidebar-title">Menü</h2>
+		<div class="header-content">
+			<h2 id="sidebar-title">Menü</h2>
+			<p class="privacy-tagline">Aramalarınız sizinle kalır</p>
+		</div>
 		<button
 			class="close-sidebar"
 			on:click={toggleSidebar}
@@ -605,11 +608,25 @@
 		color: white;
 	}
 
+	.header-content {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
 	.sidebar-header h2 {
 		margin: 0;
 		font-size: 1.4rem;
 		font-weight: 600;
 		color: white;
+	}
+
+	.privacy-tagline {
+		margin: 0;
+		font-size: 0.75rem;
+		color: rgba(255, 255, 255, 0.85);
+		font-weight: 400;
+		letter-spacing: 0.3px;
 	}
 
 	.close-sidebar {
