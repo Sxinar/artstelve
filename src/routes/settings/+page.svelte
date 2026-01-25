@@ -263,6 +263,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
     let themes = writable([]);
     let plugins = writable([]);
     let logos = writable([]);
+    let homeThemes = writable([]);
     let workshopError = writable(null);
     let isLoadingWorkshop = writable(true);
     let installingId = null;
@@ -282,9 +283,11 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                     const _logos = [];
 
                     allPlugins.forEach((p) => {
-                        // Check fast file extensions for images
+                        const type = (p.category || "").toLowerCase();
                         const u = (p.download_url || "").toLowerCase();
-                        if (
+                        if (type === "ana-sayfa" || type === "home") {
+                            _homeThemes.push(p);
+                        } else if (
                             u.endsWith(".png") ||
                             u.endsWith(".jpg") ||
                             u.endsWith(".jpeg") ||
@@ -300,6 +303,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
                     plugins.set(_plugins);
                     logos.set(_logos);
+                    homeThemes.set(_homeThemes);
                     workshopError.set(null);
                 } else {
                     workshopError.set(
@@ -736,12 +740,29 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                             </div>
                             <div class="select-wrapper">
                                 <select bind:value={$searchHomeDesign}>
-                                    <option value="simple"
-                                        >Benim için sade (Simple)</option
-                                    >
-                                    <option value="modern"
-                                        >Modern & Canlı</option
-                                    >
+                                    <optgroup label="Sistem Tasarımları">
+                                        <option value="simple"
+                                            >Benim için sade (Simple)</option
+                                        >
+                                        <option value="modern"
+                                            >Modern & Canlı</option
+                                        >
+                                        <option value="artistic"
+                                            >Sanatsal</option
+                                        >
+                                    </optgroup>
+                                    {#if $homeThemes && $homeThemes.length > 0}
+                                        <optgroup label="Workshop Temaları">
+                                            {#each $homeThemes as hTheme}
+                                                <option
+                                                    value={hTheme.id ||
+                                                        hTheme.name.toLowerCase()}
+                                                >
+                                                    {hTheme.name}
+                                                </option>
+                                            {/each}
+                                        </optgroup>
+                                    {/if}
                                 </select>
                                 <i class="fas fa-chevron-down dropdown-icon"
                                 ></i>
@@ -890,7 +911,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 </button>
                             </div>
 
-                            {#if proxyLatency !== null && (proxyLatency > 1000 || proxyLatency === "Hata")}
+                            {#if proxyLatency !== null && (proxyLatency > 300 || proxyLatency === "Hata")}
                                 <div class="latency-warning" in:fade>
                                     <i class="fas fa-exclamation-triangle"></i>
                                     <div class="warning-text">
@@ -1248,6 +1269,42 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                     Henüz eklenti bulunamadı.
                                 </p>
                             {/if}
+                        <div class="divider"></div>
+
+                        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">
+                             <h3 style="margin-bottom: 1rem;"><i class="fas fa-lightbulb"></i> Örnekler & İlham</h3>
+                             <div class="samples-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; width: 100%;">
+                                <div class="sample-box">
+                                    <strong>Eklentiler</strong>
+                                    <ul>
+                                        <li>Borsa & Döviz Takibi</li>
+                                        <li>Kod Formatlayıcı (Prettier)</li>
+                                        <li>Birim Dönüştürücü</li>
+                                        <li>Profesyonel Çevirmen</li>
+                                        <li>Hava Durumu Widget</li>
+                                    </ul>
+                                </div>
+                                <div class="sample-box">
+                                    <strong>Temalar</strong>
+                                    <ul>
+                                        <li>Gece Parıltısı (Midnight)</li>
+                                        <li>Sonbahar Esintisi</li>
+                                        <li>Cyberpunk Kırmızı</li>
+                                        <li>Minimalist Beyaz</li>
+                                        <li>Derin Okyanus Mavisi</li>
+                                    </ul>
+                                </div>
+                                <div class="sample-box">
+                                    <strong>Ana Sayfa</strong>
+                                    <ul>
+                                        <li>Zen Bahçesi</li>
+                                        <li>Geometrik Desenler</li>
+                                        <li>Soyut Akışkanlık</li>
+                                        <li>Antika Kağıt Dokusu</li>
+                                        <li>Kozmik Bulutsu (Cosmic)</li>
+                                    </ul>
+                                </div>
+                             </div>
                         </div>
                     {/if}
                 </section>
@@ -2259,5 +2316,40 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             width: 100%;
             text-align: center;
         }
+    }
+    .sample-box {
+        background: var(--card-background);
+        border: 1px dashed var(--border-color);
+        padding: 1.2rem;
+        border-radius: 12px;
+        transition: all 0.2s;
+    }
+    .sample-box:hover {
+        border-style: solid;
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+    }
+    .sample-box strong {
+        display: block;
+        margin-bottom: 0.8rem;
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+    .sample-box ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .sample-box li {
+        font-size: 0.85rem;
+        color: var(--text-color-secondary);
+        margin-bottom: 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .sample-box li::before {
+        content: "•";
+        color: var(--primary-color);
     }
 </style>

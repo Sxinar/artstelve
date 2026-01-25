@@ -14,13 +14,30 @@
     customLogo,
   } from "$lib/stores.js";
   import { searchHistory } from "$lib/searchHistory.js";
-  // const isSidebarOpen = getContext('sidebar'); // Not directly needed here
+  import { browser } from "$app/environment";
 
   let searchQuery = "";
   let isLoading = false;
   let searchResults = [];
   let isListening = false; // State for microphone
   let recognition = null; // SpeechRecognition instance
+
+  let customHomeThemeElement;
+  function applyHomeTheme(theme) {
+    if (!browser) return;
+    if (customHomeThemeElement) {
+      customHomeThemeElement.remove();
+      customHomeThemeElement = null;
+    }
+    if (["simple", "modern", "artistic"].includes(theme)) return;
+
+    customHomeThemeElement = document.createElement("link");
+    customHomeThemeElement.rel = "stylesheet";
+    customHomeThemeElement.href = `/themes/home/${theme}/${theme}.css`;
+    document.head.appendChild(customHomeThemeElement);
+  }
+
+  $: if (browser) applyHomeTheme($searchHomeDesign);
 
   function performSearchNavigation() {
     if (!searchQuery.trim()) return;
@@ -55,14 +72,6 @@
       isLoading = false;
     }
     */
-  }
-
-  function handleKeyPress(event) {
-    if (event.key === "Enter") {
-      clearTimeout(suggestTimeout);
-      showSuggestions = false;
-      performSearchNavigation(); // Use the new navigation function
-    }
   }
 
   function clearSearch() {
@@ -113,6 +122,18 @@
   }
 
   function handleKeyDown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      clearTimeout(suggestTimeout);
+      if (showSuggestions && focusedSuggestionIndex > -1) {
+        selectSuggestion(suggestions[focusedSuggestionIndex]);
+      } else {
+        showSuggestions = false;
+        performSearchNavigation();
+      }
+      return;
+    }
+
     if (!showSuggestions || suggestions.length === 0) return;
 
     if (event.key === "ArrowDown") {
@@ -123,9 +144,6 @@
       event.preventDefault();
       focusedSuggestionIndex =
         (focusedSuggestionIndex - 1 + suggestions.length) % suggestions.length;
-    } else if (event.key === "Enter" && focusedSuggestionIndex > -1) {
-      event.preventDefault();
-      selectSuggestion(suggestions[focusedSuggestionIndex]);
     } else if (event.key === "Escape") {
       showSuggestions = false;
     }
@@ -261,7 +279,6 @@
           type="text"
           value={searchQuery}
           on:input={handleInput}
-          on:keypress={handleKeyPress}
           on:keydown={handleKeyDown}
           on:focus={() => {
             if (searchQuery.length > 1 && suggestions.length > 0)
@@ -291,7 +308,10 @@
                 </div>
                 <span
                   >{@html s.replace(
-                    new RegExp(searchQuery, "gi"),
+                    new RegExp(
+                      searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                      "gi",
+                    ),
                     (match) => `<b>${match}</b>`,
                   )}</span
                 >

@@ -105,3 +105,6 @@ export const blockedSites = createPersistentStore('blockedSites', []);
 // Navbar Customization
 export const showNavbarSearch = createPersistentStore('showNavbarSearch', true); // Show search bar in navbar
 export const showNavbarSubCategory = createPersistentStore('showNavbarSubCategory', false); // Extra subcategory in navbar
+
+// Custom Homepage Theme (from workshop)
+export const searchHomeCustomTheme = createPersistentStore('searchHomeCustomTheme', ''); 
