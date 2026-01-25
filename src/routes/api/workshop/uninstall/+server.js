@@ -11,7 +11,7 @@ export async function POST({ request }) {
         }
 
         const targetBaseDir = path.resolve(type === 'theme' ? 'static/themes' : 'static/plugins');
-        const targetDir = path.join(targetBaseDir, id);
+        const targetDir = path.join(targetBaseDir, String(id));
 
         if (fs.existsSync(targetDir)) {
             // Remove directory and its contents

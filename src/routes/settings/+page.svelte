@@ -347,13 +347,18 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         }
     });
 
-    let installedThemesList = [];
+    let installedGeneralThemes = [];
+    let installedHomeThemes = [];
     async function fetchInstalledThemes() {
         try {
             const res = await fetch("/api/workshop/themes");
             if (res.ok) {
                 const data = await res.json();
-                installedThemesList = data.themes || [];
+                const all = data.themes || [];
+                installedGeneralThemes = all.filter(
+                    (t) => t.category !== "home",
+                );
+                installedHomeThemes = all.filter((t) => t.category === "home");
             }
         } catch (e) {
             console.error("Failed to fetch installed themes:", e);
@@ -714,7 +719,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                         >
                                     </optgroup>
                                     {#if $homeThemes && $homeThemes.length > 0}
-                                        <optgroup label="Workshop Temaları">
+                                        <optgroup label="Workshop (Uzak)">
                                             {#each $homeThemes as hTheme}
                                                 <option
                                                     value={hTheme.id ||
@@ -722,6 +727,53 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                 >
                                                     {hTheme.name}
                                                 </option>
+                                            {/each}
+                                        </optgroup>
+                                    {/if}
+                                    {#if installedHomeThemes.length > 0}
+                                        <optgroup
+                                            label="Yüklü Workshop Temaları"
+                                        >
+                                            {#each installedHomeThemes as hTheme}
+                                                <option value={hTheme.id}>
+                                                    {hTheme.name}
+                                                </option>
+                                            {/each}
+                                        </optgroup>
+                                    {/if}
+                                </select>
+                                <i class="fas fa-chevron-down dropdown-icon"
+                                ></i>
+                            </div>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>Site Teması</h3>
+                                <p>
+                                    Tüm sitenin renk paletini ve stilini
+                                    değiştirin.
+                                </p>
+                            </div>
+                            <div class="select-wrapper">
+                                <select bind:value={$selectedTheme}>
+                                    <optgroup label="Sistem Temaları">
+                                        {#each ["klasik", "koyu", "mavi", "pastel", "doga", "terminal", "gece-yarisi", "gunesli", "retro", "komur", "okyanus"] as theme}
+                                            <option value={theme}
+                                                >{formatThemeName(
+                                                    theme,
+                                                )}</option
+                                            >
+                                        {/each}
+                                    </optgroup>
+                                    {#if installedGeneralThemes.length > 0}
+                                        <optgroup label="Yüklü Temalar">
+                                            {#each installedGeneralThemes as itheme}
+                                                <option value={itheme.id}
+                                                    >{itheme.name}</option
+                                                >
                                             {/each}
                                         </optgroup>
                                     {/if}
@@ -913,8 +965,8 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 </button>
                             {/each}
 
-                            {#if installedThemesList.length > 0}
-                                {#each installedThemesList as itheme}
+                            {#if installedGeneralThemes.length > 0}
+                                {#each installedGeneralThemes as itheme}
                                     <div class="theme-button-wrapper">
                                         <button
                                             class="theme-button"
