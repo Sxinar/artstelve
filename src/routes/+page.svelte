@@ -329,7 +329,7 @@
             <div class="suggestions-header">
               <i class="fas fa-magic"></i> Öneriler
             </div>
-            {#each suggestions as s, i}
+            {#each suggestions.slice(0, 7) as s, i}
               <button
                 class="suggestion-item"
                 class:focused={i === focusedSuggestionIndex}
@@ -530,16 +530,14 @@
     flex-shrink: 0;
   }
 
-  .search-box button:hover {
-    background-color: var(--hover-background);
-  }
-
   .clear-button:hover {
     color: var(--danger-color);
+    background-color: rgba(255, 59, 48, 0.1);
   }
 
   .mic-button:hover {
     color: var(--primary-color);
+    background-color: rgba(26, 115, 232, 0.1);
   }
 
   .search-action-button {
@@ -570,116 +568,149 @@
     font-size: 1.1rem;
   }
 
-  /* Autosuggest Styles - DuckDuckGo Style */
+  /* Autosuggest Styles - Modern Design */
   .suggestions-dropdown {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
     right: 0;
-    background: rgba(50, 50, 55, 0.98);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    background: rgba(20, 20, 25, 0.95);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     z-index: 2000;
     overflow: hidden;
-    padding: 6px;
-    transition: all 0.15s ease;
+    padding: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: top center;
+    max-height: 400px;
+    min-height: auto;
   }
 
   .suggestions-header {
-    display: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 6px 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
   }
 
   .suggestion-item {
     display: flex;
     align-items: center;
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 14px;
     background: transparent;
     border: none;
     text-align: left;
-    color: #e0e0e0;
+    color: rgba(255, 255, 255, 0.9);
     cursor: pointer;
     font-size: 0.9rem;
-    transition: all 0.15s ease;
-    border-radius: 0;
-    gap: 10px;
-    position: relative;
-    margin-bottom: 1px;
-  }
-
-  .suggestion-item.focused,
-  .suggestion-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    padding-left: 20px;
-  }
-
-  .suggestion-icon-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 6px;
-    color: var(--text-color-secondary);
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-  }
-
-  .suggestion-item.focused .suggestion-icon-wrapper,
-  .suggestion-item:hover .suggestion-icon-wrapper {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .suggestion-arrow {
-    margin-left: auto;
-    opacity: 0;
-    transform: translateX(10px);
-    transition: all 0.3s ease;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
-  }
-
-  .suggestion-item.focused .suggestion-arrow,
-  .suggestion-item:hover .suggestion-arrow {
-    opacity: 0.7;
-    transform: translateX(0);
-  }
-
-  .suggestion-icon-wrapper {
-    width: 36px;
-    height: 36px;
-    background: var(--hover-background);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 10px;
+    gap: 12px;
+    position: relative;
+    margin-bottom: 2px;
+    font-weight: 400;
+  }
+
+  .suggestion-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .suggestion-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: -1;
+  }
+
+  .suggestion-item:hover {
+    background: transparent;
+    color: #ffffff;
+    transform: translateX(0px);
+  }
+
+  .suggestion-item.focused {
+    background: transparent;
+    color: #ffffff;
+    transform: translateX(0px);
+  }
+
+  .suggestion-item:hover::before {
+    opacity: 1;
+    border-radius: 10px;
+  }
+
+  .suggestion-item.focused::before {
+    opacity: 1;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+    border-radius: 10px;
+  }
+
+  .suggestion-icon-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
-    color: var(--text-color-secondary);
-    transition: all 0.3s;
+    font-size: 0.9rem;
   }
 
   .suggestion-item:hover .suggestion-icon-wrapper {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    transform: rotate(15deg);
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.9);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .suggestion-item.focused .suggestion-icon-wrapper {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    transform: scale(1.15);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
   }
 
   .suggestion-arrow {
     margin-left: auto;
-    font-size: 0.85rem;
     opacity: 0;
-    transform: rotate(-45deg);
-    transition: all 0.3s;
+    transform: translateX(-5px) rotate(-45deg);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
   }
 
   .suggestion-item:hover .suggestion-arrow {
-    opacity: 1;
-    transform: rotate(-45deg) translate(2px, -2px);
+    opacity: 0.8;
+    transform: translateX(0) rotate(-45deg);
+    color: rgba(255, 255, 255, 0.7);
   }
+
+  .suggestion-item.focused .suggestion-arrow {
+    opacity: 1;
+    transform: translateX(0) rotate(-45deg);
+    color: #ffffff;
+  }
+
 
   .results {
     text-align: left;
@@ -760,8 +791,13 @@
   /* Improve focus visibility for accessibility */
   button:focus-visible,
   a:focus-visible,
-  select:focus-visible,
-  input:focus-visible {
+  select:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--primary-color-light);
+  }
+  
+  input:not(.search-input):focus-visible {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
     box-shadow: 0 0 0 4px var(--primary-color-light);

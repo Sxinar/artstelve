@@ -475,7 +475,7 @@
                         <div class="suggestions-header">
                             <i class="fas fa-magic"></i> Öneriler
                         </div>
-                        {#each suggestions as s, i}
+                        {#each suggestions.slice(0, 7) as s, i}
                             <button
                                 class="suggestion-item"
                                 class:focused={i === focusedSuggestionIndex}
@@ -1198,54 +1198,92 @@
         top: calc(100% + 15px);
         left: 0;
         right: 0;
-        background: rgba(15, 15, 20, 0.85); /* Consistently dark glass */
-        -webkit-backdrop-filter: blur(30px) saturate(160%);
-        backdrop-filter: blur(30px) saturate(160%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--card-background);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid var(--border-color);
         box-shadow:
-            0 25px 60px rgba(0, 0, 0, 0.5),
-            0 0 30px rgba(var(--primary-color-rgb), 0.1);
-        border-radius: 28px;
+            0 20px 40px rgba(0, 0, 0, 0.4),
+            0 0 0 1px rgba(var(--primary-color-rgb), 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
         z-index: 2000;
         overflow: hidden;
-        padding: 10px;
-        transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+        padding: 8px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-origin: top center;
+        max-height: 400px;
+        min-height: auto;
     }
 
     .suggestions-header {
-        font-size: 0.7rem;
-        font-weight: 800;
-        color: rgba(255, 255, 255, 0.5);
-        padding: 8px 15px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-color-secondary);
+        padding: 6px 12px;
         text-transform: uppercase;
-        letter-spacing: 1.5px;
+        letter-spacing: 1.2px;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
+        margin-bottom: 4px;
     }
 
     .suggestion-item {
         display: flex;
         align-items: center;
         width: 100%;
-        padding: 8px 12px;
+        padding: 10px 14px;
         background: transparent;
         border: none;
         text-align: left;
-        color: #ffffff;
+        color: var(--text-color);
         cursor: pointer;
         font-size: 0.9rem;
-        transition: all 0.15s ease;
-        border-radius: 0;
-        gap: 10px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 10px;
+        gap: 12px;
         position: relative;
-        margin-bottom: 1px;
+        margin-bottom: 2px;
+        font-weight: 400;
     }
 
-    .suggestion-item.focused,
+    .suggestion-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .suggestion-item::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+        border-radius: 10px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        z-index: -1;
+    }
+
     .suggestion-item:hover {
-        background: rgba(255, 255, 255, 0.08);
-        padding-left: 20px;
+        background: var(--hover-background);
+        color: var(--text-color);
+        transform: translateX(0px);
+    }
+
+    .suggestion-item.focused {
+        background: var(--hover-background);
+        color: var(--text-color);
+        transform: translateX(0px);
+    }
+
+    .suggestion-item:hover::before {
+        opacity: 1;
+        border-radius: 10px;
+    }
+
+    .suggestion-item.focused::before {
+        opacity: 1;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+        border-radius: 10px;
     }
 
     .suggestion-icon-wrapper {
@@ -1254,65 +1292,51 @@
         justify-content: center;
         width: 32px;
         height: 32px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
+        background: var(--hover-background);
+        border-radius: 8px;
         color: var(--text-color-secondary);
-        transition: all 0.3s ease;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        flex-shrink: 0;
+        font-size: 0.9rem;
     }
 
-    .suggestion-item.focused .suggestion-icon-wrapper,
     .suggestion-item:hover .suggestion-icon-wrapper {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--hover-background);
+        color: var(--text-color);
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .suggestion-item.focused .suggestion-icon-wrapper {
+        background: var(--hover-background);
+        color: var(--text-color);
+        transform: scale(1.15);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
     }
 
     .suggestion-arrow {
         margin-left: auto;
         opacity: 0;
-        transform: translateX(10px);
-        transition: all 0.3s ease;
-        font-size: 0.8rem;
+        transform: translateX(-5px) rotate(-45deg);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 0.75rem;
+        color: var(--text-color-secondary);
+    }
+
+    .suggestion-item:hover .suggestion-arrow {
+        opacity: 0.8;
+        transform: translateX(0) rotate(-45deg);
+        color: var(--text-color);
+    }
+
+    .suggestion-item.focused .suggestion-arrow {
+        opacity: 1;
+        transform: translateX(0) rotate(-45deg);
         color: var(--primary-color);
     }
 
-    .suggestion-item.focused .suggestion-arrow,
-    .suggestion-item:hover .suggestion-arrow {
-        opacity: 1;
-        transform: translateX(0);
-    }
 
-    .suggestion-icon-wrapper {
-        width: 36px;
-        height: 36px;
-        background: var(--hover-background);
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        color: var(--text-color-secondary);
-        transition: all 0.3s;
-    }
-
-    .suggestion-item:hover .suggestion-icon-wrapper {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
-        transform: rotate(15deg);
-    }
-
-    .suggestion-arrow {
-        margin-left: auto;
-        font-size: 0.9rem;
-        opacity: 0;
-        transform: rotate(-45deg);
-        transition: all 0.3s;
-    }
-
-    .suggestion-item:hover .suggestion-arrow {
-        opacity: 1;
-        transform: rotate(-45deg) translate(2px, -2px);
-    }
-
-    .search-input-header {
+    .search-input {
         flex-grow: 1;
         border: none;
         outline: none;
@@ -1320,6 +1344,11 @@
         font-size: 1rem;
         background: transparent;
         color: var(--text-color);
+    }
+    
+    .search-input:focus-visible {
+        outline: none;
+        box-shadow: none;
     }
 
     .clear-button-header {
@@ -1974,7 +2003,7 @@
             /* Hide logo on very small screens? Example: */
             /* @media (max-width: 480px) { & .logo-link { display: none; } } */
         }
-        .search-input-header {
+        .search-input {
             font-size: 0.95rem; /* Slightly smaller font */
         }
         .search-button-header,

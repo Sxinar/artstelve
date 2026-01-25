@@ -80,7 +80,7 @@
             icon: "fas fa-network-wired",
             label: "hybridProxy",
         },
-
+        { id: "Çeviri", icon: "fas fa-language", label: "translate" },
         { id: "Gelişmiş", icon: "fas fa-tools", label: "advanced" },
         { id: "Eklentiler", icon: "fas fa-puzzle-piece", label: "plugins" },
 
@@ -966,6 +966,74 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                     </a>
                                 </div>
                             {/if}
+                        </div>
+                    </div>
+                </section>
+            {:else if activeTab === "Çeviri"}
+                <section in:slide={{ duration: 300 }}>
+                    <h2 class="section-heading">🌍 Çeviri Ayarları</h2>
+                    
+                    <div class="setting-card">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>🚀 Hızlı Çeviri Komutları</h3>
+                                <p>Çeviri eklentisini kullanarak metinleri farklı dillere çevirin.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="sample-box">
+                            <strong>📝 Komut Örnekleri</strong>
+                            <ul>
+                                <li><code>!tr hello</code> - İngilizce'den Türkçe'ye</li>
+                                <li><code>!en merhaba</code> - Türkçe'den İngilizce'ye</li>
+                                <li><code>!de hello</code> - İngilizce'den Almanca'ya</li>
+                                <li><code>!fr bonjour</code> - Fransızca'dan Türkçe'ye</li>
+                                <li><code>!tr</code> - Dil seçim ekranı</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-card">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>⌨️ Klavye Kısayolları</h3>
+                                <p>Hızlı çeviri için klavye kısayollarını kullanın.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="shortcuts-list">
+                            <div class="shortcut-item">
+                                <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>
+                                <span>Türkçe çeviri modu</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd>
+                                <span>İngilizce çeviri modu</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-card">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>⚡ API Bilgileri</h3>
+                                <p>Çeviri eklentisi MyMemory API kullanır.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="api-info">
+                            <div class="api-item">
+                                <strong>API:</strong> MyMemory Translated
+                            </div>
+                            <div class="api-item">
+                                <strong>Limit:</strong> 5000 karakter/gün
+                            </div>
+                            <div class="api-item">
+                                <strong>Cache:</strong> Evet (hızlı tekrar)
+                            </div>
+                            <div class="api-item">
+                                <strong>Durum:</strong> <span style="color: var(--success-color);">✅ Aktif</span>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -2201,5 +2269,73 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
     .sample-box li::before {
         content: "•";
         color: var(--primary-color);
+    }
+    
+    /* Çeviri Ayarları Stilleri */
+    .shortcuts-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .shortcut-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--hover-background);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .shortcut-item kbd {
+        background: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+        font-family: 'Courier New', monospace;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .shortcut-item span {
+        flex: 1;
+        font-weight: 500;
+    }
+    
+    .api-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .api-item {
+        padding: 0.8rem;
+        background: var(--hover-background);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        font-size: 0.9rem;
+    }
+    
+    .api-item strong {
+        color: var(--primary-color);
+    }
+    
+    @media (max-width: 768px) {
+        .shortcuts-list {
+            gap: 0.5rem;
+        }
+        
+        .shortcut-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .api-info {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
