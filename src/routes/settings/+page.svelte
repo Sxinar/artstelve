@@ -1185,7 +1185,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                 <strong>{theme.name}</strong>
                                                 <small>{theme.author}</small>
                                                 <p>{theme.description || ""}</p>
-                                                {#if installedThemesList.some((t) => t.id === theme.id || t.id === theme.name
+                                                {#if [...installedGeneralThemes, ...installedHomeThemes].some((t) => t.id === theme.id || t.id === theme.name
                                                                 .replace(/[^a-z0-9]/gi, "_")
                                                                 .toLowerCase())}
                                                     <button

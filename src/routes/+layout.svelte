@@ -791,10 +791,11 @@
 		left: auto;
 		transform: none;
 
-		background: rgba(var(--card-background-rgb, 255, 255, 255), 0.85);
+		background: rgba(18, 18, 22, 0.9) !important; /* Always dark */
+		color: #ffffff !important;
 		-webkit-backdrop-filter: blur(16px);
 		backdrop-filter: blur(16px);
-		border: 1px solid rgba(255, 255, 255, 0.3);
+		border: 1px solid rgba(255, 255, 255, 0.1) !important;
 		border-radius: 16px; /* Squircle */
 		padding: 0.8rem 1.6rem;
 		cursor: pointer;
