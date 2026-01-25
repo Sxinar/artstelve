@@ -20,7 +20,6 @@
         hybridProxyLimitTotal,
         hybridProxyTimeoutMs,
         hybridProxyCache,
-        enableHistory,
         enableSuggestions,
         themeMode,
         uiDensity,
@@ -505,32 +504,6 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 <input
                                     type="checkbox"
                                     bind:checked={$enableSuggestions}
-                                />
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>Arama Geçmişi</h3>
-                                <p>Son aramaları hatırlamasını sağla.</p>
-                                {#if !$enableHistory}
-                                    <p class="history-disabled-notice">
-                                        Geçmiş kapalı, açmak için <button
-                                            class="link-btn"
-                                            on:click={() =>
-                                                ($enableHistory = true)}
-                                            >buraya tıklayın</button
-                                        >.
-                                    </p>
-                                {/if}
-                            </div>
-                            <label class="switch">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={$enableHistory}
                                 />
                                 <span class="slider"></span>
                             </label>
