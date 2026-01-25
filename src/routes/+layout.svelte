@@ -990,7 +990,7 @@
 		.footer-content {
 			flex-direction: column;
 			gap: 2rem;
-			padding: 2.5rem 1.5rem 1rem;
+			padding: 2.5rem 1.5rem calc(2rem + env(safe-area-inset-bottom, 0px));
 		}
 		.footer-column {
 			min-width: 100%;
@@ -1012,6 +1012,10 @@
 		}
 		.footer-backdrop {
 			border-radius: 30px 30px 0 0;
+		}
+		.footer-bottom {
+			margin-top: 1.5rem;
+			padding-bottom: 1.5rem;
 		}
 	}
 

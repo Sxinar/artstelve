@@ -38,10 +38,16 @@
     let notifications = false;
     let activeTab = "Temel Ayarlar";
     let historySearchQuery = "";
+    let historyFilterType = "all";
 
-    $: filteredHistory = $searchHistory.filter((item) =>
-        item.query.toLowerCase().includes(historySearchQuery.toLowerCase()),
-    );
+    $: filteredHistory = $searchHistory.filter((item) => {
+        const matchesQuery = item.query
+            .toLowerCase()
+            .includes(historySearchQuery.toLowerCase());
+        const matchesType =
+            historyFilterType === "all" || item.type === historyFilterType;
+        return matchesQuery && matchesType;
+    });
 
     let proxyLatency = null;
     let isTestingProxy = false;
@@ -1304,6 +1310,49 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                         </button>
                                     {/if}
                                 </div>
+
+                                <div class="filter-chips">
+                                    <button
+                                        class="chip"
+                                        class:active={historyFilterType ===
+                                            "all"}
+                                        on:click={() =>
+                                            (historyFilterType = "all")}
+                                        >Hepsi</button
+                                    >
+                                    <button
+                                        class="chip"
+                                        class:active={historyFilterType ===
+                                            "web"}
+                                        on:click={() =>
+                                            (historyFilterType = "web")}
+                                        >Web</button
+                                    >
+                                    <button
+                                        class="chip"
+                                        class:active={historyFilterType ===
+                                            "image"}
+                                        on:click={() =>
+                                            (historyFilterType = "image")}
+                                        >Görsel</button
+                                    >
+                                    <button
+                                        class="chip"
+                                        class:active={historyFilterType ===
+                                            "video"}
+                                        on:click={() =>
+                                            (historyFilterType = "video")}
+                                        >Video</button
+                                    >
+                                    <button
+                                        class="chip"
+                                        class:active={historyFilterType ===
+                                            "ai"}
+                                        on:click={() =>
+                                            (historyFilterType = "ai")}
+                                        >AI</button
+                                    >
+                                </div>
                             </div>
                         {/if}
 
@@ -1904,6 +1953,36 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
     .clear-history-search:hover {
         color: var(--text-color);
+    }
+
+    .filter-chips {
+        display: flex;
+        gap: 0.6rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .chip {
+        padding: 0.5rem 1.2rem;
+        border-radius: 50px;
+        background: var(--input-background);
+        border: 1px solid var(--border-color);
+        color: var(--text-color-secondary);
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .chip:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .chip.active {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
     }
 
     .history-delete-btn {

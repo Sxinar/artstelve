@@ -95,9 +95,12 @@
     }
   }
 
+  let focusedSuggestionIndex = -1;
+
   function handleInput(event) {
     const val = event.target.value;
     searchQuery = val;
+    focusedSuggestionIndex = -1; // Reset focus on input
     clearTimeout(suggestTimeout);
     if (val.trim().length > 1) {
       suggestTimeout = setTimeout(() => {
@@ -105,6 +108,25 @@
         showSuggestions = true;
       }, 300);
     } else {
+      showSuggestions = false;
+    }
+  }
+
+  function handleKeyDown(event) {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusedSuggestionIndex =
+        (focusedSuggestionIndex + 1) % suggestions.length;
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusedSuggestionIndex =
+        (focusedSuggestionIndex - 1 + suggestions.length) % suggestions.length;
+    } else if (event.key === "Enter" && focusedSuggestionIndex > -1) {
+      event.preventDefault();
+      selectSuggestion(suggestions[focusedSuggestionIndex]);
+    } else if (event.key === "Escape") {
       showSuggestions = false;
     }
   }
@@ -240,6 +262,7 @@
           value={searchQuery}
           on:input={handleInput}
           on:keypress={handleKeyPress}
+          on:keydown={handleKeyDown}
           on:focus={() => {
             if (searchQuery.length > 1 && suggestions.length > 0)
               showSuggestions = true;
@@ -257,9 +280,10 @@
             <div class="suggestions-header">
               <i class="fas fa-magic"></i> Öneriler
             </div>
-            {#each suggestions as s}
+            {#each suggestions as s, i}
               <button
                 class="suggestion-item"
+                class:focused={i === focusedSuggestionIndex}
                 on:click={() => selectSuggestion(s)}
               >
                 <div class="suggestion-icon-wrapper">
@@ -522,22 +546,19 @@
     opacity: 0.7;
   }
 
-  .suggestion-item {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    padding: 0.85rem 1.4rem;
+    padding: 0.75rem 1.4rem;
     background: transparent;
     border: none;
     text-align: left;
     color: var(--text-color);
     cursor: pointer;
     font-size: 1.05rem;
-    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-    border-radius: 18px;
+    transition: all 0.2s ease;
+    border-radius: 12px;
     gap: 1.4rem;
     position: relative;
     overflow: hidden;
+    margin-bottom: 2px;
   }
 
   .suggestion-item::before {
@@ -553,13 +574,15 @@
     border-radius: 0 5px 5px 0;
   }
 
-  .suggestion-item:hover {
-    background: rgba(var(--primary-color-rgb), 0.12);
-    transform: translateX(4px);
+  .suggestion-item:hover,
+  .suggestion-item.focused {
+    background: rgba(var(--primary-color-rgb), 0.1);
   }
 
-  .suggestion-item:hover::before {
-    height: 40%;
+  .suggestion-item:hover::before,
+  .suggestion-item.focused::before {
+    height: 100%;
+    opacity: 1;
   }
 
   .suggestion-icon-wrapper {
