@@ -252,7 +252,7 @@
         {#if showSuggestions && suggestions.length > 0}
           <div
             class="suggestions-dropdown"
-            in:fade={{ duration: 200, delay: 0 }}
+            transition:fly={{ y: 20, duration: 400, delay: 0 }}
           >
             <div class="suggestions-header">
               <i class="fas fa-magic"></i> Öneriler
@@ -494,18 +494,20 @@
   /* Autosuggest Styles */
   .suggestions-dropdown {
     position: absolute;
-    top: calc(100% + 8px);
+    top: calc(100% + 12px);
     left: 0;
     right: 0;
-    background: rgba(var(--card-background-rgb, 255, 255, 255), 0.8);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(var(--primary-color-rgb), 0.1);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-    border-radius: 20px;
+    background: rgba(var(--card-background-rgb, 255, 255, 255), 0.9);
+    -webkit-backdrop-filter: blur(28px);
+    backdrop-filter: blur(28px);
+    border: 1px solid rgba(var(--primary-color-rgb), 0.2);
+    box-shadow:
+      0 20px 45px rgba(0, 0, 0, 0.2),
+      0 0 25px rgba(var(--primary-color-rgb), 0.15);
+    border-radius: 24px;
     z-index: 2000;
     overflow: hidden;
-    padding: 0.5rem;
+    padding: 0.6rem;
   }
 
   .suggestions-header {
@@ -729,5 +731,33 @@
   .home-container.artistic h1 {
     font-family: "serif"; /* Example font change */
     font-style: italic;
+  }
+
+  @media (max-width: 768px) {
+    .logo-container {
+      margin-bottom: 2rem;
+    }
+    .logo {
+      width: 100px;
+    }
+    h1 {
+      font-size: 2.2rem;
+    }
+    .search-container {
+      width: 92% !important;
+      max-width: none;
+    }
+    .suggestion-item {
+      padding: 0.75rem 1rem;
+      gap: 1rem;
+      font-size: 0.95rem;
+    }
+    .suggestion-icon-wrapper {
+      width: 30px;
+      height: 30px;
+    }
+    .results {
+      padding: 0 1.5rem;
+    }
   }
 </style>

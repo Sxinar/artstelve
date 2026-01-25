@@ -536,6 +536,8 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 100vh;
+		position: relative;
+		overflow-x: hidden;
 		/* Background/color transitions applied via global.css on body */
 	}
 
@@ -842,15 +844,17 @@
 		left: 0;
 		width: 100%;
 		height: 100%;
-		background: rgba(var(--card-background-rgb, 255, 255, 255), 0.95);
-		-webkit-backdrop-filter: blur(40px);
-		backdrop-filter: blur(40px);
-		border-top: 1px solid rgba(var(--primary-color-rgb), 0.15);
-		border-left: 1px solid rgba(255, 255, 255, 0.1);
-		border-right: 1px solid rgba(255, 255, 255, 0.1);
+		background: rgba(var(--card-background-rgb, 255, 255, 255), 0.98);
+		-webkit-backdrop-filter: blur(45px);
+		backdrop-filter: blur(45px);
+		border-top: 1px solid rgba(var(--primary-color-rgb), 0.25);
+		border-left: 1px solid rgba(var(--primary-color-rgb), 0.1);
+		border-right: 1px solid rgba(var(--primary-color-rgb), 0.1);
 		z-index: -1;
-		box-shadow: 0 -30px 100px rgba(0, 0, 0, 0.2);
-		border-radius: 40px 40px 0 0;
+		box-shadow:
+			0 -20px 60px rgba(0, 0, 0, 0.15),
+			0 0 30px rgba(var(--primary-color-rgb), 0.05);
+		border-radius: 45px 45px 0 0;
 	}
 
 	.footer-handle {
@@ -976,15 +980,29 @@
 	@media (max-width: 768px) {
 		.footer-content {
 			flex-direction: column;
-			gap: 2.5rem;
+			gap: 2rem;
+			padding: 2.5rem 1.5rem 1rem;
 		}
 		.footer-column {
 			min-width: 100%;
 			text-align: center;
+			padding: 0 0.5rem;
 		}
 		.brand-column {
 			align-items: center;
 			order: -1;
+			margin-bottom: 0.5rem;
+		}
+		.footer-toggle-btn {
+			bottom: 1.5rem;
+			padding: 0.7rem 1.4rem;
+			font-size: 0.85rem;
+		}
+		.footer-toggle-btn.home-pos {
+			bottom: 2rem;
+		}
+		.footer-backdrop {
+			border-radius: 30px 30px 0 0;
 		}
 	}
 
