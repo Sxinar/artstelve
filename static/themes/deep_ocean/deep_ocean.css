@@ -1,0 +1,50 @@
+:root {
+    --primary-color: #00e5ff;
+    --primary-color-rgb: 0, 229, 255;
+    --accent-color: #004d40;
+    --background-color: #001219;
+    --card-background: rgba(0, 95, 115, 0.1);
+    --text-color: #e9ecef;
+    --text-color-secondary: #94d2bd;
+    --border-color: rgba(10, 147, 150, 0.3);
+    --input-background: rgba(0, 18, 25, 0.8);
+}
+
+body {
+    background: linear-gradient(135deg, #001219, #005f73) !important;
+    background-attachment: fixed !important;
+}
+
+.result-item-card {
+    background: var(--card-background) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.result-item-card:hover {
+    transform: translateY(-10px) rotate(0.5deg) !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 30px 60px rgba(0, 229, 255, 0.15) !important;
+}
+
+.result-title a {
+    background: linear-gradient(90deg, #94d2bd, #00e5ff) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    font-weight: 700 !important;
+}
+
+.search-box {
+    border: 2px solid var(--border-color) !important;
+    background: var(--input-background) !important;
+    border-radius: 30px !important;
+}
+
+.search-box:focus-within {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.2) !important;
+}

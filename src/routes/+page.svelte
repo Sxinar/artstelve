@@ -7,9 +7,13 @@
 
   // Get stores from context provided by layout
   const selectedTheme = getContext("theme"); // Read-only access is enough here
-  import { searchHomeDesign, selectedEngine } from "$lib/stores.js";
-  import { searchHistory } from "$lib/searchHistory.js";
-  // const isSidebarOpen = getContext('sidebar'); // Not directly needed here
+  import {
+    searchHomeDesign,
+    selectedEngine,
+    enableSuggestions,
+    customLogo,
+  } from "$lib/stores.js";
+  import { browser } from "$app/environment";
 
   let searchQuery = "";
   let isLoading = false;
@@ -17,9 +21,51 @@
   let isListening = false; // State for microphone
   let recognition = null; // SpeechRecognition instance
 
+  let customHomeThemeElement;
+  function applyHomeTheme(theme) {
+    if (!browser) return;
+    if (customHomeThemeElement) {
+      customHomeThemeElement.remove();
+      customHomeThemeElement = null;
+    }
+    if (["simple", "modern", "artistic"].includes(theme)) return;
+
+    customHomeThemeElement = document.createElement("link");
+    customHomeThemeElement.rel = "stylesheet";
+
+    // Check if it's a remote URL
+    if (
+      theme &&
+      (theme.startsWith("http://") || theme.startsWith("https://"))
+    ) {
+      customHomeThemeElement.href = theme;
+    } else {
+      // Try home subfolder first, then direct
+      const paths = [
+        `/themes/home/${theme}/${theme}.css`,
+        `/themes/${theme}/${theme}.css`,
+      ];
+
+      customHomeThemeElement.href = paths[0];
+
+      // Fallback mechanism
+      customHomeThemeElement.onerror = () => {
+        if (
+          customHomeThemeElement &&
+          customHomeThemeElement.href.includes("/home/")
+        ) {
+          customHomeThemeElement.href = `/themes/${theme}/${theme}.css`;
+        }
+      };
+    }
+
+    document.head.appendChild(customHomeThemeElement);
+  }
+
+  $: if (browser) applyHomeTheme($searchHomeDesign);
+
   function performSearchNavigation() {
     if (!searchQuery.trim()) return;
-    searchHistory.addSearch(searchQuery.trim(), $selectedEngine, "web");
     // Navigate to the search page with the query
     goto(`/search?i=${encodeURIComponent(searchQuery.trim())}`);
   }
@@ -52,17 +98,98 @@
     */
   }
 
-  function handleKeyPress(event) {
-    if (event.key === "Enter") {
-      performSearchNavigation(); // Use the new navigation function
-    }
-  }
-
   function clearSearch() {
     searchQuery = "";
     searchResults = [];
+    suggestions = [];
+    showSuggestions = false;
+    clearTimeout(suggestTimeout);
     // Optionally focus the input after clearing
     // document.querySelector('.search-box input[type="text"] ').focus();
+  }
+
+  // --- Autosuggest Logic ---
+  let suggestions = [];
+  let showSuggestions = false;
+  let suggestTimeout;
+
+  async function fetchSuggestions(q) {
+    if (!$enableSuggestions || !q || q.length < 2) {
+      suggestions = [];
+      return;
+    }
+    try {
+      const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
+      if (res.ok) {
+        suggestions = await res.json();
+      }
+    } catch (e) {
+      console.error("Suggestion fetch error", e);
+    }
+  }
+
+  let focusedSuggestionIndex = -1;
+
+  function handleInput(event) {
+    const val = event.target.value;
+    searchQuery = val;
+    focusedSuggestionIndex = -1; // Reset focus on input
+    clearTimeout(suggestTimeout);
+    if (val.trim().length > 1) {
+      suggestTimeout = setTimeout(() => {
+        fetchSuggestions(val);
+        showSuggestions = true;
+      }, 300);
+    } else {
+      showSuggestions = false;
+    }
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      clearTimeout(suggestTimeout);
+      if (showSuggestions && focusedSuggestionIndex > -1) {
+        selectSuggestion(suggestions[focusedSuggestionIndex]);
+      } else {
+        showSuggestions = false;
+        performSearchNavigation();
+      }
+      return;
+    }
+
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusedSuggestionIndex =
+        (focusedSuggestionIndex + 1) % suggestions.length;
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusedSuggestionIndex =
+        (focusedSuggestionIndex - 1 + suggestions.length) % suggestions.length;
+    } else if (event.key === "Escape") {
+      showSuggestions = false;
+    }
+  }
+
+  function selectSuggestion(s) {
+    searchQuery = s;
+    showSuggestions = false;
+    performSearchNavigation();
+  }
+
+  function handleBlur() {
+    // Small timeout to allow click to fire
+    setTimeout(() => {
+      showSuggestions = false;
+    }, 200);
+  }
+
+  function clickOutsideSuggestions(event) {
+    if (!event.target.closest(".search-box")) {
+      showSuggestions = false;
+    }
   }
 
   // --- Web Speech API Logic ---
@@ -161,6 +288,8 @@
   <title>Artado Search</title>
 </svelte:head>
 
+<svelte:window on:click={clickOutsideSuggestions} />
+
 <div
   class="home-container"
   class:modern={$searchHomeDesign === "modern"}
@@ -168,22 +297,62 @@
   in:fade={{ duration: 400 }}
 >
   <div class="logo-container">
-    <img src="/logo.png" alt="Artado Search" class="logo" />
-    <h1>Artado Search</h1>
+    <img src={$customLogo} alt="Artado Search" class="logo" />
+    <h1 style="text-transform: none;">Artado Search</h1>
     <p class="subtitle">İnterneti Keşfet</p>
   </div>
 
   <div class="search-container">
     <div class="search-box">
       <i class="fas fa-search search-icon"></i>
-      <input
-        type="text"
-        bind:value={searchQuery}
-        on:keypress={handleKeyPress}
-        placeholder="Ne aramıştınız?"
-        aria-label="Arama"
-        class="search-input"
-      />
+      <div class="input-wrapper" style="flex:1; width:100%; display: flex;">
+        <input
+          type="text"
+          value={searchQuery}
+          on:input={handleInput}
+          on:keydown={handleKeyDown}
+          on:blur={handleBlur}
+          on:focus={() => {
+            if (searchQuery.length > 1 && suggestions.length > 0)
+              showSuggestions = true;
+          }}
+          placeholder="Ne aramıştınız?"
+          aria-label="Arama"
+          class="search-input"
+          autocomplete="off"
+        />
+        {#if showSuggestions && suggestions.length > 0}
+          <div
+            class="suggestions-dropdown"
+            transition:fly={{ y: 20, duration: 400, delay: 0 }}
+          >
+            <div class="suggestions-header">
+              <i class="fas fa-magic"></i> Öneriler
+            </div>
+            {#each suggestions as s, i}
+              <button
+                class="suggestion-item"
+                class:focused={i === focusedSuggestionIndex}
+                on:click={() => selectSuggestion(s)}
+              >
+                <div class="suggestion-icon-wrapper">
+                  <i class="fas fa-search"></i>
+                </div>
+                <span
+                  >{@html s.replace(
+                    new RegExp(
+                      searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                      "gi",
+                    ),
+                    (match) => `<b>${match}</b>`,
+                  )}</span
+                >
+                <i class="fas fa-arrow-up suggestion-arrow"></i>
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
       {#if searchQuery}
         <button
           class="clear-button"
@@ -309,7 +478,7 @@
       box-shadow 0.3s ease,
       border-color 0.3s ease;
     position: relative;
-    overflow: hidden;
+    /* overflow: hidden; -- Removed to allow dropdown visibility */
   }
 
   .search-box:focus-within {
@@ -396,6 +565,129 @@
 
   .search-action-icon {
     font-size: 1.1rem;
+  }
+
+  /* Autosuggest Styles - Ultra Premium Glassmorphism */
+  .suggestions-dropdown {
+    position: absolute;
+    top: calc(100% + 15px);
+    left: 0;
+    right: 0;
+    background: rgba(15, 15, 20, 0.85); /* Consistently dark glass */
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
+    backdrop-filter: blur(30px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 25px 60px rgba(0, 0, 0, 0.5),
+      0 0 30px rgba(var(--primary-color-rgb), 0.1);
+    border-radius: 28px;
+    z-index: 2000;
+    overflow: hidden;
+    padding: 10px;
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+  }
+
+  .suggestions-header {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 8px 15px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .suggestion-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 18px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    color: #ffffff; /* Always white for readability on dark glass */
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 16px;
+    gap: 15px;
+    position: relative;
+    margin-bottom: 4px;
+  }
+
+  .suggestion-item.focused,
+  .suggestion-item:hover {
+    background: rgba(var(--primary-color-rgb), 0.15);
+    padding-left: 24px;
+    color: var(--primary-color);
+  }
+
+  .suggestion-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    color: var(--text-color-secondary);
+    transition: all 0.3s ease;
+  }
+
+  .suggestion-item.focused .suggestion-icon-wrapper,
+  .suggestion-item:hover .suggestion-icon-wrapper {
+    background: var(--primary-color);
+    color: #fff;
+    transform: scale(1.1);
+  }
+
+  .suggestion-arrow {
+    margin-left: auto;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: all 0.3s ease;
+    font-size: 0.8rem;
+    color: var(--primary-color);
+  }
+
+  .suggestion-item.focused .suggestion-arrow,
+  .suggestion-item:hover .suggestion-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .suggestion-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    background: var(--hover-background);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--text-color-secondary);
+    transition: all 0.3s;
+  }
+
+  .suggestion-item:hover .suggestion-icon-wrapper {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    transform: rotate(15deg);
+  }
+
+  .suggestion-arrow {
+    margin-left: auto;
+    font-size: 0.85rem;
+    opacity: 0;
+    transform: rotate(-45deg);
+    transition: all 0.3s;
+  }
+
+  .suggestion-item:hover .suggestion-arrow {
+    opacity: 1;
+    transform: rotate(-45deg) translate(2px, -2px);
   }
 
   .results {
@@ -531,5 +823,46 @@
   .home-container.artistic h1 {
     font-family: "serif"; /* Example font change */
     font-style: italic;
+  }
+
+  @media (max-width: 768px) {
+    .logo-container {
+      margin-bottom: 2.5rem;
+      gap: 1.2rem;
+    }
+    .logo {
+      width: 90px;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+    }
+    h1 {
+      font-size: 2rem;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+    .search-container {
+      width: 94% !important;
+      padding: 0 0.5rem;
+    }
+    .search-box {
+      padding: 0.7rem 1.2rem;
+      height: 56px;
+      margin-top: 0.5rem;
+    }
+    .suggestion-item {
+      padding: 0.9rem 1.25rem;
+      gap: 1.25rem;
+      font-size: 1.05rem;
+    }
+    .suggestion-icon-wrapper {
+      width: 34px;
+      height: 34px;
+      font-size: 1rem;
+    }
+    .results {
+      padding: 0 1rem;
+    }
   }
 </style>

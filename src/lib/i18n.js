@@ -47,6 +47,7 @@ const translations = {
         customCSS: "Özel CSS",
         advanced: "Gelişmiş",
         plugins: "Eklentiler",
+        hybridProxy: "Hybrid Proxy",
         // Add more translations as needed
     },
     en: {
@@ -93,6 +94,7 @@ const translations = {
         customCSS: "Custom CSS",
         advanced: "Advanced",
         plugins: "Plugins",
+        hybridProxy: "Hybrid Proxy",
         // Add more translations as needed
     },
     fr: {
@@ -139,6 +141,7 @@ const translations = {
         customCSS: "CSS Personnalisé",
         advanced: "Avancé",
         plugins: "Eklentiler",
+        hybridProxy: "Hybrid Proxy",
         // Add more translations as needed
     }
 };

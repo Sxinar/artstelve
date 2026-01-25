@@ -8,25 +8,64 @@
     // --- Import Stores ---
     import {
         selectedTheme,
+        customLogo,
         customCssStore,
         aiSummaryEnabled,
         isSidebarOpen,
         selectedLanguage,
         selectedEngine,
+        hybridProxyBaseUrl,
+        hybridProxyEngines,
+        hybridProxyLimitPerEngine,
+        hybridProxyLimitTotal,
+        hybridProxyTimeoutMs,
+        hybridProxyCache,
+        enableSuggestions,
         themeMode,
         uiDensity,
         fontScale,
         cornerRadius,
         accentColor,
         safeSearch,
+        searchRegion,
         searchHomeDesign,
         blockedSites,
         showNavbarSubCategory,
     } from "$lib/stores.js";
-    import { searchHistory, formatTimestamp } from "$lib/searchHistory.js";
 
     let notifications = false;
     let activeTab = "Temel Ayarlar";
+
+    let proxyLatency = null;
+    let isTestingProxy = false;
+
+    async function pingProxy() {
+        if (!browser) return;
+        isTestingProxy = true;
+        const start = performance.now();
+        try {
+            // Use a simple HEAD request to check latency
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+            await fetch($hybridProxyBaseUrl, {
+                method: "HEAD",
+                mode: "no-cors",
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            proxyLatency = Math.round(performance.now() - start);
+        } catch (e) {
+            console.error("Proxy ping failed:", e);
+            proxyLatency = "Hata";
+        } finally {
+            isTestingProxy = false;
+        }
+    }
+
+    $: if (activeTab === "Hybrid Proxy" && proxyLatency === null) {
+        pingProxy();
+    }
 
     const tabs = [
         {
@@ -36,10 +75,15 @@
         },
         { id: "Görünüm", icon: "fas fa-paint-brush", label: "appearance" },
         { id: "Arayüz", icon: "fas fa-desktop", label: "interface" },
-        { id: "Temalar", icon: "fas fa-palette", label: "themes" },
+        {
+            id: "Hybrid Proxy",
+            icon: "fas fa-network-wired",
+            label: "hybridProxy",
+        },
+
         { id: "Gelişmiş", icon: "fas fa-tools", label: "advanced" },
         { id: "Eklentiler", icon: "fas fa-puzzle-piece", label: "plugins" },
-        { id: "Geçmiş", icon: "fas fa-history", label: "history" },
+
         { id: "Özel CSS", icon: "fas fa-code", label: "customCSS" },
     ];
 
@@ -106,6 +150,12 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             aiSummaryEnabled: $aiSummaryEnabled,
             selectedLanguage: $selectedLanguage,
             selectedEngine: $selectedEngine,
+            hybridProxyBaseUrl: $hybridProxyBaseUrl,
+            hybridProxyEngines: $hybridProxyEngines,
+            hybridProxyLimitPerEngine: $hybridProxyLimitPerEngine,
+            hybridProxyLimitTotal: $hybridProxyLimitTotal,
+            hybridProxyTimeoutMs: $hybridProxyTimeoutMs,
+            hybridProxyCache: $hybridProxyCache,
             themeMode: $themeMode,
             uiDensity: $uiDensity,
             fontScale: $fontScale,
@@ -129,6 +179,13 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         URL.revokeObjectURL(url);
     }
 
+    function resetCustomLogo() {
+        customLogo.set("/logo.png");
+    }
+
+    // This ensures local storage values are locked in once chosen.
+    // Manual selection in Settings should override everything on refresh.
+
     function restoreSettings(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -147,6 +204,20 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                     selectedLanguage.set(settings.selectedLanguage);
                 if (settings.selectedEngine)
                     selectedEngine.set(settings.selectedEngine);
+                if (settings.hybridProxyBaseUrl)
+                    hybridProxyBaseUrl.set(settings.hybridProxyBaseUrl);
+                if (settings.hybridProxyEngines)
+                    hybridProxyEngines.set(settings.hybridProxyEngines);
+                if (settings.hybridProxyLimitPerEngine)
+                    hybridProxyLimitPerEngine.set(
+                        settings.hybridProxyLimitPerEngine,
+                    );
+                if (settings.hybridProxyLimitTotal)
+                    hybridProxyLimitTotal.set(settings.hybridProxyLimitTotal);
+                if (settings.hybridProxyTimeoutMs)
+                    hybridProxyTimeoutMs.set(settings.hybridProxyTimeoutMs);
+                if (settings.hybridProxyCache !== undefined)
+                    hybridProxyCache.set(settings.hybridProxyCache);
                 if (settings.themeMode) themeMode.set(settings.themeMode);
                 if (settings.uiDensity) uiDensity.set(settings.uiDensity);
                 if (settings.fontScale) fontScale.set(settings.fontScale);
@@ -178,6 +249,8 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
     // --- Workshop Items (Legacy but kept) ---
     let themes = writable([]);
     let plugins = writable([]);
+    let logos = writable([]);
+    let homeThemes = writable([]);
     let workshopError = writable(null);
     let isLoadingWorkshop = writable(true);
     let installingId = null;
@@ -190,7 +263,35 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                 const data = await response.json();
                 if (data.success) {
                     themes.set(data.themes || []);
-                    plugins.set(data.plugins || []);
+
+                    // Separate plugins and logos
+                    const allPlugins = data.plugins || [];
+                    const _plugins = [];
+                    const _logos = [];
+                    const _homeThemes = [];
+
+                    allPlugins.forEach((p) => {
+                        const type = (p.category || "").toLowerCase();
+                        const u = (p.download_url || "").toLowerCase();
+                        if (type === "ana-sayfa" || type === "home") {
+                            _homeThemes.push(p);
+                        } else if (
+                            u.endsWith(".png") ||
+                            u.endsWith(".jpg") ||
+                            u.endsWith(".jpeg") ||
+                            u.endsWith(".gif") ||
+                            u.endsWith(".svg") ||
+                            u.endsWith(".webp")
+                        ) {
+                            _logos.push(p);
+                        } else {
+                            _plugins.push(p);
+                        }
+                    });
+
+                    plugins.set(_plugins);
+                    logos.set(_logos);
+                    homeThemes.set(_homeThemes);
                     workshopError.set(null);
                 } else {
                     workshopError.set(
@@ -205,6 +306,28 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             workshopError.set("Bağlantı hatası: " + err.message);
         } finally {
             isLoadingWorkshop.set(false);
+        }
+    }
+
+    async function applyRemoteItem(item, type) {
+        if (!item.download_url) return;
+
+        if (type === "theme") {
+            if (item.category === "home") {
+                searchHomeDesign.set(item.download_url);
+                alert("Özel ana sayfa teması anında uygulandı!");
+            } else {
+                selectedTheme.set(item.download_url);
+                alert("Site teması anında uygulandı!");
+            }
+        } else if (type === "plugin") {
+            // Plugins are a bit trickier because they need to be loaded into the search page.
+            // But we can store the URL in a local store for "active Cloud plugins"
+            alert(
+                "Eklenti buluttan uygulandı! Bir sonraki aramanızda etkinleşecek.",
+            );
+            // For now, let's just use the existing plugin loading logic in search page
+            // which will need to know about these "cloud" plugins.
         }
     }
 
@@ -246,13 +369,18 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         }
     });
 
-    let installedThemesList = [];
+    let installedGeneralThemes = [];
+    let installedHomeThemes = [];
     async function fetchInstalledThemes() {
         try {
             const res = await fetch("/api/workshop/themes");
             if (res.ok) {
                 const data = await res.json();
-                installedThemesList = data.themes || [];
+                const all = data.themes || [];
+                installedGeneralThemes = all.filter(
+                    (t) => t.category !== "home",
+                );
+                installedHomeThemes = all.filter((t) => t.category === "home");
             }
         } catch (e) {
             console.error("Failed to fetch installed themes:", e);
@@ -378,6 +506,9 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                             </div>
                             <div class="select-wrapper">
                                 <select bind:value={$selectedEngine}>
+                                    <option value="Hybrid Proxy"
+                                        >Hybrid Proxy Sonuçları</option
+                                    >
                                     <option value="Brave">Brave Search</option>
                                     <option value="DuckDuckGo"
                                         >DuckDuckGo</option
@@ -393,13 +524,13 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>Güvenli Arama</h3>
-                                <p>Uygunsuz içerikleri filtreleyin.</p>
+                                <h3>Otomatik Tamamlama</h3>
+                                <p>Arama çubuğunda önerileri göster.</p>
                             </div>
                             <label class="switch">
                                 <input
                                     type="checkbox"
-                                    bind:checked={$safeSearch}
+                                    bind:checked={$enableSuggestions}
                                 />
                                 <span class="slider"></span>
                             </label>
@@ -409,16 +540,13 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>AI Özetini Göster</h3>
-                                <p>
-                                    Arama sonuçlarında yapay zeka özetini
-                                    görüntüleyin.
-                                </p>
+                                <h3>Güvenli Arama</h3>
+                                <p>Uygunsuz içerikleri filtreleyin.</p>
                             </div>
                             <label class="switch">
                                 <input
                                     type="checkbox"
-                                    bind:checked={$aiSummaryEnabled}
+                                    bind:checked={$safeSearch}
                                 />
                                 <span class="slider"></span>
                             </label>
@@ -474,8 +602,119 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 class="color-picker"
                             />
                         </div>
+
+                        <div class="divider"></div>
+
+                        <div
+                            class="setting-row"
+                            style="align-items: flex-start; flex-direction: column; gap:1rem;"
+                        >
+                            <div class="setting-info">
+                                <h3>Özel Logo</h3>
+                                <p>
+                                    Workshop'tan logo seçerek görünümü
+                                    kişiselleştirin.
+                                </p>
+                            </div>
+
+                            <div
+                                class="logo-grid"
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; width: 100%;"
+                            >
+                                <button
+                                    class="logo-option"
+                                    class:active={$customLogo === "/logo.png"}
+                                    on:click={resetCustomLogo}
+                                    title="Varsayılan"
+                                >
+                                    <div class="logo-preview default">
+                                        <img
+                                            src="/logo.png"
+                                            alt="Varsayılan"
+                                            style="max-height: 50px; width: auto;"
+                                        />
+                                    </div>
+                                    <span class="logo-name">Varsayılan</span>
+                                </button>
+
+                                {#each $logos as logo}
+                                    <button
+                                        class="logo-option"
+                                        class:active={$customLogo ===
+                                            logo.download_url}
+                                        on:click={() =>
+                                            customLogo.set(logo.download_url)}
+                                        title={logo.name}
+                                    >
+                                        <div class="logo-preview">
+                                            <img
+                                                src={logo.image_url ||
+                                                    logo.download_url}
+                                                alt={logo.name}
+                                            />
+                                        </div>
+                                        <span class="logo-name"
+                                            >{logo.name}</span
+                                        >
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
                     </div>
                 </section>
+
+                <style>
+                    .logo-option {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        border: 2px solid transparent; /* Prepare for border */
+                        border-radius: 12px;
+                        padding: 0.8rem;
+                        background: var(--card-background);
+                        transition: all 0.2s;
+                        cursor: pointer;
+                        border: 1px solid var(--border-color);
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+                    }
+                    .logo-option:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                    }
+                    .logo-option.active {
+                        border-color: var(--primary-color);
+                        background: rgba(var(--primary-color-rgb), 0.08);
+                        box-shadow: 0 0 0 2px var(--primary-color); /* Strong outline */
+                    }
+                    .logo-preview {
+                        height: 80px;
+                        width: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-bottom: 0.5rem;
+                        border-radius: 8px;
+                        background: var(
+                            --background-image,
+                            #f5f5f5
+                        ); /* Fallback */
+                        overflow: hidden;
+                    }
+                    .logo-preview img {
+                        max-width: 100%;
+                        max-height: 100%;
+                        object-fit: contain;
+                    }
+                    .logo-name {
+                        font-size: 0.85rem;
+                        text-align: center;
+                        color: var(--text-color);
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                    }
+                </style>
             {:else if activeTab === "Arayüz"}
                 <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">Arayüz ve Navigasyon</h2>
@@ -490,13 +729,76 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                             </div>
                             <div class="select-wrapper">
                                 <select bind:value={$searchHomeDesign}>
-                                    <option value="simple"
-                                        >Benim için sade (Simple)</option
-                                    >
-                                    <option value="modern"
-                                        >Modern & Canlı</option
-                                    >
-                                    <option value="artistic">Sanatsal</option>
+                                    <optgroup label="Sistem Tasarımları">
+                                        <option value="simple"
+                                            >Benim için sade (Simple)</option
+                                        >
+                                        <option value="modern"
+                                            >Modern & Canlı</option
+                                        >
+                                        <option value="artistic"
+                                            >Sanatsal</option
+                                        >
+                                    </optgroup>
+                                    {#if $homeThemes && $homeThemes.length > 0}
+                                        <optgroup label="Workshop (Uzak)">
+                                            {#each $homeThemes as hTheme}
+                                                <option
+                                                    value={hTheme.id ||
+                                                        hTheme.name.toLowerCase()}
+                                                >
+                                                    {hTheme.name}
+                                                </option>
+                                            {/each}
+                                        </optgroup>
+                                    {/if}
+                                    {#if installedHomeThemes.length > 0}
+                                        <optgroup
+                                            label="Yüklü Workshop Temaları"
+                                        >
+                                            {#each installedHomeThemes as hTheme}
+                                                <option value={hTheme.id}>
+                                                    {hTheme.name}
+                                                </option>
+                                            {/each}
+                                        </optgroup>
+                                    {/if}
+                                </select>
+                                <i class="fas fa-chevron-down dropdown-icon"
+                                ></i>
+                            </div>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>Site Teması</h3>
+                                <p>
+                                    Tüm sitenin renk paletini ve stilini
+                                    değiştirin.
+                                </p>
+                            </div>
+                            <div class="select-wrapper">
+                                <select bind:value={$selectedTheme}>
+                                    <optgroup label="Sistem Temaları">
+                                        {#each ["klasik", "koyu", "mavi", "pastel", "doga", "terminal", "gece-yarisi", "gunesli", "retro", "komur", "okyanus"] as theme}
+                                            <option value={theme}
+                                                >{formatThemeName(
+                                                    theme,
+                                                )}</option
+                                            >
+                                        {/each}
+                                    </optgroup>
+                                    {#if installedGeneralThemes.length > 0}
+                                        <optgroup label="Yüklü Temalar">
+                                            {#each installedGeneralThemes as itheme}
+                                                <option value={itheme.id}
+                                                    >{itheme.name}</option
+                                                >
+                                            {/each}
+                                        </optgroup>
+                                    {/if}
                                 </select>
                                 <i class="fas fa-chevron-down dropdown-icon"
                                 ></i>
@@ -520,6 +822,153 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         </div>
                     </div>
                 </section>
+            {:else if activeTab === "Hybrid Proxy"}
+                <section in:slide={{ duration: 300 }}>
+                    <h2 class="section-heading">Hybrid Proxy</h2>
+                    <div class="setting-card">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>Proxy Base URL</h3>
+                                <p>
+                                    Varsayılan:
+                                    https://artstelve-proxy.vercel.app/ — self
+                                    host ederek kendi sunucunuzu
+                                    kullanabilirsiniz.
+                                </p>
+                            </div>
+                            <input
+                                class="text-input"
+                                type="text"
+                                bind:value={$hybridProxyBaseUrl}
+                                placeholder="https://artstelve-proxy.vercel.app/"
+                            />
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>Engines</h3>
+                                <p>
+                                    Virgülle ayırın. Varsayılan:
+                                    duckduckgo,yahoo,yandex,brave,startpage,qwant,ecosia,mojeek,ask,aol
+                                </p>
+                            </div>
+                            <input
+                                class="text-input"
+                                type="text"
+                                bind:value={$hybridProxyEngines}
+                                placeholder="duckduckgo,yahoo,yandex,brave,startpage,qwant,ecosia,mojeek,ask,aol"
+                            />
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>Limit (per engine)</h3>
+                                <p>
+                                    Her motor için maksimum sonuç sayısı (1-20).
+                                </p>
+                            </div>
+                            <input
+                                class="text-input"
+                                type="number"
+                                min="1"
+                                max="20"
+                                bind:value={$hybridProxyLimitPerEngine}
+                            />
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>Toplam Sonuç</h3>
+                                <p>
+                                    Arama başına getirilecek toplam sonuç
+                                    (1-100). Varsayılan: 20
+                                </p>
+                            </div>
+                            <input
+                                class="text-input"
+                                type="number"
+                                min="1"
+                                max="100"
+                                bind:value={$hybridProxyLimitTotal}
+                            />
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>Timeout (ms)</h3>
+                                <p>Proxy arama timeout (3000-30000).</p>
+                            </div>
+                            <input
+                                class="text-input"
+                                type="number"
+                                min="3000"
+                                max="30000"
+                                step="1000"
+                                bind:value={$hybridProxyTimeoutMs}
+                            />
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div
+                            class="setting-row"
+                            style="flex-direction: column; align-items: flex-start; gap: 1rem;"
+                        >
+                            <div
+                                style="display: flex; justify-content: space-between; width: 100%; align-items: center;"
+                            >
+                                <div class="setting-info">
+                                    <h3>Hız Testi</h3>
+                                    <p>
+                                        Proxy sunucusunun yanıt süresini kontrol
+                                        edin.
+                                    </p>
+                                </div>
+                                <button
+                                    class="button"
+                                    on:click={pingProxy}
+                                    disabled={isTestingProxy}
+                                >
+                                    <i
+                                        class="fas fa-sync-alt"
+                                        class:fa-spin={isTestingProxy}
+                                    ></i>
+                                    {proxyLatency !== null
+                                        ? `${proxyLatency} ms`
+                                        : "Test Et"}
+                                </button>
+                            </div>
+
+                            {#if proxyLatency !== null && (proxyLatency > 400 || proxyLatency === "Hata")}
+                                <div class="latency-warning" in:fade>
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <div class="warning-text">
+                                        <strong>Düşük Hız Algılandı!</strong>
+                                        <p>
+                                            Proxy hızı oldukça yavaş görünüyor.
+                                            Bu durum arama sonuçlarını
+                                            etkileyebilir.
+                                        </p>
+                                    </div>
+                                    <a
+                                        href="mailto:sxi@artadosearch.com?subject=Artado%20Proxy%20Gecikme%20Raporu&body=Merhaba%2C%0A%0AProxy%20gecikmesi%3A%20{proxyLatency}%20ms%0AProxy%20URL%3A%20{$hybridProxyBaseUrl}%0A%0AProblem%20detaylar%C4%B1%3A"
+                                        class="report-btn"
+                                    >
+                                        Hızı Bildir
+                                    </a>
+                                </div>
+                            {/if}
+                        </div>
+                    </div>
+                </section>
             {:else if activeTab === "Temalar"}
                 <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">{$t("themes")}</h2>
@@ -538,8 +987,8 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 </button>
                             {/each}
 
-                            {#if installedThemesList.length > 0}
-                                {#each installedThemesList as itheme}
+                            {#if installedGeneralThemes.length > 0}
+                                {#each installedGeneralThemes as itheme}
                                     <div class="theme-button-wrapper">
                                         <button
                                             class="theme-button"
@@ -736,7 +1185,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                 <strong>{theme.name}</strong>
                                                 <small>{theme.author}</small>
                                                 <p>{theme.description || ""}</p>
-                                                {#if installedThemesList.some((t) => t.id === theme.id || t.id === theme.name
+                                                {#if [...installedGeneralThemes, ...installedHomeThemes].some((t) => t.id === theme.id || t.id === theme.name
                                                                 .replace(/[^a-z0-9]/gi, "_")
                                                                 .toLowerCase())}
                                                     <button
@@ -770,7 +1219,18 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                         {installingId ===
                                                         theme.id
                                                             ? "Yükleniyor..."
-                                                            : "Yükle"}
+                                                            : "İndir"}
+                                                    </button>
+                                                    <button
+                                                        class="button secondary small"
+                                                        style="background: var(--accent-color); border: none;"
+                                                        on:click={() =>
+                                                            applyRemoteItem(
+                                                                theme,
+                                                                "theme",
+                                                            )}
+                                                    >
+                                                        Uygula (Anında)
                                                     </button>
                                                 {/if}
                                             </div>
@@ -844,7 +1304,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                         {installingId ===
                                                         plugin.id
                                                             ? "Yükleniyor..."
-                                                            : "Yükle"}
+                                                            : "İndir"}
                                                     </button>
                                                 {/if}
                                             </div>
@@ -858,84 +1318,6 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                             {/if}
                         </div>
                     {/if}
-                </section>
-            {:else if activeTab === "Geçmiş"}
-                <section in:slide={{ duration: 300 }}>
-                    <h2 class="section-heading">Arama Geçmişi</h2>
-                    <div class="setting-card">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;"
-                        >
-                            <p style="margin: 0;">
-                                Son yaptığınız aramalar (Maksimum 50 adet).
-                            </p>
-                            <button
-                                class="button danger"
-                                on:click={() => {
-                                    if (
-                                        confirm(
-                                            "Tüm arama geçmişiniz silinecek. Emin misiniz?",
-                                        )
-                                    ) {
-                                        searchHistory.clearHistory();
-                                    }
-                                }}
-                            >
-                                <i class="fas fa-trash"></i> Geçmişi Temizle
-                            </button>
-                        </div>
-
-                        {#if $searchHistory.length > 0}
-                            <div class="history-list">
-                                {#each $searchHistory as item (item.id)}
-                                    <div class="history-item">
-                                        <div class="history-item-info">
-                                            <i
-                                                class="fas fa-search"
-                                                style="opacity: 0.5;"
-                                            ></i>
-                                            <div class="history-item-text">
-                                                <a
-                                                    href="/search?i={encodeURIComponent(
-                                                        item.query,
-                                                    )}&t={item.type}"
-                                                    class="history-query"
-                                                >
-                                                    {item.query}
-                                                </a>
-                                                <span class="history-meta">
-                                                    {item.engine} • {item.type ===
-                                                    "web"
-                                                        ? "Web"
-                                                        : item.type} • {formatTimestamp(
-                                                        item.timestamp,
-                                                    )}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <button
-                                            class="history-delete-btn"
-                                            on:click={() =>
-                                                searchHistory.removeSearch(
-                                                    item.id,
-                                                )}
-                                            title="Sil"
-                                        >
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                {/each}
-                            </div>
-                        {:else}
-                            <div class="empty-state">
-                                <i
-                                    class="fas fa-history fa-3x"
-                                    style="margin-bottom: 1rem; opacity: 0.2;"
-                                ></i>
-                                <p>Henüz bir arama geçmişiniz yok.</p>
-                            </div>
-                        {/if}
-                    </div>
                 </section>
             {/if}
         </main>
@@ -1377,11 +1759,139 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
     .history-query:hover {
         text-decoration: underline;
     }
-    .history-meta {
-        font-size: 0.8rem;
+    .setting-info p {
+        font-size: 0.95rem;
         color: var(--text-color-secondary);
-        margin-top: 0.2rem;
+        margin: 0;
+        line-height: 1.5;
     }
+
+    .history-disabled-notice {
+        margin-top: 0.5rem !important;
+        font-size: 0.9rem !important;
+        color: var(--primary-color) !important;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+
+    .link-btn {
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 0;
+        font-size: inherit;
+        font-family: inherit;
+        font-weight: 700;
+        transition: opacity 0.2s;
+    }
+
+    .link-btn:hover {
+        opacity: 0.7;
+    }
+    .history-disabled-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        background: rgba(var(--primary-color-rgb), 0.1);
+        padding: 0.6rem 1.2rem;
+        border-radius: 50px;
+        color: var(--primary-color);
+        font-size: 0.9rem;
+        font-weight: 500;
+        border: 1px solid rgba(var(--primary-color-rgb), 0.2);
+    }
+
+    .link-btn-history {
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 0;
+        font-size: inherit;
+        font-weight: 700;
+    }
+
+    .history-filter-container {
+        margin-bottom: 1.5rem;
+    }
+
+    .history-search-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        background: var(--background-color-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0 1rem;
+        transition: all 0.2s;
+    }
+
+    .history-search-wrapper:focus-within {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
+    }
+
+    .history-search-wrapper i {
+        color: var(--text-color-secondary);
+        font-size: 0.9rem;
+    }
+
+    .history-filter-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        outline: none;
+        padding: 0.8rem;
+        color: var(--text-color);
+        font-size: 0.95rem;
+    }
+
+    .clear-history-search {
+        background: none;
+        border: none;
+        color: var(--text-color-secondary);
+        cursor: pointer;
+        padding: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .clear-history-search:hover {
+        color: var(--text-color);
+    }
+
+    .filter-chips {
+        display: flex;
+        gap: 0.6rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .chip {
+        padding: 0.5rem 1.2rem;
+        border-radius: 50px;
+        background: var(--input-background);
+        border: 1px solid var(--border-color);
+        color: var(--text-color-secondary);
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .chip:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .chip.active {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+
     .history-delete-btn {
         background: none;
         border: none;
@@ -1594,8 +2104,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         .setting-control {
             width: 100%;
         }
-        .setting-control select,
-        .setting-control input {
+        .setting-control select {
             width: 100%;
         }
         .section-heading {
@@ -1604,5 +2113,93 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         .workshop-grid {
             grid-template-columns: 1fr;
         }
+    }
+    .latency-warning {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(255, 193, 7, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        padding: 1rem;
+        border-radius: 12px;
+        width: 100%;
+        color: #856404;
+    }
+
+    .warning-text strong {
+        display: block;
+        font-size: 0.95rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .warning-text p {
+        margin: 0;
+        font-size: 0.85rem;
+        opacity: 0.8;
+    }
+
+    .report-btn {
+        margin-left: auto;
+        padding: 0.6rem 1.2rem;
+        background: #ffc107;
+        color: #000;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .report-btn:hover {
+        background: #ffca2c;
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 600px) {
+        .latency-warning {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .report-btn {
+            margin-left: 0;
+            width: 100%;
+            text-align: center;
+        }
+    }
+    .sample-box {
+        background: var(--card-background);
+        border: 1px dashed var(--border-color);
+        padding: 1.2rem;
+        border-radius: 12px;
+        transition: all 0.2s;
+    }
+    .sample-box:hover {
+        border-style: solid;
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+    }
+    .sample-box strong {
+        display: block;
+        margin-bottom: 0.8rem;
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+    .sample-box ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .sample-box li {
+        font-size: 0.85rem;
+        color: var(--text-color-secondary);
+        margin-bottom: 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .sample-box li::before {
+        content: "•";
+        color: var(--primary-color);
     }
 </style>

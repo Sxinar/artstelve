@@ -5,6 +5,24 @@ import { json } from '@sveltejs/kit';
 const BRAVE_API_KEY = 'BSAuFJ0CRuCgoNsyYopbiFg6hItXpsL';
 // GEMINI_API_KEY Removed
 
+const PROXY_SEARCH_BASE_URL = process.env.PROXY_SEARCH_BASE_URL || 'http://localhost:8787';
+
+function mapEngineToProxyEngines(engine) {
+    if (!engine) return undefined;
+    const normalized = String(engine).trim().toLowerCase();
+    if (normalized === 'brave') return 'brave';
+    if (normalized === 'duckduckgo' || normalized === 'duck') return 'duckduckgo';
+    if (normalized === 'startpage') return 'startpage';
+    if (normalized === 'qwant') return 'qwant';
+    if (normalized === 'ecosia') return 'ecosia';
+    if (normalized === 'mojeek') return 'mojeek';
+    if (normalized === 'yahoo') return 'yahoo';
+    if (normalized === 'ask') return 'ask';
+    if (normalized === 'aol') return 'aol';
+    if (normalized === 'yandex') return 'yandex';
+    return undefined;
+}
+
 // Bang komutları için yönlendirme URL'leri
 const BANG_COMMANDS = {
     '!g': 'https://www.google.com/search?q=',
@@ -132,12 +150,24 @@ async function fetchDuckDuckGoResults(query, searchType) {
     }
 }
 
-export async function GET({ url }) {
+export async function GET({ url, setHeaders }) {
     console.log("[API LIFECYCLE] GET /api/search endpoint hit!");
+
+    // Cache search results for 5 minutes (browser) and 10 minutes (CDN/Edge)
+    setHeaders({
+        'Cache-Control': 'public, max-age=300, s-maxage=600'
+    });
 
     const query = url.searchParams.get('i');
     const searchType = url.searchParams.get('t') || 'web'; // Renamed variable from 'type'
     const engine = url.searchParams.get('engine') || 'Brave'; // Arama motoru parametresi
+    const proxyBaseUrl = url.searchParams.get('proxyBaseUrl') || PROXY_SEARCH_BASE_URL;
+    const proxyEngines = url.searchParams.get('proxyEngines');
+    const proxyLimitPerEngineRaw = url.searchParams.get('proxyLimitPerEngine');
+    const proxyLimitTotalRaw = url.searchParams.get('proxyLimitTotal');
+    const proxyTimeoutMsRaw = url.searchParams.get('proxyTimeoutMs');
+    const proxyCacheRaw = url.searchParams.get('proxyCache');
+    const region = url.searchParams.get('region') || 'all'; // 'all', 'TR', 'US', etc.
     const safe = url.searchParams.get('safe') || 'on'; // 'on' | 'off'
     const size = url.searchParams.get('size') || ''; // images: small|medium|large
     const color = url.searchParams.get('color') || ''; // images: color filter
@@ -164,6 +194,56 @@ export async function GET({ url }) {
         return json({ redirect: bangRedirectUrl });
     }
 
+    if (searchType === 'web' && engine === 'Hybrid Proxy') {
+        try {
+            const configuredLimitTotal = Math.max(1, Math.min(100, Number(proxyLimitTotalRaw ?? 20)));
+            const limitTotal = Math.max(1, Math.min(100, Math.max(configuredLimitTotal, offset + count)));
+            const proxyLimitPerEngine = Math.max(1, Math.min(20, Number(proxyLimitPerEngineRaw ?? Math.ceil(limitTotal / 4))));
+            const timeoutMs = Math.max(3000, Math.min(30000, Number(proxyTimeoutMsRaw ?? 20000)));
+            const cacheEnabled = proxyCacheRaw == null ? true : !(String(proxyCacheRaw) === '0' || String(proxyCacheRaw).toLowerCase() === 'false');
+
+            const params = new URLSearchParams();
+            params.set('q', query);
+            params.set('limitTotal', String(limitTotal));
+            params.set('limitPerEngine', String(proxyLimitPerEngine));
+            params.set('timeoutMs', String(timeoutMs));
+            params.set('cache', cacheEnabled ? '1' : '0');
+            if (region && region !== 'all') params.set('region', region); // Pass region to proxy if supported
+            if (proxyEngines) params.set('engines', proxyEngines);
+
+            const proxyUrl = `${proxyBaseUrl}/search?${params.toString()}`;
+            const response = await fetch(proxyUrl);
+            if (!response.ok) {
+                let details = `Proxy request failed with status ${response.status}`;
+                try { details = await response.text(); } catch (e) { }
+                return json({ ok: false, error: `Proxy search hatası: ${response.status}`, details }, { status: response.status });
+            }
+
+            const data = await response.json();
+            const all = Array.isArray(data.results) ? data.results : [];
+            // Slice correctly using offset and count
+            const searchResults = all.slice(offset, offset + count).map((item) => {
+                return {
+                    title: item.title || 'Başlık Yok',
+                    url: item.url || '#',
+                    description: item.snippet || '',
+                    icon: `https://icons.duckduckgo.com/ip3/${getDomain(item.url)}.ico`,
+                    age: ''
+                };
+            });
+
+            return json({
+                ok: true,
+                type: searchType,
+                searchResults,
+                infoBoxResult: null
+            });
+        } catch (err) {
+            console.error('[API] Error fetching proxy search results:', err);
+            return json({ ok: false, error: 'Proxy sunucu hatası', details: err.message }, { status: 500 });
+        }
+    }
+
     // Seçilen arama motoruna göre API URL'sini belirle
     let apiUrl;
     let useGoogleApi = false;
@@ -180,6 +260,8 @@ export async function GET({ url }) {
         if (!Number.isNaN(offset) && offset > 0) params.set('offset', String(offset));
         if (!Number.isNaN(count) && count > 0) params.set('count', String(count));
         if (safe === 'on') params.set('safesearch', 'strict');
+        if (region && region !== 'all') params.set('country', region); // Map region to country for Brave
+
         // Image specific filters (Brave supports some via query params)
         if (searchType === 'images') {
             if (size) params.set('size', size);
@@ -189,7 +271,7 @@ export async function GET({ url }) {
             if (palette) params.set('palette', palette);
         }
         apiUrl = `https://api.search.brave.com/res/v1/${searchType}/search?${params.toString()}`;
-        console.log(`[API] Fetching ${searchType} results for: ${query} from Brave`);
+        console.log(`[API] Fetching ${searchType} results for: ${query} from Brave (Region: ${region})`);
     }
 
     try {

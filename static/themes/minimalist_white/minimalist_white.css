@@ -1,0 +1,41 @@
+:root {
+    --primary-color: #000000;
+    --background-color: #ffffff;
+    --card-background: #ffffff;
+    --text-color: #000000;
+    --text-color-secondary: #888888;
+    --border-color: #eeeeee;
+}
+
+body {
+    background-color: var(--background-color) !important;
+    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif !important;
+}
+
+.result-item-card {
+    border: none !important;
+    padding: 2rem 0 !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    transition: opacity 0.3s ease !important;
+}
+
+.result-item-card:hover {
+    opacity: 0.7 !important;
+}
+
+.result-title a {
+    font-size: 1.4rem !important;
+    letter-spacing: -0.02em !important;
+    font-weight: 500 !important;
+}
+
+.search-box {
+    border: none !important;
+    background: #f5f5f7 !important;
+    border-radius: 12px !important;
+    max-width: 600px !important;
+}
+
+.search-box:focus-within {
+    background: #f0f0f2 !important;
+}

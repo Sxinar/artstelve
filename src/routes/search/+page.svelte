@@ -3,11 +3,22 @@
     import { goto } from "$app/navigation";
     import { onMount, getContext } from "svelte";
     import { writable } from "svelte/store";
-    import { aiSummaryEnabled, selectedEngine } from "$lib/stores.js"; // Import AI summary setting
+    import {
+        aiSummaryEnabled,
+        selectedEngine,
+        hybridProxyBaseUrl,
+        hybridProxyEngines,
+        hybridProxyLimitPerEngine,
+        hybridProxyLimitTotal,
+        hybridProxyTimeoutMs,
+        hybridProxyCache,
+        searchRegion,
+        customLogo,
+    } from "$lib/stores.js"; // Import AI summary setting
     import { safeSearch, blockedSites } from "$lib/stores.js";
-    import { searchHistory } from "$lib/searchHistory.js";
     import { t } from "$lib/i18n.js";
-    import { fade, slide } from "svelte/transition";
+    import { fade, slide, fly } from "svelte/transition";
+    import { browser } from "$app/environment";
 
     // Get sidebar store from context
     const isSidebarOpen = getContext("sidebar");
@@ -16,6 +27,7 @@
     let inputQuery = ""; // Separate state for the input field
     let isLoading = false;
     let searchResults = writable([]);
+    let specialResults = writable([]); // Results from plugins
     let error = writable(null); // Use writable store for error
     let activeSearchType = "web"; // 'web', 'images', 'videos', 'news' etc.
     let imageSize = "";
@@ -34,6 +46,8 @@
     let count = 20;
     let infoBoxResult = writable(null);
     let queryAiSummary = writable(null); // Store for the query AI summary
+
+    $: count = $selectedEngine === "Hybrid Proxy" ? $hybridProxyLimitTotal : 20;
 
     // Fetch results from our backend API endpoint
     async function fetchSearchResults(query, type = "web") {
@@ -55,7 +69,20 @@
             const params = new URLSearchParams();
             params.set("i", query);
             params.set("t", type);
+            params.set("engine", $selectedEngine);
+            if ($selectedEngine === "Hybrid Proxy") {
+                params.set("proxyBaseUrl", $hybridProxyBaseUrl);
+                params.set("proxyEngines", $hybridProxyEngines);
+                params.set(
+                    "proxyLimitPerEngine",
+                    String($hybridProxyLimitPerEngine),
+                );
+                params.set("proxyLimitTotal", String($hybridProxyLimitTotal));
+                params.set("proxyTimeoutMs", String($hybridProxyTimeoutMs));
+                params.set("proxyCache", $hybridProxyCache ? "1" : "0");
+            }
             params.set("safe", $safeSearch ? "on" : "off");
+            params.set("region", $searchRegion || "all");
             if (type === "images") {
                 if (imageSize) params.set("size", imageSize);
                 if (imageColor) params.set("color", imageColor);
@@ -100,8 +127,16 @@
 
             const incoming = data.searchResults || [];
             if (offset > 0) {
-                // append for pagination
-                searchResults.update((prev) => [...prev, ...incoming]);
+                // append for pagination with deduplication
+                searchResults.update((prev) => {
+                    const combined = [...prev, ...incoming];
+                    const unique = Array.from(
+                        new Map(
+                            combined.map((item) => [item.url, item]),
+                        ).values(),
+                    );
+                    return unique;
+                });
             } else {
                 searchResults.set(incoming);
             }
@@ -115,7 +150,72 @@
             queryAiSummary.set(null); // Reset query summary on error
         } finally {
             isLoading = false;
+
+            // Dispatch event for plugins to react
+            if (browser) {
+                specialResults.set([]); // Clear previous
+                window.dispatchEvent(
+                    new CustomEvent("artstelve_search", {
+                        detail: {
+                            query: query,
+                            type: type,
+                            addSpecialResult: (res) => {
+                                specialResults.update((prev) => {
+                                    // Prevent duplicates by ID
+                                    if (prev.some((p) => p.id === res.id))
+                                        return prev;
+                                    return [res, ...prev];
+                                });
+                            },
+                        },
+                    }),
+                );
+            }
         }
+    }
+
+    async function loadPlugins() {
+        if (!browser) return;
+        try {
+            const res = await fetch("/api/workshop/plugins");
+            if (res.ok) {
+                const data = await res.json();
+                const plugins = data.plugins || [];
+                plugins.forEach((p) => {
+                    const script = document.createElement("script");
+
+                    // If it's a URL, use it directly. Otherwise use local path.
+                    if (
+                        p.id &&
+                        (p.id.startsWith("http") || p.id.includes(".js"))
+                    ) {
+                        script.src = p.id;
+                    } else if (
+                        p.download_url &&
+                        p.download_url.startsWith("http")
+                    ) {
+                        script.src = p.download_url;
+                    } else {
+                        script.src = `/plugins/${p.id}/${p.id}.js`;
+                    }
+
+                    script.async = true;
+                    document.head.appendChild(script);
+                });
+            }
+        } catch (e) {
+            console.error("Failed to load plugins:", e);
+        }
+    }
+
+    onMount(() => {
+        loadPlugins();
+    });
+
+    async function loadMore() {
+        if (isLoading) return;
+        offset += count;
+        await fetchSearchResults(searchQuery, activeSearchType);
     }
 
     // Reactive statement to fetch results when the URL query parameter changes
@@ -133,12 +233,13 @@
 
     function handleSearchSubmit(type = activeSearchType) {
         if (!inputQuery.trim()) return;
-        searchHistory.addSearch(inputQuery.trim(), $selectedEngine, type);
         goto(`/search?i=${encodeURIComponent(inputQuery.trim())}&t=${type}`);
     }
 
     function handleKeyPress(event) {
         if (event.key === "Enter") {
+            clearTimeout(suggestTimeout);
+            showSuggestions = false;
             handleSearchSubmit();
         }
     }
@@ -156,11 +257,6 @@
             offset = 0;
             handleSearchSubmit(newType);
         }
-    }
-
-    function loadMore() {
-        offset += count;
-        fetchSearchResults(searchQuery, activeSearchType);
     }
 
     function getDomain(url) {
@@ -247,9 +343,58 @@
         const domain = getDomain(result.url);
         return !$blockedSites.includes(domain);
     });
+
+    // --- Autosuggest Logic ---
+    let suggestions = [];
+    let showSuggestions = false;
+    let suggestTimeout;
+
+    async function fetchSuggestions(q) {
+        if (!q || q.length < 2) {
+            suggestions = [];
+            return;
+        }
+        try {
+            const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
+            if (res.ok) {
+                suggestions = await res.json();
+            }
+        } catch (e) {
+            console.error("Suggestion fetch error", e);
+        }
+    }
+
+    function handleInput(event) {
+        const val = event.target.value;
+        inputQuery = val;
+        clearTimeout(suggestTimeout);
+        if (val.trim().length > 1) {
+            suggestTimeout = setTimeout(() => {
+                fetchSuggestions(val);
+                showSuggestions = true;
+            }, 300);
+        } else {
+            showSuggestions = false;
+        }
+    }
+
+    function selectSuggestion(s) {
+        inputQuery = s;
+        showSuggestions = false;
+        handleSearchSubmit();
+    }
+
+    function clickOutsideSuggestions(event) {
+        if (!event.target.closest(".search-bar-container")) {
+            showSuggestions = false;
+        }
+    }
 </script>
 
-<svelte:window on:click={handleOutsideClick} />
+<svelte:window
+    on:click={handleOutsideClick}
+    on:click={clickOutsideSuggestions}
+/>
 
 <svelte:head>
     <title
@@ -262,22 +407,62 @@
 <div class="search-results-page">
     <header class="search-header">
         <a href="/" class="logo-link" aria-label="Ana Sayfa">
-            <img src="/logo.png" alt="Artado Logo" class="header-logo" />
+            <img src={$customLogo} alt="Artado Logo" class="header-logo" />
         </a>
         <div class="search-bar-container">
-            <input
-                type="text"
-                bind:value={inputQuery}
-                on:keypress={handleKeyPress}
-                placeholder={$t("searchPlaceholder")}
-                aria-label="Arama"
-                class="search-input-header"
-            />
+            <div
+                class="input-wrapper"
+                style="flex:1; position: relative; display: flex;"
+            >
+                <input
+                    type="text"
+                    value={inputQuery}
+                    on:input={handleInput}
+                    on:keypress={handleKeyPress}
+                    on:focus={() => {
+                        if (inputQuery.length > 1 && suggestions.length > 0)
+                            showSuggestions = true;
+                    }}
+                    placeholder={$t("searchPlaceholder")}
+                    aria-label="Arama"
+                    class="search-input-header"
+                    autocomplete="off"
+                />
+                {#if showSuggestions && suggestions.length > 0}
+                    <div
+                        class="suggestions-dropdown"
+                        in:fade={{ duration: 200 }}
+                    >
+                        <div class="suggestions-header">
+                            <i class="fas fa-magic"></i> Öneriler
+                        </div>
+                        {#each suggestions as s}
+                            <button
+                                class="suggestion-item"
+                                on:click={() => selectSuggestion(s)}
+                            >
+                                <div class="suggestion-icon-wrapper">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                                <span
+                                    >{@html s.replace(
+                                        new RegExp(searchQuery, "gi"),
+                                        (match) => `<b>${match}</b>`,
+                                    )}</span
+                                >
+                                <i class="fas fa-arrow-up suggestion-arrow"></i>
+                            </button>
+                        {/each}
+                    </div>
+                {/if}
+            </div>
             {#if inputQuery}
                 <button
                     class="clear-button-header"
                     on:click={() => {
                         inputQuery = "";
+                        suggestions = [];
+                        showSuggestions = false;
                         document.querySelector(".search-input-header")?.focus();
                     }}
                     aria-label="Aramayı temizle"
@@ -340,185 +525,15 @@
     </nav>
 
     {#if activeSearchType === "images"}
-        <div class="image-filters" role="region" aria-label="Görsel filtreleri">
-            <div class="select-wrapper">
-                <select
-                    bind:value={imageSize}
-                    on:change={() => {
-                        offset = 0;
-                        handleSearchSubmit("images");
-                    }}
-                    aria-label="Boyut"
-                >
-                    <option value="">Boyut: Tümü</option>
-                    <option value="small">Küçük</option>
-                    <option value="medium">Orta</option>
-                    <option value="large">Büyük</option>
-                </select>
-                <i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
-                ></i>
-            </div>
-            <div class="select-wrapper">
-                <select
-                    bind:value={imageColor}
-                    on:change={() => {
-                        offset = 0;
-                        handleSearchSubmit("images");
-                    }}
-                    aria-label="Renk"
-                >
-                    <option value="">Renk: Tümü</option>
-                    <option value="color">Renkli</option>
-                    <option value="monochrome">Siyah-Beyaz</option>
-                    <option value="red">Kırmızı</option>
-                    <option value="orange">Turuncu</option>
-                    <option value="yellow">Sarı</option>
-                    <option value="green">Yeşil</option>
-                    <option value="blue">Mavi</option>
-                    <option value="purple">Mor</option>
-                    <option value="pink">Pembe</option>
-                    <option value="brown">Kahverengi</option>
-                    <option value="black">Siyah</option>
-                    <option value="white">Beyaz</option>
-                </select>
-                <i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
-                ></i>
-            </div>
-            <div class="select-wrapper">
-                <select
-                    bind:value={imageAspect}
-                    on:change={() => {
-                        offset = 0;
-                        handleSearchSubmit("images");
-                    }}
-                    aria-label="En/Boy Oranı"
-                >
-                    <option value="">Oran: Tümü</option>
-                    <option value="square">Kare</option>
-                    <option value="wide">Geniş</option>
-                    <option value="tall">Yüksek</option>
-                </select>
-                <i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
-                ></i>
-            </div>
-            <div class="select-wrapper">
-                <select
-                    bind:value={imageType}
-                    on:change={() => {
-                        offset = 0;
-                        handleSearchSubmit("images");
-                    }}
-                    aria-label="Tür"
-                >
-                    <option value="">Tür: Tümü</option>
-                    <option value="photo">Fotoğraf</option>
-                    <option value="vector">Vektör</option>
-                    <option value="clipart">Clipart</option>
-                </select>
-                <i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
-                ></i>
-            </div>
-            <div class="select-wrapper">
-                <select
-                    bind:value={imagePalette}
-                    on:change={() => {
-                        offset = 0;
-                        handleSearchSubmit("images");
-                    }}
-                    aria-label="Palet"
-                >
-                    <option value="">Palet: Tümü</option>
-                    <option value="warm">Sıcak</option>
-                    <option value="cool">Soğuk</option>
-                    <option value="pastel">Pastel</option>
-                    <option value="vibrant">Canlı</option>
-                </select>
-                <i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
-                ></i>
-            </div>
-        </div>
+        <!-- Filters removed as per user request -->
+    {:else if activeSearchType === "news"}
+        <!-- Filters removed as per user request -->
     {/if}
 
-    {#if activeSearchType === "news"}
-        <div class="news-filters" role="region" aria-label="Haber filtreleri">
-            <input
-                class="news-filter-input"
-                type="text"
-                placeholder="Kaynak (domain veya isim)"
-                bind:value={newsSource}
-                on:change={() => {
-                    offset = 0;
-                    handleSearchSubmit("news");
-                }}
-            />
-            <input
-                class="news-filter-input"
-                type="date"
-                bind:value={newsStartDate}
-                on:change={() => {
-                    offset = 0;
-                    handleSearchSubmit("news");
-                }}
-            />
-            <input
-                class="news-filter-input"
-                type="date"
-                bind:value={newsEndDate}
-                on:change={() => {
-                    offset = 0;
-                    handleSearchSubmit("news");
-                }}
-            />
-        </div>
-    {/if}
-    {#if activeSearchType === "images"}
-        <div class="image-filters" role="region" aria-label="Görsel filtreleri">
-            <div class="select-wrapper">
-                <select
-                    bind:value={imageSize}
-                    on:change={() => handleSearchSubmit("images")}
-                    aria-label="Boyut"
-                >
-                    <option value="">Boyut: Tümü</option>
-                    <option value="small">Küçük</option>
-                    <option value="medium">Orta</option>
-                    <option value="large">Büyük</option>
-                </select>
-                <i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
-                ></i>
-            </div>
-            <div class="select-wrapper">
-                <select
-                    bind:value={imageColor}
-                    on:change={() => handleSearchSubmit("images")}
-                    aria-label="Renk"
-                >
-                    <option value="">Renk: Tümü</option>
-                    <option value="color">Renkli</option>
-                    <option value="monochrome">Siyah-Beyaz</option>
-                    <option value="red">Kırmızı</option>
-                    <option value="green">Yeşil</option>
-                    <option value="blue">Mavi</option>
-                </select>
-                <i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
-                ></i>
-            </div>
-            <div class="select-wrapper">
-                <select
-                    bind:value={imageAspect}
-                    on:change={() => handleSearchSubmit("images")}
-                    aria-label="En/Boy Oranı"
-                >
-                    <option value="">Oran: Tümü</option>
-                    <option value="square">Kare</option>
-                    <option value="wide">Geniş</option>
-                    <option value="tall">Yüksek</option>
-                </select>
-                <i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
-                ></i>
-            </div>
-        </div>
-    {/if}
+    <!-- 
+    PREVIOUS FILTERS COMMENTED OUT / REMOVED 
+    (Kept structure if we want to re-enable or conditionally show for 'web' only if relevant)
+    -->
 
     <div class="main-content-area">
         <main class="results-container" aria-live="polite">
@@ -548,8 +563,24 @@
 
                 <!-- === WEB RESULTS === -->
             {:else if activeSearchType === "web"}
-                {#if filteredResults.length > 0}
+                {#if filteredResults.length > 0 || $specialResults.length > 0}
                     <div class="results-list web-results">
+                        <!-- Plugin Special Results -->
+                        {#each $specialResults as res (res.id)}
+                            <div
+                                class="result-item-card special-plugin-card"
+                                in:fly={{ y: 20, duration: 400 }}
+                            >
+                                <div class="special-badge">
+                                    <i class={res.icon}></i>
+                                    {res.plugin}
+                                </div>
+                                <h3 class="result-title">{res.title}</h3>
+                                <div class="result-content plugin-content">
+                                    {@html res.content}
+                                </div>
+                            </div>
+                        {/each}
                         {#each filteredResults as result (result.url)}
                             <div class="result-item-card">
                                 <div class="result-header">
@@ -628,9 +659,17 @@
                             </div>
                         {/each}
                     </div>
-                    <p class="results-count">
-                        Yaklaşık {filteredResults.length} sonuç bulundu.
-                    </p>
+                    <div class="load-more-container">
+                        {#if isLoading && offset > 0}
+                            <div class="load-more-spinner">
+                                <i class="fas fa-circle-notch fa-spin"></i> Yükleniyor...
+                            </div>
+                        {:else if filteredResults.length > 0}
+                            <button class="load-more-btn" on:click={loadMore}>
+                                <i class="fas fa-plus"></i> Daha Fazla Sonuç Yükle
+                            </button>
+                        {/if}
+                    </div>
                 {:else if searchQuery}
                     <!-- Fallback if all results are blocked -->
                     <div class="no-results">
@@ -653,42 +692,72 @@
                 {#if $searchResults.length > 0}
                     <div class="results-grid image-results">
                         {#each $searchResults as result, i (result.thumbnail + i)}
-                            <a
-                                href={result.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="image-result-item"
-                            >
-                                <img
-                                    src={result.thumbnail}
-                                    alt={result.title || "Görsel"}
-                                    loading="lazy"
-                                    on:error={(e) => {
-                                        e.target.style.display = "none";
-                                        e.target.parentElement.classList.add(
-                                            "no-image",
-                                        );
-                                    }}
-                                />
-                                <div class="image-info">
+                            <div class="image-result-item">
+                                <div class="image-wrapper">
+                                    <img
+                                        src={result.thumbnail}
+                                        alt={result.title || "Görsel"}
+                                        loading="lazy"
+                                        on:error={(e) => {
+                                            e.target.style.display = "none";
+                                            e.target.parentElement.classList.add(
+                                                "no-image",
+                                            );
+                                        }}
+                                    />
+                                    <div class="image-overlay">
+                                        <a
+                                            href={result.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="overlay-btn"
+                                            title="Siteye Git"
+                                        >
+                                            <i class="fas fa-external-link-alt"
+                                            ></i>
+                                        </a>
+                                        <a
+                                            href={result.thumbnail}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="overlay-btn"
+                                            title="Tam Boyut"
+                                        >
+                                            <i class="fas fa-expand"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <a
+                                    href={result.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="image-info"
+                                >
                                     <span class="image-title"
                                         >{result.title}</span
                                     >
-                                    <span class="image-source"
-                                        >{getDomain(result.source)}</span
-                                    >
-                                </div>
-                            </a>
+                                    <span class="image-source">
+                                        {#if result.sourceIcon}<img
+                                                src={result.sourceIcon}
+                                                alt=""
+                                                class="source-icon"
+                                            />{/if}
+                                        {getDomain(result.source)}
+                                    </span>
+                                </a>
+                            </div>
                         {/each}
                     </div>
-                    <p class="results-count">
-                        {$searchResults.length} görsel bulundu.
-                    </p>
-                    <div class="load-more-wrapper">
-                        <button
-                            class="button button-secondary"
-                            on:click={loadMore}>Daha fazla yükle</button
-                        >
+                    <div class="load-more-container">
+                        {#if isLoading && offset > 0}
+                            <div class="load-more-spinner">
+                                <i class="fas fa-circle-notch fa-spin"></i> Yükleniyor...
+                            </div>
+                        {:else if $searchResults.length > 0}
+                            <button class="load-more-btn" on:click={loadMore}>
+                                <i class="fas fa-plus"></i> Daha Fazla Görsel Yükle
+                            </button>
+                        {/if}
                     </div>
                 {:else if searchQuery}
                     <div class="no-results">
@@ -699,9 +768,9 @@
                 <!-- === VIDEO RESULTS === -->
             {:else if activeSearchType === "videos"}
                 {#if $searchResults.length > 0}
-                    <div class="results-list video-results">
+                    <div class="results-grid video-results-grid">
                         {#each $searchResults as result (result.url)}
-                            <div class="result-item-card video-item-card">
+                            <div class="result-item-card video-card-modern">
                                 <div class="video-thumbnail-container">
                                     <a
                                         href={result.url}
@@ -719,6 +788,9 @@
                                                     "hidden";
                                             }}
                                         />
+                                        <div class="play-overlay">
+                                            <i class="fas fa-play"></i>
+                                        </div>
                                         {#if result.duration}
                                             <span class="video-duration"
                                                 >{formatDuration(
@@ -737,35 +809,37 @@
                                             >{result.title}</a
                                         >
                                     </h3>
-                                    <div class="video-meta">
-                                        {#if result.publisher}
-                                            <span class="video-publisher"
-                                                >{result.publisher}</span
+                                    <div class="video-meta-row">
+                                        <span class="video-publisher"
+                                            >{result.publisher ||
+                                                getDomain(result.url)}</span
+                                        >
+                                        {#if result.age}<span class="separator"
+                                                >•</span
                                             >
-                                        {/if}
-                                        {#if result.age}
                                             <span class="video-age"
                                                 >{formatAge(result.age)}</span
-                                            >
-                                        {/if}
+                                            >{/if}
                                     </div>
                                     <p
                                         class="result-description video-description"
                                     >
-                                        {result.description || "Açıklama yok."}
+                                        {result.description || ""}
                                     </p>
                                 </div>
                             </div>
                         {/each}
                     </div>
-                    <p class="results-count">
-                        {$searchResults.length} video bulundu.
-                    </p>
-                    <div class="load-more-wrapper">
-                        <button
-                            class="button button-secondary"
-                            on:click={loadMore}>Daha fazla yükle</button
-                        >
+                    <div class="load-more-container">
+                        {#if isLoading && offset > 0}
+                            <div class="load-more-spinner">
+                                <i class="fas fa-circle-notch fa-spin"></i> Yükleniyor...
+                            </div>
+                        {:else if $searchResults.length > 0}
+                            <button class="load-more-btn" on:click={loadMore}>
+                                <i class="fas fa-plus"></i> Daha Fazla Video Yükle
+                            </button>
+                        {/if}
                     </div>
                 {:else if searchQuery}
                     <div class="no-results">
@@ -778,50 +852,65 @@
                 {#if $searchResults.length > 0}
                     <div class="results-list news-results">
                         {#each $searchResults as result (result.url)}
-                            <div class="result-item-card news-item-card">
-                                <h3 class="result-title">
-                                    <a
-                                        href={result.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        >{result.title}</a
-                                    >
-                                </h3>
-                                <div class="news-meta">
-                                    {#if result.source}<span class="news-source"
-                                            >{result.source}</span
-                                        >{/if}
-                                    {#if result.age}<span class="news-age"
-                                            >{result.age}</span
-                                        >{/if}
+                            <div class="result-item-card news-item-modern">
+                                <div class="news-content">
+                                    <div class="news-header-meta">
+                                        {#if result.icon}<img
+                                                src={result.icon}
+                                                alt=""
+                                                class="news-source-icon"
+                                            />{/if}
+                                        <span class="news-source"
+                                            >{result.source ||
+                                                getDomain(result.url)}</span
+                                        >
+                                        {#if result.age}<span class="separator"
+                                                >•</span
+                                            >
+                                            <span class="news-age"
+                                                >{result.age}</span
+                                            >{/if}
+                                    </div>
+                                    <h3 class="result-title news-title">
+                                        <a
+                                            href={result.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            >{result.title}</a
+                                        >
+                                    </h3>
+                                    {#if result.description}
+                                        <p class="result-description news-desc">
+                                            {result.description}
+                                        </p>
+                                    {/if}
                                 </div>
                                 {#if result.thumbnail}
-                                    <img
-                                        src={result.thumbnail}
-                                        alt=""
-                                        class="news-thumbnail"
-                                        loading="lazy"
-                                        on:error={(e) => {
-                                            e.target.style.display = "none";
-                                        }}
-                                    />
+                                    <div class="news-thumbnail-wrapper">
+                                        <img
+                                            src={result.thumbnail}
+                                            alt=""
+                                            class="news-thumbnail"
+                                            loading="lazy"
+                                            on:error={(e) => {
+                                                e.target.style.display = "none";
+                                            }}
+                                        />
+                                    </div>
                                 {/if}
-                                {#if result.description}<p
-                                        class="result-description"
-                                    >
-                                        {result.description}
-                                    </p>{/if}
                             </div>
                         {/each}
                     </div>
-                    <p class="results-count">
-                        {$searchResults.length} haber bulundu.
-                    </p>
-                    <div class="load-more-wrapper">
-                        <button
-                            class="button button-secondary"
-                            on:click={loadMore}>Daha fazla yükle</button
-                        >
+                    <div class="load-more-container">
+                        {#if isLoading && offset > 0}
+                            <div class="load-more-spinner">
+                                <i class="fas fa-circle-notch fa-spin"></i> Yükleniyor...
+                            </div>
+                        {:else if $searchResults.length > 0}
+                            <button class="load-more-btn" on:click={loadMore}>
+                                <i class="fas fa-plus"></i> Daha Fazla Haber Yükle
+                            </button>
+                        {/if}
                     </div>
                 {:else if searchQuery}
                     <div class="no-results">
@@ -845,7 +934,7 @@
         </main>
 
         <!-- === Infobox Area === -->
-        {#if $infoBoxResult && !isLoading && !$error}
+        {#if activeSearchType === "web" && $infoBoxResult && !isLoading && !$error}
             <aside class="infobox-container">
                 <!-- Wikipedia Özet Kutusu (Öncelikli gösterilir) -->
                 {#if $infoBoxResult.wikipediaInfo}
@@ -1055,6 +1144,111 @@
         box-shadow:
             0 0 0 1px var(--primary-color),
             0 2px 5px rgba(0, 0, 0, 0.08); /* Enhanced focus */
+        z-index: 1001; /* Ensure above other elements */
+    }
+
+    /* Autosuggest Styles (Premium) */
+    .suggestions-dropdown {
+        position: absolute;
+        top: calc(100% + 12px);
+        left: 0;
+        right: 0;
+        background: rgba(var(--card-background-rgb, 255, 255, 255), 0.85);
+        -webkit-backdrop-filter: blur(24px);
+        backdrop-filter: blur(24px);
+        border: 1px solid rgba(var(--primary-color-rgb), 0.15);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+        border-radius: 24px;
+        z-index: 2000;
+        overflow: hidden;
+        padding: 0.6rem;
+    }
+
+    .suggestions-header {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--text-color-secondary);
+        padding: 0.8rem 1.2rem;
+        letter-spacing: 1.5px;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        opacity: 0.6;
+    }
+
+    .suggestion-item {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 0.85rem 1.4rem;
+        background: transparent;
+        border: none;
+        text-align: left;
+        color: var(--text-color);
+        cursor: pointer;
+        font-size: 1.05rem;
+        transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+        border-radius: 18px;
+        gap: 1.4rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .suggestion-item::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 5px;
+        height: 0;
+        background: var(--primary-color);
+        transition: height 0.3s ease;
+        border-radius: 0 5px 5px 0;
+    }
+
+    .suggestion-item:hover {
+        background: var(--primary-color);
+        color: white;
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 10px 30px rgba(var(--primary-color-rgb), 0.4);
+    }
+
+    .suggestion-item:hover::before {
+        height: 60%;
+        background: white;
+    }
+
+    .suggestion-icon-wrapper {
+        width: 36px;
+        height: 36px;
+        background: var(--hover-background);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: var(--text-color-secondary);
+        transition: all 0.3s;
+    }
+
+    .suggestion-item:hover .suggestion-icon-wrapper {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        transform: rotate(15deg);
+    }
+
+    .suggestion-arrow {
+        margin-left: auto;
+        font-size: 0.9rem;
+        opacity: 0;
+        transform: rotate(-45deg);
+        transition: all 0.3s;
+    }
+
+    .suggestion-item:hover .suggestion-arrow {
+        opacity: 1;
+        transform: rotate(-45deg) translate(2px, -2px);
     }
 
     .search-input-header {
@@ -1221,7 +1415,82 @@
 
     /* Card polish */
 
+    /* Load More Styles */
+    .load-more-container {
+        display: flex;
+        justify-content: center;
+        margin: 2rem 0 4rem;
+        width: 100%;
+    }
+
+    .load-more-btn {
+        background: var(--card-background);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        padding: 0.8rem 2rem;
+        border-radius: 50px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .load-more-btn:hover {
+        background: var(--primary-color);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(var(--primary-color-rgb), 0.3);
+        border-color: var(--primary-color);
+    }
+
+    .load-more-btn:active {
+        transform: scale(0.98);
+    }
+
+    .load-more-spinner {
+        color: var(--text-color-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        font-weight: 500;
+    }
     /* Menu Container */
+    /* Special Plugin Result Styling */
+    .special-plugin-card {
+        border: 2px solid rgba(var(--primary-color-rgb), 0.3) !important;
+        background: linear-gradient(
+            135deg,
+            var(--card-background),
+            rgba(var(--primary-color-rgb), 0.05)
+        ) !important;
+        position: relative;
+        overflow: hidden;
+    }
+    .special-badge {
+        position: absolute;
+        top: 0.8rem;
+        right: 0.8rem;
+        background: var(--primary-color);
+        color: white;
+        padding: 0.25rem 0.6rem;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        box-shadow: 0 4px 10px rgba(var(--primary-color-rgb), 0.3);
+    }
+    .plugin-content {
+        margin-top: 1rem;
+        padding: 0.5rem 0;
+    }
+
     .result-menu-container {
         position: relative;
         margin-left: auto;
@@ -1270,51 +1539,317 @@
         color: var(--text-color-secondary);
     }
 
+    /* --- Enhanced Image Results --- */
     .image-results {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap: 1rem;
     }
+
     .image-result-item {
-        display: block;
         background: var(--card-background);
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
-        text-decoration: none;
+        border: 1px solid var(--border-color);
         transition:
             transform 0.2s,
             box-shadow 0.2s;
-        border: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
     }
+
     .image-result-item:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
-    .image-result-item img {
+
+    .image-wrapper {
+        position: relative;
+        padding-top: 75%; /* 4:3 Aspect Ratio Container */
+        background: #f0f0f0;
+        overflow: hidden;
+    }
+
+    .image-wrapper img {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
-        height: 150px;
+        height: 100%;
         object-fit: cover;
-        display: block;
-        background-color: #eee;
+        transition: transform 0.3s;
     }
+
+    .image-result-item:hover .image-wrapper img {
+        transform: scale(1.05);
+    }
+
+    .image-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+        padding: 1rem 0.5rem 0.5rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .image-result-item:hover .image-overlay {
+        opacity: 1;
+    }
+
+    .overlay-btn {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(4px);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background 0.2s;
+    }
+    .overlay-btn:hover {
+        background: rgba(255, 255, 255, 0.4);
+    }
+
     .image-info {
-        padding: 0.5rem;
-        background: rgba(0, 0, 0, 0.02);
+        padding: 0.8rem;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        background: var(--card-background);
+        z-index: 1;
     }
+
     .image-title {
-        display: block;
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         color: var(--text-color);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         font-weight: 500;
+        margin-bottom: 0.3rem;
     }
+
     .image-source {
-        display: block;
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         color: var(--text-color-secondary);
-        margin-top: 0.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .source-icon {
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+    }
+
+    /* --- Video Results Grid --- */
+    .video-results-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .video-card-modern {
+        display: flex;
+        flex-direction: column;
+        padding: 0; /* Remove default padding */
+        gap: 0;
+    }
+
+    .video-thumbnail-container {
+        position: relative;
+        padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        background: #000;
+        overflow: hidden;
+    }
+
+    .video-thumbnail {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.9;
+        transition: opacity 0.2s;
+    }
+
+    .video-card-modern:hover .video-thumbnail {
+        opacity: 1;
+    }
+
+    .play-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40px;
+        height: 40px;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.1rem;
+        opacity: 0.8;
+        transition: all 0.2s;
+    }
+
+    .video-card-modern:hover .play-overlay {
+        background: var(--primary-color);
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .video-duration {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .video-details {
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .video-title a {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-color);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-decoration: none;
+        line-height: 1.3;
+    }
+
+    .video-card-modern:hover .video-title a {
+        color: var(--primary-color);
+        text-decoration: underline;
+    }
+
+    .video-meta-row {
+        font-size: 0.8rem;
+        color: var(--text-color-secondary);
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .separator {
+        margin: 0 0.4rem;
+    }
+
+    .video-description {
+        font-size: 0.85rem;
+        color: var(--text-color-secondary);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin-top: 0.4rem;
+        line-height: 1.4;
+    }
+
+    /* --- News Results Modern --- */
+    .news-item-modern {
+        display: flex;
+        flex-direction: row;
+        gap: 1.5rem;
+        padding: 1.2rem;
+        align-items: flex-start;
+    }
+
+    .news-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .news-header-meta {
+        display: flex;
+        align-items: center;
+        font-size: 0.8rem;
+        color: var(--text-color-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    .news-source-icon {
+        width: 16px;
+        height: 16px;
+        margin-right: 0.5rem;
+        border-radius: 2px;
+    }
+
+    .news-source {
+        font-weight: 600;
+        color: var(--text-color);
+    }
+
+    .news-title a {
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: var(--primary-color);
+        text-decoration: none;
+        line-height: 1.3;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .news-title a:hover {
+        text-decoration: underline;
+    }
+
+    .news-desc {
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: var(--text-color-secondary);
+    }
+
+    .news-thumbnail-wrapper {
+        flex-shrink: 0;
+        width: 120px;
+        height: 120px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--background-color-secondary);
+    }
+
+    .news-thumbnail {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    @media (max-width: 600px) {
+        .news-item-modern {
+            flex-direction: column-reverse;
+            gap: 1rem;
+        }
+        .news-thumbnail-wrapper {
+            width: 100%;
+            height: 180px;
+            margin-bottom: 0.5rem;
+        }
     }
 
     /* Load more area */
