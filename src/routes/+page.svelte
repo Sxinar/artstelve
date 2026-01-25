@@ -604,7 +604,7 @@
     cursor: pointer;
     font-size: 0.9rem;
     transition: all 0.15s ease;
-    border-radius: 8px;
+    border-radius: 0;
     gap: 10px;
     position: relative;
     margin-bottom: 1px;
@@ -620,12 +620,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
     color: var(--text-color-secondary);
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
   }
 
   .suggestion-item.focused .suggestion-icon-wrapper,

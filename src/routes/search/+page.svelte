@@ -1228,18 +1228,18 @@
         display: flex;
         align-items: center;
         width: 100%;
-        padding: 12px 18px;
+        padding: 8px 12px;
         background: transparent;
         border: none;
         text-align: left;
         color: #ffffff;
         cursor: pointer;
-        font-size: 1rem;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 16px;
-        gap: 15px;
+        font-size: 0.9rem;
+        transition: all 0.15s ease;
+        border-radius: 0;
+        gap: 10px;
         position: relative;
-        margin-bottom: 4px;
+        margin-bottom: 1px;
     }
 
     .suggestion-item.focused,
