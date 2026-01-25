@@ -835,6 +835,8 @@
 		z-index: 998;
 		transform: translateY(100%);
 		transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+		max-height: 85vh;
+		overflow-y: auto;
 	}
 
 	.footer-backdrop {
