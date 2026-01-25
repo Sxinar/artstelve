@@ -639,9 +639,7 @@
 
   .suggestion-item.focused .suggestion-icon-wrapper,
   .suggestion-item:hover .suggestion-icon-wrapper {
-    background: var(--primary-color);
-    color: #fff;
-    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.1);
   }
 
   .suggestion-arrow {
@@ -650,12 +648,12 @@
     transform: translateX(10px);
     transition: all 0.3s ease;
     font-size: 0.8rem;
-    color: var(--primary-color);
+    color: rgba(255, 255, 255, 0.5);
   }
 
   .suggestion-item.focused .suggestion-arrow,
   .suggestion-item:hover .suggestion-arrow {
-    opacity: 1;
+    opacity: 0.7;
     transform: translateX(0);
   }
 
