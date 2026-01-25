@@ -179,6 +179,13 @@
     performSearchNavigation();
   }
 
+  function handleBlur() {
+    // Small timeout to allow click to fire
+    setTimeout(() => {
+      showSuggestions = false;
+    }, 200);
+  }
+
   function clickOutsideSuggestions(event) {
     if (!event.target.closest(".search-box")) {
       showSuggestions = false;
@@ -304,6 +311,7 @@
           value={searchQuery}
           on:input={handleInput}
           on:keydown={handleKeyDown}
+          on:blur={handleBlur}
           on:focus={() => {
             if (searchQuery.length > 1 && suggestions.length > 0)
               showSuggestions = true;
@@ -559,77 +567,95 @@
     font-size: 1.1rem;
   }
 
-  /* Autosuggest Styles */
+  /* Autosuggest Styles - Ultra Premium Glassmorphism */
   .suggestions-dropdown {
     position: absolute;
-    top: calc(100% + 12px);
+    top: calc(100% + 15px);
     left: 0;
     right: 0;
-    background: rgba(var(--card-background-rgb, 255, 255, 255), 0.9);
-    -webkit-backdrop-filter: blur(28px);
-    backdrop-filter: blur(28px);
-    border: 1px solid rgba(var(--primary-color-rgb), 0.2);
+    background: rgba(15, 15, 20, 0.85); /* Consistently dark glass */
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
+    backdrop-filter: blur(30px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow:
-      0 20px 45px rgba(0, 0, 0, 0.2),
-      0 0 25px rgba(var(--primary-color-rgb), 0.15);
-    border-radius: 24px;
+      0 25px 60px rgba(0, 0, 0, 0.5),
+      0 0 30px rgba(var(--primary-color-rgb), 0.1);
+    border-radius: 28px;
     z-index: 2000;
     overflow: hidden;
-    padding: 0.6rem;
+    padding: 10px;
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
   }
 
   .suggestions-header {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-color-secondary);
-    padding: 0.6rem 1rem;
-    letter-spacing: 1px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 8px 15px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    opacity: 0.7;
+    gap: 8px;
   }
+
   .suggestion-item {
     display: flex;
     align-items: center;
     width: 100%;
-    padding: 0.75rem 1.4rem;
+    padding: 12px 18px;
     background: transparent;
     border: none;
     text-align: left;
-    color: var(--text-color);
+    color: #ffffff; /* Always white for readability on dark glass */
     cursor: pointer;
-    font-size: 1.05rem;
-    transition: all 0.2s ease;
-    border-radius: 12px;
-    gap: 1.4rem;
+    font-size: 1rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 16px;
+    gap: 15px;
     position: relative;
-    overflow: hidden;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
   }
 
-  .suggestion-item::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 5px;
-    height: 0;
+  .suggestion-item.focused,
+  .suggestion-item:hover {
+    background: rgba(var(--primary-color-rgb), 0.15);
+    padding-left: 24px;
+    color: var(--primary-color);
+  }
+
+  .suggestion-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    color: var(--text-color-secondary);
+    transition: all 0.3s ease;
+  }
+
+  .suggestion-item.focused .suggestion-icon-wrapper,
+  .suggestion-item:hover .suggestion-icon-wrapper {
     background: var(--primary-color);
-    transition: height 0.3s ease;
-    border-radius: 0 5px 5px 0;
+    color: #fff;
+    transform: scale(1.1);
   }
 
-  .suggestion-item:hover,
-  .suggestion-item.focused {
-    background: rgba(var(--primary-color-rgb), 0.1);
+  .suggestion-arrow {
+    margin-left: auto;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: all 0.3s ease;
+    font-size: 0.8rem;
+    color: var(--primary-color);
   }
 
-  .suggestion-item:hover::before,
-  .suggestion-item.focused::before {
-    height: 100%;
+  .suggestion-item.focused .suggestion-arrow,
+  .suggestion-item:hover .suggestion-arrow {
     opacity: 1;
+    transform: translateX(0);
   }
 
   .suggestion-icon-wrapper {

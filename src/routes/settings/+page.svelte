@@ -1316,51 +1316,6 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                     Henüz eklenti bulunamadı.
                                 </p>
                             {/if}
-                            <div class="divider"></div>
-
-                            <div
-                                class="setting-row"
-                                style="flex-direction: column; align-items: flex-start;"
-                            >
-                                <h3 style="margin-bottom: 1rem;">
-                                    <i class="fas fa-lightbulb"></i> Örnekler & İlham
-                                </h3>
-                                <div
-                                    class="samples-grid"
-                                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; width: 100%;"
-                                >
-                                    <div class="sample-box">
-                                        <strong>Eklentiler</strong>
-                                        <ul>
-                                            <li>Borsa & Döviz Takibi</li>
-                                            <li>Kod Formatlayıcı (Prettier)</li>
-                                            <li>Birim Dönüştürücü</li>
-                                            <li>Profesyonel Çevirmen</li>
-                                            <li>Hava Durumu Widget</li>
-                                        </ul>
-                                    </div>
-                                    <div class="sample-box">
-                                        <strong>Temalar</strong>
-                                        <ul>
-                                            <li>Gece Parıltısı (Midnight)</li>
-                                            <li>Sonbahar Esintisi</li>
-                                            <li>Cyberpunk Kırmızı</li>
-                                            <li>Minimalist Beyaz</li>
-                                            <li>Derin Okyanus Mavisi</li>
-                                        </ul>
-                                    </div>
-                                    <div class="sample-box">
-                                        <strong>Ana Sayfa</strong>
-                                        <ul>
-                                            <li>Zen Bahçesi</li>
-                                            <li>Geometrik Desenler</li>
-                                            <li>Soyut Akışkanlık</li>
-                                            <li>Antika Kağıt Dokusu</li>
-                                            <li>Kozmik Bulutsu (Cosmic)</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     {/if}
                 </section>
