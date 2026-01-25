@@ -413,16 +413,16 @@
 			<a href="/workshop"
 				><i class="fas fa-flask icon" aria-hidden="true"></i> Workshop</a
 			>
-			<a href="/forum"
+			<a href="https://forum.artado.xyz"
 				><i class="fas fa-comments icon" aria-hidden="true"></i> Forum</a
 			>
-			<a href="/manifesto"
+			<a href="https://artadosearch.com/manifest"
 				><i class="fas fa-scroll icon" aria-hidden="true"></i> Manifesto</a
 			>
-			<a href="/privacy"
+			<a href="https://artado.xyz/blog/gizlilik"
 				><i class="fas fa-shield-halved icon" aria-hidden="true"></i> Gizlilik</a
 			>
-			<a href="/developers"
+			<a href="https://devs.artado.xyz"
 				><i class="fas fa-code icon" aria-hidden="true"></i> Developers</a
 			>
 			<a
@@ -432,10 +432,10 @@
 				><i class="fab fa-github icon" aria-hidden="true"></i> Github</a
 			>
 			<a
-				href="https://discord.gg/artado"
+				href="https://matrix.to/#/#artadoproject:matrix.org"
 				target="_blank"
 				rel="noopener noreferrer"
-				><i class="fab fa-discord icon" aria-hidden="true"></i> Discord</a
+				><i class="fab fa-discord icon" aria-hidden="true"></i> Matrix</a
 			>
 		</nav>
 	</div>
@@ -483,10 +483,10 @@
 			<div class="footer-divider"></div>
 			<div class="social-links">
 				<a
-					href="https://discord.gg/artado"
+					href="https://matrix.to/#/#artadoproject:matrix.org"
 					target="_blank"
 					rel="noopener noreferrer"
-					aria-label="Discord"
+					aria-label="Matrix"
 				>
 					<i class="fab fa-discord"></i>
 				</a>
@@ -504,9 +504,9 @@
 		<div class="footer-center">
 			<nav class="footer-nav">
 				<a href="/">Ana Sayfa</a>
-				<a href="/destekciler">Destekçiler</a>
-				<a href="/forum">Forum</a>
-				<a href="/privacy">Gizlilik</a>
+				<a href="https://artado.xyz/katki.php">Destekçiler</a>
+				<a href="https:///forum.artado.xyz">Forum</a>
+				<a href="https://artado.xyz/blog/gizlilik">Gizlilik</a>
 			</nav>
 		</div>
 

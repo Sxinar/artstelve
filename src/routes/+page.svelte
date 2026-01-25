@@ -502,6 +502,8 @@
     color: var(--text-color);
     min-width: 0;
     height: 100%;
+    cursor: text;
+    pointer-events: auto;
   }
 
   input[type="text"]::placeholder {
@@ -619,9 +621,8 @@
 
   .suggestion-item.focused,
   .suggestion-item:hover {
-    background: rgba(var(--primary-color-rgb), 0.15);
-    padding-left: 24px;
-    color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.08);
+    padding-left: 20px;
   }
 
   .suggestion-icon-wrapper {

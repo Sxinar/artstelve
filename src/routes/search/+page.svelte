@@ -1246,9 +1246,8 @@
 
     .suggestion-item.focused,
     .suggestion-item:hover {
-        background: rgba(var(--primary-color-rgb), 0.15);
-        padding-left: 24px;
-        color: var(--primary-color);
+        background: rgba(255, 255, 255, 0.08);
+        padding-left: 20px;
     }
 
     .suggestion-icon-wrapper {
@@ -1265,9 +1264,7 @@
 
     .suggestion-item.focused .suggestion-icon-wrapper,
     .suggestion-item:hover .suggestion-icon-wrapper {
-        background: var(--primary-color);
-        color: #fff;
-        transform: scale(1.1);
+        background: rgba(255, 255, 255, 0.1);
     }
 
     .suggestion-arrow {
