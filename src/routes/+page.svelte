@@ -462,7 +462,7 @@
 
   .search-container {
     width: 100%;
-    max-width: 650px;
+    max-width: 580px;
     margin-bottom: 3rem;
   }
 
@@ -569,54 +569,52 @@
     font-size: 1.1rem;
   }
 
-  /* Autosuggest Styles - Ultra Premium Glassmorphism */
+  /* Autosuggest Styles - Clean & Compact */
   .suggestions-dropdown {
     position: absolute;
-    top: calc(100% + 15px);
+    top: calc(100% + 10px);
     left: 0;
     right: 0;
-    background: rgba(15, 15, 20, 0.85); /* Consistently dark glass */
-    -webkit-backdrop-filter: blur(30px) saturate(160%);
-    backdrop-filter: blur(30px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow:
-      0 25px 60px rgba(0, 0, 0, 0.5),
-      0 0 30px rgba(var(--primary-color-rgb), 0.1);
-    border-radius: 28px;
+    background: rgba(20, 20, 25, 0.95);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border-radius: 16px;
     z-index: 2000;
     overflow: hidden;
-    padding: 10px;
-    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    padding: 8px;
+    transition: all 0.2s ease;
   }
 
   .suggestions-header {
-    font-size: 0.7rem;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.5);
-    padding: 8px 15px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 6px 12px 4px;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 1px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
 
   .suggestion-item {
     display: flex;
     align-items: center;
     width: 100%;
-    padding: 12px 18px;
+    padding: 10px 14px;
     background: transparent;
     border: none;
     text-align: left;
-    color: #ffffff; /* Always white for readability on dark glass */
+    color: #ffffff;
     cursor: pointer;
-    font-size: 1rem;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 16px;
-    gap: 15px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    border-radius: 12px;
+    gap: 12px;
     position: relative;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
 
   .suggestion-item.focused,
