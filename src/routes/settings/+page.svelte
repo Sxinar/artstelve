@@ -43,6 +43,37 @@
         item.query.toLowerCase().includes(historySearchQuery.toLowerCase()),
     );
 
+    let proxyLatency = null;
+    let isTestingProxy = false;
+
+    async function pingProxy() {
+        if (!browser) return;
+        isTestingProxy = true;
+        const start = performance.now();
+        try {
+            // Use a simple HEAD request to check latency
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+            await fetch($hybridProxyBaseUrl, {
+                method: "HEAD",
+                mode: "no-cors",
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            proxyLatency = Math.round(performance.now() - start);
+        } catch (e) {
+            console.error("Proxy ping failed:", e);
+            proxyLatency = "Hata";
+        } finally {
+            isTestingProxy = false;
+        }
+    }
+
+    $: if (activeTab === "Hybrid Proxy" && proxyLatency === null) {
+        pingProxy();
+    }
+
     const tabs = [
         {
             id: "Temel Ayarlar",
@@ -824,20 +855,54 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
                         <div class="divider"></div>
 
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>Cache</h3>
-                                <p>
-                                    Proxy cache kullanımı (aynı sorgularda hız).
-                                </p>
+                        <div
+                            class="setting-row"
+                            style="flex-direction: column; align-items: flex-start; gap: 1rem;"
+                        >
+                            <div
+                                style="display: flex; justify-content: space-between; width: 100%; align-items: center;"
+                            >
+                                <div class="setting-info">
+                                    <h3>Hız Testi</h3>
+                                    <p>
+                                        Proxy sunucusunun yanıt süresini kontrol
+                                        edin.
+                                    </p>
+                                </div>
+                                <button
+                                    class="button"
+                                    on:click={pingProxy}
+                                    disabled={isTestingProxy}
+                                >
+                                    <i
+                                        class="fas fa-sync-alt"
+                                        class:fa-spin={isTestingProxy}
+                                    ></i>
+                                    {proxyLatency !== null
+                                        ? `${proxyLatency} ms`
+                                        : "Test Et"}
+                                </button>
                             </div>
-                            <label class="switch">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={$hybridProxyCache}
-                                />
-                                <span class="slider"></span>
-                            </label>
+
+                            {#if proxyLatency !== null && (proxyLatency > 1000 || proxyLatency === "Hata")}
+                                <div class="latency-warning" in:fade>
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <div class="warning-text">
+                                        <strong>Düşük Hız Algılandı!</strong>
+                                        <p>
+                                            Proxy hızı oldukça yavaş görünüyor.
+                                            Bu durum arama sonuçlarını
+                                            etkileyebilir.
+                                        </p>
+                                    </div>
+                                    <a
+                                        href="mailto:sxi@artadosearch.com?subject=Artado%20Proxy%20Gecikme%20Raporu&body=Merhaba%2C%0A%0AProxy%20gecikmesi%3A%20{proxyLatency}%20ms%0AProxy%20URL%3A%20{$hybridProxyBaseUrl}%0A%0AProblem%20detaylar%C4%B1%3A"
+                                        class="report-btn"
+                                    >
+                                        Hızı Bildir
+                                    </a>
+                                </div>
+                            {/if}
                         </div>
                     </div>
                 </section>
@@ -2061,6 +2126,59 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         }
         .workshop-grid {
             grid-template-columns: 1fr;
+        }
+    }
+    .latency-warning {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(255, 193, 7, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        padding: 1rem;
+        border-radius: 12px;
+        width: 100%;
+        color: #856404;
+    }
+
+    .warning-text strong {
+        display: block;
+        font-size: 0.95rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .warning-text p {
+        margin: 0;
+        font-size: 0.85rem;
+        opacity: 0.8;
+    }
+
+    .report-btn {
+        margin-left: auto;
+        padding: 0.6rem 1.2rem;
+        background: #ffc107;
+        color: #000;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .report-btn:hover {
+        background: #ffca2c;
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 600px) {
+        .latency-warning {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .report-btn {
+            margin-left: 0;
+            width: 100%;
+            text-align: center;
         }
     }
 </style>

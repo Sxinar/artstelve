@@ -227,7 +227,7 @@
 >
   <div class="logo-container">
     <img src={$customLogo} alt="Artado Search" class="logo" />
-    <h1>Artado Search</h1>
+    <h1 style="text-transform: none;">Artado Search</h1>
     <p class="subtitle">İnterneti Keşfet</p>
   </div>
 
@@ -515,7 +515,6 @@
     font-weight: 700;
     color: var(--text-color-secondary);
     padding: 0.6rem 1rem;
-    text-transform: uppercase;
     letter-spacing: 1px;
     display: flex;
     align-items: center;
@@ -555,15 +554,12 @@
   }
 
   .suggestion-item:hover {
-    background: var(--primary-color);
-    color: white;
-    transform: translateY(-2px) scale(1.01);
-    box-shadow: 0 10px 25px rgba(var(--primary-color-rgb), 0.3);
+    background: rgba(var(--primary-color-rgb), 0.12);
+    transform: translateX(4px);
   }
 
   .suggestion-item:hover::before {
-    height: 60%;
-    background: white;
+    height: 40%;
   }
 
   .suggestion-icon-wrapper {
