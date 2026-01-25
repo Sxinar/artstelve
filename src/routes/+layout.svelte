@@ -758,15 +758,6 @@
 		padding-bottom: 0; /* Remove bottom padding */
 	}
 
-	/* Styles for the NEW complex footer */
-	.footer-toggle-btn {
-		position: fixed;
-		bottom: 2rem;
-		/* Default: Bottom Right (Settings, Search, etc.) */
-		right: 2rem;
-		left: auto;
-		transform: none;
-
 	/* --- Sleek Bar Footer Styles --- */
 	.sleek-bar-footer {
 		position: fixed;
@@ -784,10 +775,11 @@
 		border-top: 1px solid rgba(255, 255, 255, 0.08);
 		z-index: 1000;
 		color: #e4e4e7;
-		font-family: 'Inter', sans-serif;
+		font-family: "Inter", sans-serif;
 	}
 
-	.footer-left, .footer-right {
+	.footer-left,
+	.footer-right {
 		display: flex;
 		align-items: center;
 		gap: 1.2rem;
@@ -1015,7 +1007,8 @@
 			text-align: center;
 		}
 
-		.footer-left, .footer-right {
+		.footer-left,
+		.footer-right {
 			width: 100%;
 			justify-content: center;
 			flex-direction: column;
