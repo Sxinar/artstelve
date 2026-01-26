@@ -1214,8 +1214,18 @@
     }
 
     @media (max-width: 768px) {
+        .settings-page {
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            min-height: 100vh;
+            background-color: var(--background-color);
+        }
+        
         .settings-content-wrapper {
             flex-direction: column;
+            width: 100%;
+            min-height: calc(100vh - 80px);
         }
 
         .settings-sidebar {
@@ -1224,15 +1234,20 @@
             border-bottom: 1px solid var(--border-color);
             padding: 1rem;
             order: 1;
+            background: var(--card-background);
         }
 
         .settings-main-content {
             padding: 1rem;
             order: 2;
+            width: 100%;
+            max-width: none;
         }
 
         .settings-header {
             padding: 1rem 1.5rem;
+            background: var(--card-background);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .settings-title {
@@ -1241,7 +1256,7 @@
 
         .workshop-grid,
         .installed-grid {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
             gap: 1rem;
         }
 
@@ -1258,6 +1273,7 @@
 
         .item-actions {
             flex-direction: column;
+            gap: 0.5rem;
         }
 
         .item-actions button,
@@ -1268,8 +1284,16 @@
     }
 
     @media (max-width: 480px) {
+        .settings-page {
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            min-height: 100vh;
+            background-color: var(--background-color);
+        }
+        
         .settings-header {
-            padding: 1rem;
+            padding: 0.75rem 1rem;
         }
 
         .settings-title {
@@ -1281,12 +1305,12 @@
         }
 
         .setting-card {
-            padding: 1rem;
+            padding: 0.75rem;
         }
 
         .workshop-item,
         .installed-item {
-            padding: 1rem;
+            padding: 0.75rem;
         }
 
         .item-title {
@@ -1294,6 +1318,20 @@
         }
 
         .item-description {
+            font-size: 0.85rem;
+        }
+        
+        .settings-sidebar {
+            padding: 0.75rem;
+        }
+        
+        .settings-main-content {
+            padding: 0.75rem;
+        }
+        
+        .item-actions button,
+        .item-actions a {
+            padding: 0.5rem 1rem;
             font-size: 0.85rem;
         }
     }

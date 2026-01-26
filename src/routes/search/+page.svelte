@@ -2742,11 +2742,63 @@
     }
     /* --- Search Results Mobile Design --- */
     @media (max-width: 768px) {
+        .search-results-page {
+            width: 100%;
+            min-height: 100vh;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         .search-header {
             flex-direction: column;
             padding: 1rem;
             gap: 1rem;
+            width: 100%;
+            box-sizing: border-box;
         }
+        
+        .search-bar-container {
+            max-width: 100%;
+            width: 100%;
+        }
+        
+        .header-actions {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .settings-button-header {
+            padding: 0.8rem;
+            font-size: 1.4rem;
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .search-type-nav {
+            padding: 0 1rem;
+        }
+        
+        .search-type-nav-inner {
+            padding: 0 0.5rem;
+        }
+        
+        .main-content-area {
+            padding: 0;
+            width: 100%;
+        }
+        
+        .results-container {
+            padding: 0 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    }
 
         .logo-link {
             margin-bottom: 0.5rem;
@@ -2780,7 +2832,6 @@
         .result-description {
             font-size: 0.9rem;
         }
-    }
 
     @media (max-width: 480px) {
         .search-header {
