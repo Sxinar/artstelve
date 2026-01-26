@@ -2757,6 +2757,7 @@
             gap: 1rem;
             width: 100%;
             box-sizing: border-box;
+            margin: 0;
         }
         
         .search-bar-container {
@@ -2782,6 +2783,7 @@
         
         .search-type-nav {
             padding: 0 1rem;
+            margin: 0;
         }
         
         .search-type-nav-inner {
@@ -2791,12 +2793,14 @@
         .main-content-area {
             padding: 0;
             width: 100%;
+            margin: 0;
         }
         
         .results-container {
             padding: 0 1rem;
             width: 100%;
             box-sizing: border-box;
+            margin: 0;
         }
     }
 

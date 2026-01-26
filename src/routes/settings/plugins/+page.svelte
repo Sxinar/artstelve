@@ -675,8 +675,20 @@
 
     /* Responsive Design */
     @media (max-width: 768px) {
+        .settings-page {
+            width: 100%;
+            min-height: 100vh;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         .settings-content-wrapper {
             flex-direction: column;
+            margin: 0;
+            width: 100%;
+            padding: 0;
         }
 
         .settings-sidebar {
@@ -685,15 +697,20 @@
             border-bottom: 1px solid var(--border-color);
             padding: 1rem;
             order: 1;
+            background: var(--card-background);
         }
 
         .settings-main-content {
             padding: 1rem;
             order: 2;
+            width: 100%;
         }
 
         .settings-header {
             padding: 1rem 1.5rem;
+            margin: 0;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .settings-title {
