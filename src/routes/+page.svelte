@@ -12,6 +12,7 @@
     selectedEngine,
     enableSuggestions,
     customLogo,
+    isSidebarOpen,
   } from "$lib/stores.js";
   import { browser } from "$app/environment";
 
@@ -21,6 +22,10 @@
   let isListening = false; // State for microphone
   let recognition = null; // SpeechRecognition instance
 
+  function toggleSidebar() {
+    isSidebarOpen.set(!$isSidebarOpen);
+  }
+
   let customHomeThemeElement;
   function applyHomeTheme(theme) {
     if (!browser) return;
@@ -28,7 +33,7 @@
       customHomeThemeElement.remove();
       customHomeThemeElement = null;
     }
-    if (["simple", "modern", "artistic"].includes(theme)) return;
+    if (["simple", "modern", "artistic", "klasik"].includes(theme)) return;
 
     customHomeThemeElement = document.createElement("link");
     customHomeThemeElement.rel = "stylesheet";
@@ -39,6 +44,7 @@
       (theme.startsWith("http://") || theme.startsWith("https://"))
     ) {
       customHomeThemeElement.href = theme;
+      console.log("[Home] Loading remote theme:", theme);
     } else {
       // Try home subfolder first, then direct
       const paths = [
@@ -47,22 +53,35 @@
       ];
 
       customHomeThemeElement.href = paths[0];
+      console.log("[Home] Loading local theme:", paths[0]);
 
       // Fallback mechanism
       customHomeThemeElement.onerror = () => {
+        console.log("[Home] Primary theme load failed, trying fallback");
         if (
           customHomeThemeElement &&
           customHomeThemeElement.href.includes("/home/")
         ) {
           customHomeThemeElement.href = `/themes/${theme}/${theme}.css`;
+          console.log("[Home] Trying fallback:", customHomeThemeElement.href);
         }
       };
     }
 
+    customHomeThemeElement.onload = () => {
+      console.log("[Home] Theme loaded successfully:", theme);
+    };
+
     document.head.appendChild(customHomeThemeElement);
   }
 
-  $: if (browser) applyHomeTheme($searchHomeDesign);
+  // Subscribe to searchHomeDesign changes
+  $: {
+    if (browser) {
+      console.log("[Home] searchHomeDesign changed to:", $searchHomeDesign);
+      applyHomeTheme($searchHomeDesign);
+    }
+  }
 
   function performSearchNavigation() {
     if (!searchQuery.trim()) return;
@@ -114,17 +133,26 @@
   let suggestTimeout;
 
   async function fetchSuggestions(q) {
+    console.log('🔍 fetchSuggestions called:', q, 'enableSuggestions:', $enableSuggestions);
     if (!$enableSuggestions || !q || q.length < 2) {
+      console.log('❌ Suggestions disabled or too short');
       suggestions = [];
       return;
     }
     try {
+      console.log('🌐 Fetching suggestions for:', q);
       const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
       if (res.ok) {
-        suggestions = await res.json();
+        const data = await res.json();
+        console.log('✅ Suggestions received:', data);
+        suggestions = data;
+      } else {
+        console.log('❌ API response not ok:', res.status);
+        suggestions = [];
       }
     } catch (e) {
-      console.error("Suggestion fetch error", e);
+      console.error("❌ Suggestion fetch error", e);
+      suggestions = [];
     }
   }
 
@@ -132,16 +160,21 @@
 
   function handleInput(event) {
     const val = event.target.value;
+    console.log('⌨️ handleInput:', val);
     searchQuery = val;
     focusedSuggestionIndex = -1; // Reset focus on input
     clearTimeout(suggestTimeout);
+
     if (val.trim().length > 1) {
+      console.log('⏰ Setting timeout for suggestions...');
       suggestTimeout = setTimeout(() => {
         fetchSuggestions(val);
         showSuggestions = true;
+        console.log('👁️ showSuggestions set to true');
       }, 300);
     } else {
       showSuggestions = false;
+      console.log('👁️ showSuggestions set to false (too short)');
     }
   }
 
@@ -290,12 +323,20 @@
 
 <svelte:window on:click={clickOutsideSuggestions} />
 
-<div
-  class="home-container"
+<div class="home-container"
   class:modern={$searchHomeDesign === "modern"}
   class:artistic={$searchHomeDesign === "artistic"}
   in:fade={{ duration: 400 }}
 >
+  <div class="home-header">
+    <button
+      class="menu-button"
+      on:click={toggleSidebar}
+      aria-label="Menüyü aç"
+    >
+      <i class="fas fa-sliders"></i>
+    </button>
+  </div>
   <div class="logo-container">
     <img src={$customLogo} alt="Artado Search" class="logo" />
     <h1 style="text-transform: none;">Artado Search</h1>
@@ -397,6 +438,16 @@
 
   {#if searchResults.length > 0}
     <div class="results">
+      <div class="results-header">
+        <h2>Arama Sonuçları</h2>
+        <button
+          class="menu-button"
+          on:click={toggleSidebar}
+          aria-label="Menüyü aç"
+        >
+          <i class="fas fa-sliders"></i>
+        </button>
+      </div>
       {#each searchResults as result (result.url)}
         <div class="result-item">
           <h3 class="result-title">
@@ -430,6 +481,47 @@
     align-items: center;
     padding: 1rem;
     box-sizing: border-box; /* Include padding in width/height */
+    background-color: var(--background-color);
+    background-image: var(--background-image, none);
+    color: var(--text-color);
+  }
+
+  .home-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px;
+    margin-bottom: 2rem;
+    padding: 0 2rem;
+    align-self: flex-end;
+  }
+
+  .home-header h1 {
+    font-size: 2.8rem;
+    margin: 0;
+    color: var(--header-color);
+    font-weight: 600;
+  }
+
+  .home-header .menu-button {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+  }
+
+  .home-header .menu-button:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
   }
 
   .logo-container {
@@ -469,21 +561,18 @@
   .search-box {
     display: flex;
     align-items: center;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--card-background);
     border-radius: 24px;
     padding: 0.6rem 1rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
     transition: all 0.2s ease;
     position: relative;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
   }
 
   .search-box:focus-within {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary-color);
   }
 
   .search-icon {
@@ -499,7 +588,7 @@
     font-size: 1rem;
     outline: none;
     background: transparent;
-    color: #ffffff;
+    color: var(--text-color);
     min-width: 0;
     height: 100%;
     cursor: text;
@@ -720,6 +809,42 @@
     padding-bottom: 2rem; /* Add padding at the bottom */
   }
 
+  .results-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .results-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+  }
+
+  .results-header .menu-button {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+  }
+
+  .results-header .menu-button:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+
   .result-item {
     background: var(--card-background);
     padding: 1.2rem 1.5rem;
@@ -740,6 +865,7 @@
   .result-title {
     margin: 0 0 0.4rem 0;
     font-size: 1.2rem;
+    color: var(--text-color);
   }
 
   .result-title a {
@@ -768,6 +894,13 @@
 
   .result-url:hover {
     text-decoration: underline;
+  }
+
+  .result-snippet {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0;
   }
 
   .result-description {
@@ -853,78 +986,269 @@
   }
 
   @media (max-width: 768px) {
-    .logo-container {
-      margin-bottom: 2.5rem;
-      gap: 1.2rem;
+    .home-container {
+      padding: 1rem;
+      min-height: 100vh;
+      justify-content: flex-start;
+      padding-top: 2rem;
     }
+    
+    .home-header {
+      padding: 0 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .home-header h1 {
+      font-size: 2rem;
+    }
+    
+    .home-header .menu-button {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+    }
+    
+    .logo-container {
+      margin-bottom: 2rem;
+      gap: 1rem;
+      text-align: center;
+    }
+    
     .logo {
-      width: 90px;
+      width: 70px;
+      height: 70px;
       filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
     }
+    
     h1 {
-      font-size: 2rem;
+      font-size: 1.75rem;
       letter-spacing: -0.5px;
+      margin: 0 0 1rem 0;
+      line-height: 1.2;
     }
+    
     .subtitle {
       font-size: 0.9rem;
       opacity: 0.8;
+      margin: 0;
     }
+    
     .search-container {
-      width: 94% !important;
-      padding: 0 0.5rem;
+      width: 100% !important;
+      max-width: none !important;
+      padding: 0;
+      margin: 0 auto;
     }
+    
     .search-box {
-      padding: 0.7rem 1.2rem;
-      height: 56px;
-      margin-top: 0.5rem;
-    }
-    .suggestion-item {
-      padding: 0.9rem 1.25rem;
-      gap: 1.25rem;
-      font-size: 1.05rem;
-    }
-    .suggestion-icon-wrapper {
-      width: 34px;
-      height: 34px;
+      padding: 1rem;
+      height: 52px;
+      margin: 0;
       font-size: 1rem;
+      border-radius: 1rem;
+      width: 100%;
+      max-width: 100%;
     }
+    
+    .search-input {
+      font-size: 1rem;
+      width: 100% !important;
+    }
+    
+    .search-icon {
+      font-size: 1.1rem;
+      margin-right: 0.75rem;
+      flex-shrink: 0;
+    }
+    
+    .voice-search-btn {
+      width: 40px;
+      height: 40px;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    
+    .suggestion-item {
+      padding: 0.8rem 1rem;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+    }
+    
+    .suggestion-icon-wrapper {
+      width: 28px;
+      height: 28px;
+      font-size: 0.8rem;
+    }
+    
     .results {
       padding: 0 1rem;
     }
+    
+    /* Search Results Mobile Responsive */
+    .results {
+      margin-top: 1.5rem;
+      max-width: none;
+      padding: 0 0.5rem;
+    }
+    
+    .result-item {
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 0.875rem;
+    }
+    
+    .result-title {
+      font-size: 1.1rem;
+      margin: 0 0 0.3rem 0;
+      line-height: 1.3;
+    }
+    
+    .result-url {
+      font-size: 0.8rem;
+      margin: 0 0 0.5rem 0;
+    }
+    
+    .result-snippet {
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    
+    .loading-initial {
+      margin-top: 2rem;
+    }
+    
+    .loading-initial i {
+      font-size: 2rem !important;
+    }
   }
-  /* --- Homepage Responsive Design --- */
-  @media (max-width: 600px) {
+  
+  /* --- Homepage Mobile Design --- */
+  @media (max-width: 480px) {
+    .home-container {
+      padding: 0.75rem;
+      padding-top: 1.5rem;
+      justify-content: flex-start;
+    }
+    
     .logo-container {
-      margin: 2rem 0 1.5rem 0;
+      margin-bottom: 1.5rem;
+      gap: 0.75rem;
     }
+    
     .logo {
-      width: 80px;
-      height: 80px;
+      width: 50px;
+      height: 50px;
     }
+    
     h1 {
-      font-size: 2rem;
+      font-size: 1.5rem;
+      margin: 0 0 0.5rem 0;
+      line-height: 1.1;
     }
+    
     .subtitle {
+      font-size: 0.85rem;
+    }
+    
+    .search-container {
+      padding: 0;
+      width: 100% !important;
+    }
+    
+    .search-box {
+      padding: 0.875rem;
+      height: 48px;
+      font-size: 0.9rem;
+      border-radius: 0.875rem;
+    }
+    
+    .search-input {
       font-size: 0.9rem;
     }
-    .search-container {
-      width: 100%;
-      padding: 0 10px;
-    }
-    .search-box {
-      padding: 0.5rem 1rem;
-    }
-    .search-input {
+    
+    .search-icon {
       font-size: 1rem;
+      margin-right: 0.5rem;
     }
-    .suggestions-dropdown {
-      top: calc(100% + 10px);
-      border-radius: 20px;
+    
+    .voice-search-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 0.8rem;
     }
+    
     .suggestion-item {
-      padding: 10px 14px;
-      gap: 10px;
-      font-size: 0.95rem;
+      padding: 0.75rem;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .suggestion-icon-wrapper {
+      width: 24px;
+      height: 24px;
+      font-size: 0.7rem;
+    }
+    
+    /* Search Results Mobile Responsive */
+    .results {
+      margin-top: 1rem;
+      padding: 0 0.25rem;
+    }
+    
+    .result-item {
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      border-radius: 0.75rem;
+    }
+    
+    .result-title {
+      font-size: 1rem;
+      margin: 0 0 0.25rem 0;
+      line-height: 1.2;
+    }
+    
+    .result-url {
+      font-size: 0.75rem;
+      margin: 0 0 0.4rem 0;
+    }
+    
+    .result-snippet {
+      font-size: 0.85rem;
+      line-height: 1.3;
+    }
+    
+    .loading-initial {
+      margin-top: 1.5rem;
+    }
+    
+    .loading-initial i {
+      font-size: 1.5rem !important;
+    }
+  }
+
+  /* --- Extra Small Mobile --- */
+  @media (max-width: 360px) {
+    .home-container {
+      padding: 0.5rem;
+      padding-top: 1rem;
+    }
+    
+    h1 {
+      font-size: 1.3rem;
+    }
+    
+    .search-box {
+      height: 44px;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+    }
+    
+    .search-input {
+      font-size: 0.85rem;
+    }
+    
+    .logo {
+      width: 45px;
+      height: 45px;
     }
   }
 </style>

@@ -14,6 +14,7 @@
         hybridProxyCache,
         searchRegion,
         customLogo,
+        enableSuggestions,
     } from "$lib/stores.js"; // Import AI summary setting
     import { safeSearch, blockedSites } from "$lib/stores.js";
     import { t } from "$lib/i18n.js";
@@ -176,31 +177,40 @@
 
     async function loadPlugins() {
         if (!browser) return;
+        
         try {
+            // Load active workshop plugins from localStorage
+            const activeWorkshopPlugins = JSON.parse(localStorage.getItem('activeWorkshopPlugins') || '[]');
+            
+            // Load each active workshop plugin
+            activeWorkshopPlugins.forEach((plugin) => {
+                const script = document.createElement("script");
+                script.src = plugin.url;
+                script.async = true;
+                script.onerror = () => console.error(`Failed to load workshop plugin: ${plugin.name}`);
+                document.head.appendChild(script);
+            });
+            
+            // Also load any available workshop plugins (for discovery)
             const res = await fetch("/api/workshop/plugins");
             if (res.ok) {
                 const data = await res.json();
                 const plugins = data.plugins || [];
+                
+                // Only load plugins that have workshop URLs and are not already loaded
                 plugins.forEach((p) => {
+                    // Skip if already loaded as active plugin
+                    if (activeWorkshopPlugins.find(active => active.id === p.id)) return;
+                    
                     const script = document.createElement("script");
-
-                    // If it's a URL, use it directly. Otherwise use local path.
-                    if (
-                        p.id &&
-                        (p.id.startsWith("http") || p.id.includes(".js"))
-                    ) {
-                        script.src = p.id;
-                    } else if (
-                        p.download_url &&
-                        p.download_url.startsWith("http")
-                    ) {
+                    
+                    // If it's a workshop plugin with URL, use it directly
+                    if (p.download_url && p.download_url.startsWith("http")) {
                         script.src = p.download_url;
-                    } else {
-                        script.src = `/plugins/${p.id}/${p.id}.js`;
+                        script.async = true;
+                        script.onerror = () => console.error(`Failed to load workshop plugin: ${p.name}`);
+                        document.head.appendChild(script);
                     }
-
-                    script.async = true;
-                    document.head.appendChild(script);
                 });
             }
         } catch (e) {
@@ -351,32 +361,45 @@
     let focusedSuggestionIndex = -1;
 
     async function fetchSuggestions(q) {
-        if (!q || q.length < 2) {
+        console.log('🔍 [SEARCH] fetchSuggestions called:', q, 'enableSuggestions:', $enableSuggestions);
+        if (!$enableSuggestions || !q || q.length < 2) {
+            console.log('❌ [SEARCH] Suggestions disabled or too short');
             suggestions = [];
             return;
         }
         try {
+            console.log('🌐 [SEARCH] Fetching suggestions for:', q);
             const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
             if (res.ok) {
-                suggestions = await res.json();
+                const data = await res.json();
+                console.log('✅ [SEARCH] Suggestions received:', data);
+                suggestions = data;
+            } else {
+                console.log('❌ [SEARCH] API response not ok:', res.status);
+                suggestions = [];
             }
         } catch (e) {
-            console.error("Suggestion fetch error", e);
+            console.error("❌ [SEARCH] Suggestion fetch error", e);
+            suggestions = [];
         }
     }
 
     function handleInput(event) {
         const val = event.target.value;
+        console.log('⌨️ [SEARCH] handleInput:', val);
         inputQuery = val;
         focusedSuggestionIndex = -1; // Reset focus on input
         clearTimeout(suggestTimeout);
         if (val.trim().length > 1) {
+            console.log('⏰ [SEARCH] Setting timeout for suggestions...');
             suggestTimeout = setTimeout(() => {
                 fetchSuggestions(val);
                 showSuggestions = true;
+                console.log('👁️ [SEARCH] showSuggestions set to true');
             }, 300);
         } else {
             showSuggestions = false;
+            console.log('👁️ [SEARCH] showSuggestions set to false (too short)');
         }
     }
 

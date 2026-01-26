@@ -1,44 +1,54 @@
 import { json } from '@sveltejs/kit';
-import fs from 'fs';
-import path from 'path';
+
+const WORKSHOP_API_URL = 'https://devs.artado.xyz/workshop/api.php';
 
 export async function GET() {
-    const itemsDir = path.resolve('static/plugins');
-
-    if (!fs.existsSync(itemsDir)) {
-        return json({ plugins: [] });
-    }
-
+    console.log("[API Plugins] Fetching from workshop:", WORKSHOP_API_URL);
+    
     try {
-        const items = fs.readdirSync(itemsDir);
-        const localPlugins = items
-            .filter(item => fs.statSync(path.join(itemsDir, item)).isDirectory())
-            .map(folder => {
-                const configPath = path.join(itemsDir, folder, 'plugin.json');
-                let name = folder;
-                let author = 'Local';
-
-                if (fs.existsSync(configPath)) {
-                    try {
-                        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-                        name = config.name || name;
-                        author = config.author || author;
-                    } catch (e) {
-                        console.error(`Error reading context for plugin ${folder}:`, e);
-                    }
-                }
-
-                return {
-                    id: folder,
-                    name: name,
-                    author: author,
-                    isLocal: true
-                };
-            });
-
-        return json({ plugins: localPlugins });
+        // Query the workshop API for plugins
+        const response = await fetch(WORKSHOP_API_URL);
+        
+        if (!response.ok) {
+            throw new Error(`Workshop API returned ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Extract plugins from workshop response
+        const workshopPlugins = data.plugins || [];
+        
+        // Filter only plugins (not themes or logos)
+        const plugins = workshopPlugins.filter(item => {
+            const category = (item.category || "").toLowerCase();
+            const downloadUrl = (item.download_url || "").toLowerCase();
+            
+            // Exclude logos and home themes
+            const isLogo = downloadUrl.endsWith('.png') || 
+                          downloadUrl.endsWith('.jpg') || 
+                          downloadUrl.endsWith('.jpeg') || 
+                          downloadUrl.endsWith('.gif') || 
+                          downloadUrl.endsWith('.svg') ||
+                          downloadUrl.includes('logo');
+            
+            const isHomeTheme = category === 'ana-sayfa' || category === 'home';
+            
+            return !isLogo && !isHomeTheme;
+        }).map(plugin => ({
+            id: plugin.id,
+            name: plugin.name,
+            author: plugin.author || 'Workshop',
+            description: plugin.description || '',
+            download_url: plugin.download_url,
+            category: plugin.category,
+            version: plugin.version || '1.0.0',
+            isWorkshop: true,
+            isLocal: false
+        }));
+        
+        return json({ plugins });
     } catch (err) {
-        console.error('[API Plugins] Error reading directory:', err);
+        console.error('[API Plugins] Error fetching from workshop:', err);
         return json({ plugins: [], error: err.message });
     }
 }

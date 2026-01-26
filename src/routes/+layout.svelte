@@ -12,6 +12,12 @@
 	// --- Navigation Handling ---
 	afterNavigate(() => {
 		isSidebarOpen.set(false);
+		// Set current route for CSS targeting
+		if (browser) {
+			const currentPath = window.location.pathname;
+			document.body.setAttribute('data-route', currentPath);
+			console.log('Route set to:', currentPath); // Debug log
+		}
 	});
 
 	// --- Import Stores ---
@@ -94,6 +100,8 @@
 	let externalThemeElement;
 	function applyExternalTheme(theme) {
 		if (!browser) return;
+		
+		console.log("[Layout] Applying external theme:", theme);
 
 		// Remove existing external theme link if it exists
 		if (externalThemeElement) {
@@ -103,6 +111,7 @@
 
 		// If it's a built-in theme, applyTheme handles classes (it's already subscribed)
 		if (themes.includes(theme)) {
+			console.log("[Layout] Built-in theme detected, skipping external load");
 			return;
 		}
 
@@ -116,23 +125,105 @@
 			(theme.startsWith("http://") || theme.startsWith("https://"))
 		) {
 			externalThemeElement.href = theme;
+			console.log("[Layout] Loading remote theme:", theme);
 		} else {
 			// Assuming external themes are in /themes/[themeName]/[themeName].css
 			// Or potentially /themes/home/ if it was selected globally (rare but possible)
 			externalThemeElement.href = `/themes/${theme}/${theme}.css`;
+			console.log("[Layout] Loading local theme:", externalThemeElement.href);
 
 			// Fallback mechanism
 			externalThemeElement.onerror = () => {
+				console.log("[Layout] Primary theme load failed, trying fallback");
 				if (
 					externalThemeElement &&
 					!externalThemeElement.href.includes("/home/")
 				) {
 					externalThemeElement.href = `/themes/home/${theme}/${theme}.css`;
+					console.log("[Layout] Trying fallback:", externalThemeElement.href);
 				}
 			};
 		}
 
+		// Success callback
+		externalThemeElement.onload = () => {
+			console.log("[Layout] Theme loaded successfully:", theme);
+		};
+
+		// Error callback
+		externalThemeElement.onerror = (e) => {
+			console.error("[Layout] Failed to load theme:", theme, e);
+			// Remove failed theme element
+			if (externalThemeElement.parentNode) {
+				externalThemeElement.parentNode.removeChild(externalThemeElement);
+			}
+			// Reset to default theme
+			selectedTheme.set("klasik");
+		};
+
 		document.head.appendChild(externalThemeElement);
+	}
+
+	// --- Home Theme Application ---
+	let homeThemeElement;
+	function applyHomeTheme(theme) {
+		if (!browser) return;
+		
+		console.log("[Layout] Applying home theme:", theme);
+
+		// Remove existing home theme link if it exists
+		if (homeThemeElement) {
+			homeThemeElement.remove();
+			homeThemeElement = null;
+		}
+
+		// If it's a built-in theme, skip external load
+		const builtInHomeThemes = ['simple', 'modern', 'artistic', 'klasik'];
+		if (builtInHomeThemes.includes(theme)) {
+			console.log("[Layout] Built-in home theme detected, skipping external load");
+			return;
+		}
+
+		// Otherwise, try to load it as an external home theme
+		homeThemeElement = document.createElement("link");
+		homeThemeElement.rel = "stylesheet";
+
+		// If the theme string contains 'http', it's a remote URL
+		if (
+			theme &&
+			(theme.startsWith("http://") || theme.startsWith("https://"))
+		) {
+			homeThemeElement.href = theme;
+			console.log("[Layout] Loading remote home theme:", theme);
+		} else {
+			// Assuming external themes are in /themes/[themeName]/[themeName].css
+			homeThemeElement.href = `/themes/${theme}/${theme}.css`;
+			console.log("[Layout] Loading local home theme:", homeThemeElement.href);
+
+			// Fallback mechanism
+			homeThemeElement.onerror = () => {
+				console.log("[Layout] Primary home theme load failed, trying fallback");
+				if (
+					homeThemeElement &&
+					!homeThemeElement.href.includes("/home/")
+				) {
+					homeThemeElement.href = `/themes/home/${theme}/${theme}.css`;
+					console.log("[Layout] Trying fallback:", homeThemeElement.href);
+				}
+			};
+		}
+
+		// Success callback
+		homeThemeElement.onload = () => {
+			console.log("[Layout] Home theme loaded successfully:", theme);
+		};
+
+		// Error callback
+		homeThemeElement.onerror = (e) => {
+			console.error("[Layout] Failed to load home theme:", theme, e);
+		};
+
+		document.head.appendChild(homeThemeElement);
 	}
 
 	// --- Custom CSS Application ---
@@ -177,6 +268,7 @@
 	// Subscribe might be called before body exists, applyTheme handles this now.
 	selectedTheme.subscribe(applyTheme);
 	selectedTheme.subscribe(applyExternalTheme);
+	// searchHomeDesign.subscribe(applyHomeTheme); // Geçici olarak devre dışı
 	isSidebarOpen.subscribe(applySidebarClass);
 
 	// --- Apply design variables to body ---
@@ -280,6 +372,40 @@
 		}
 	}
 
+	// --- Workshop Items ---
+	let workshopThemes = writable([]);
+	let workshopError = writable(null);
+	let isLoadingWorkshop = writable(true);
+
+	async function fetchWorkshopThemes() {
+		isLoadingWorkshop.set(true);
+		try {
+			const response = await fetch("/api/workshop/items");
+			if (response.ok) {
+				const data = await response.json();
+				if (data.success) {
+					workshopThemes.set(data.themes || []);
+					workshopError.set(null);
+				} else {
+					workshopError.set(data.error || "Bilinmeyen bir API hatası oluştu.");
+				}
+			} else {
+				workshopError.set(`Sunucu hatası: ${response.status}`);
+			}
+		} catch (err) {
+			console.error(err);
+			workshopError.set("Bağlantı hatası: " + err.message);
+		} finally {
+			isLoadingWorkshop.set(false);
+		}
+	}
+
+	onMount(() => {
+		if (browser) {
+			fetchWorkshopThemes();
+		}
+	});
+
 	let showFooter = false;
 	function toggleFooter() {
 		showFooter = !showFooter;
@@ -324,15 +450,32 @@
 			</h3>
 			<div class="select-wrapper">
 				<select bind:value={$selectedTheme} aria-label={$t("themes")}>
-					{#each themes as themeName (themeName)}
-						<option value={themeName}
-							>{formatThemeName(themeName)}</option
-						>
-					{/each}
+					<optgroup label="Sistem Temaları">
+						{#each themes as themeName (themeName)}
+							<option value={themeName}>{formatThemeName(themeName)}</option>
+						{/each}
+					</optgroup>
+					{#if $workshopThemes && $workshopThemes.length > 0}
+						<optgroup label="Workshop Temaları">
+							{#each $workshopThemes as theme}
+								<option value={theme.download_url}>{theme.name}</option>
+							{/each}
+						</optgroup>
+					{/if}
 				</select>
-				<i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
-				></i>
+				<i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"></i>
 			</div>
+			{#if $isLoadingWorkshop}
+				<div class="loading-indicator">
+					<i class="fas fa-spinner fa-spin"></i>
+					<span>Workshop yükleniyor...</span>
+				</div>
+			{:else if $workshopError}
+				<div class="error-indicator">
+					<i class="fas fa-exclamation-triangle"></i>
+					<span>Workshop hatası</span>
+				</div>
+			{/if}
 		</section>
 
 		<hr class="divider" />
@@ -454,70 +597,15 @@
 {/if}
 
 <div class="page-container">
-	<!-- Ensure the right-aligned class is applied -->
-	<header class="header right-aligned">
-		<button
-			class="menu-button"
-			on:click={toggleSidebar}
-			aria-label="Menüyü aç"
-		>
-			<i class="fas fa-bars"></i>
-		</button>
-	</header>
-
 	<!-- Page Content -->
 	<div class="main-content-area">
 		<slot />
 	</div>
 
-	<!-- NEW Complex Footer (Hidden by default, toggled via button) -->
-
-	<!-- Footer handles the toggle now via its internal top handle -->
-
-	<footer class="footer sleek-bar-footer">
-		<div class="footer-left">
-			<div class="brand-group">
-				<img src={$customLogo} alt="Artado" class="footer-mini-logo" />
-				<span class="brand-name">Artado</span>
-			</div>
-			<div class="footer-divider"></div>
-			<div class="social-links">
-				<a
-					href="https://matrix.to/#/#artadoproject:matrix.org"
-					target="_blank"
-					rel="noopener noreferrer"
-					aria-label="Matrix"
-				>
-					<i class="fab fa-discord"></i>
-				</a>
-				<a
-					href="https://github.com/artadosearch"
-					target="_blank"
-					rel="noopener noreferrer"
-					aria-label="GitHub"
-				>
-					<i class="fab fa-github"></i>
-				</a>
-			</div>
-		</div>
-
-		<div class="footer-center">
-			<nav class="footer-nav">
-				<a href="/">Ana Sayfa</a>
-				<a href="https://artado.xyz/katki.php">Destekçiler</a>
-				<a href="https:///forum.artado.xyz">Forum</a>
-				<a href="https://artado.xyz/blog/gizlilik">Gizlilik</a>
-			</nav>
-		</div>
-
-		<div class="footer-right">
-			<button class="footer-action-btn" aria-label="Ekle">
-				<i class="fas fa-plus"></i>
-			</button>
-			<div class="footer-copyright">
-				© {new Date().getFullYear()} Artado |
-				<span class="highlight">Oyunlayıcı</span>
-			</div>
+	<!-- Footer -->
+	<footer class="footer">
+		<div class="footer-content">
+			<p>&copy; {new Date().getFullYear()} Artado Search</p>
 		</div>
 	</footer>
 </div>
@@ -775,37 +863,71 @@
 		padding-bottom: 0; /* Remove bottom padding */
 	}
 
-	/* --- Sleek Bar Footer Styles --- */
-	.sleek-bar-footer {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		height: 48px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0 1.5rem;
-		background: rgba(18, 18, 20, 0.95);
-		-webkit-backdrop-filter: blur(20px);
-		backdrop-filter: blur(20px);
-		border-top: 1px solid rgba(255, 255, 255, 0.08);
-		z-index: 1000;
-		color: #e4e4e7;
-		font-family: "Inter", sans-serif;
+	/* Footer Styles */
+	.footer {
+		border-top: 1px solid var(--border-color, #e0e0e0);
+		padding: 1rem 0;
+		margin-top: auto;
+		text-align: center;
+		background: transparent;
 	}
 
-	.footer-left,
-	.footer-right {
-		display: flex;
-		align-items: center;
-		gap: 1.2rem;
+	.footer-content {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 0 2rem;
 	}
 
-	.brand-group {
+	.footer-content p {
+		color: var(--text-secondary, #666);
+		font-size: 0.85rem;
+		margin: 0;
+	}
+
+	/* Footer Mobile Responsive */
+	@media (max-width: 768px) {
+		.footer {
+			padding: 0.75rem 0;
+		}
+
+		.footer-content {
+			padding: 0 1rem;
+		}
+
+		.footer-content p {
+			font-size: 0.8rem;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.footer {
+			padding: 0.5rem 0;
+		}
+
+		.footer-content {
+			padding: 0 0.75rem;
+		}
+
+		.footer-content p {
+			font-size: 0.75rem;
+		}
+	}
+
+	.header {
 		display: flex;
-		align-items: center;
-		gap: 0.6rem;
+		justify-content: flex-start; /* Default to left */
+		padding: 1rem;
+		background: transparent;
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+		border-bottom: none;
+		position: sticky;
+		top: 0;
+		z-index: 100;
+	}
+
+	.header.right-aligned {
+		justify-content: flex-end; /* Move button to right */
 	}
 
 	.footer-mini-logo {
@@ -881,6 +1003,52 @@
 		transform: scale(1.1);
 	}
 
+	.footer-action.menu-button {
+		background: var(--primary-color, #007bff);
+		border: none;
+		color: white;
+		padding: 0.5rem 1rem;
+		border-radius: 0.5rem;
+		cursor: pointer;
+		font-size: 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		transition: all 0.2s ease;
+	}
+
+	.menu-button:hover {
+		background: var(--primary-hover, #0056b3);
+		transform: translateY(-1px);
+	}
+
+	/* Hide sidebar button ONLY on theme and plugin settings pages, NOT on homepage */
+	:global(body[data-route="/settings/themes"] .menu-button),
+	:global(body[data-route="/settings/plugins"] .menu-button) {
+		display: none !important;
+	}
+
+	/* Hide sidebar button on main settings page too */
+	:global(body[data-route="/settings"] .menu-button) {
+		display: none !important;
+	}
+
+	/* Ensure menu button is visible on homepage and other pages */
+	:global(body[data-route="/"] .menu-button) {
+		display: flex !important;
+	}
+
+	/* Hide sidebar on mobile for settings pages */
+	@media (max-width: 768px) {
+		:global(body[data-route="/settings"] .sidebar) {
+			display: none !important;
+		}
+		
+		:global(body[data-route="/settings"] .main-content-area) {
+			margin-left: 0 !important;
+		}
+	}
+
 	.footer-copyright {
 		font-size: 0.8rem;
 		color: #71717a;
@@ -892,113 +1060,57 @@
 		font-weight: 600;
 	}
 
-	/* Adjust main content padding */
-	.main-content-area {
-		padding-bottom: 48px;
-	}
-
+	/* --- Responsive Design --- */
 	@media (max-width: 768px) {
-		.footer-content {
-			flex-direction: column;
-			gap: 2rem;
-			padding: 2.5rem 1.5rem calc(2rem + env(safe-area-inset-bottom, 0px));
+		.page-container {
+			padding: 0.5rem;
 		}
-		.footer-column {
-			min-width: 100%;
-			text-align: center;
-			padding: 0 0.5rem;
+
+		.sidebar {
+			width: 280px;
 		}
-		.brand-column {
-			align-items: center;
-			order: -1;
-			margin-bottom: 0.5rem;
+
+		.header {
+			padding: 0.5rem 1rem;
 		}
-		.footer-toggle-btn {
-			bottom: 1.5rem;
-			padding: 0.7rem 1.4rem;
-			font-size: 0.85rem;
-		}
-		.footer-toggle-btn.home-pos {
-			bottom: 2rem;
-		}
-		.footer-backdrop {
-			border-radius: 30px 30px 0 0;
-		}
-		.footer-bottom {
-			margin-top: 1.5rem;
-			padding-bottom: 1.5rem;
+
+		.main-content-area {
+			padding: 0.5rem;
 		}
 	}
 
-	/* Styles for right-aligned button */
-	.header.right-aligned {
-		justify-content: flex-end; /* Push button to the right */
-		left: auto; /* Ensure it's positioned from the right */
-		right: 0;
+	@media (max-width: 480px) {
+		.page-container {
+			padding: 0.25rem;
+		}
+
+		.sidebar {
+			width: 100%;
+			height: 100vh;
+		}
+
+		.header {
+			padding: 0.5rem;
+		}
+
+		.main-content-area {
+			padding: 0.25rem;
+		}
+	}
+	.sidebar {
+		width: 280px;
 	}
 
-	/* Add styles for toggle switch within sidebar */
-	.sidebar .toggle-section .setting-item {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.2rem 0; /* Reduced padding */
-	}
-	.sidebar .toggle-section .toggle-label {
-		flex-grow: 1;
-		margin-right: 1rem;
-		font-size: 0.9rem; /* Slightly smaller label */
-		color: var(--text-color); /* Ensure label color */
+	.header {
+		padding: 0.5rem;
 	}
 
-	/* Re-use toggle switch styles (consider moving to global.css if used widely) */
-	.switch {
+	.main-content-area {
+		flex-direction: column;
 		position: relative;
-		display: inline-block;
-		width: 44px; /* Smaller switch */
-		height: 24px;
-		flex-shrink: 0;
+		padding-bottom: 0; /* Remove bottom padding */
 	}
-	.switch input {
-		opacity: 0;
-		width: 0;
-		height: 0;
-	}
-	.slider {
-		position: absolute;
-		cursor: pointer;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background-color: var(--toggle-background, #ccc);
-		transition: 0.3s;
-	}
-	.slider:before {
-		position: absolute;
-		content: "";
-		height: 18px; /* Smaller circle */
-		width: 18px;
-		left: 3px;
-		bottom: 3px;
-		background-color: white;
-		transition: 0.3s;
-	}
-	input:checked + .slider {
-		background-color: var(--primary-color);
-	}
-	input:focus + .slider {
-		box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.3);
-	}
-	input:checked + .slider:before {
-		transform: translateX(20px); /* Adjust movement */
-	}
-	.slider.round {
-		border-radius: 24px;
-	}
-	.slider.round:before {
-		border-radius: 50%;
-	}
+
 	/* --- Responsive Design --- */
 	@media (max-width: 992px) {
 		.footer-center {

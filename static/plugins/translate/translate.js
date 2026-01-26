@@ -1,6 +1,23 @@
 (function () {
     console.log("[Plugin] Advanced Translate initialized");
     
+    // Plugin aktif mi kontrolü
+    function isPluginEnabled() {
+        try {
+            // Settings store'dan değeri oku
+            const settings = JSON.parse(localStorage.getItem('artado-settings') || '{}');
+            return settings.enableTranslatePlugin !== false; // Varsayılan true
+        } catch (e) {
+            return true; // Hata durumunda aktif kabul et
+        }
+    }
+    
+    // Plugin aktif değilse çalışma
+    if (!isPluginEnabled()) {
+        console.log("[Plugin] Translate plugin is disabled in settings");
+        return;
+    }
+    
     // Desteklenen diller
     const supportedLanguages = {
         'en': { name: 'English', flag: '🇬🇧', code: 'en' },

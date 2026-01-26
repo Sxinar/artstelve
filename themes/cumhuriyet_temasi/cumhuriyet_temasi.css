@@ -1,0 +1,348 @@
+/* Cumhuriyet Teması - Türk Bayrağı Renkleri ile Modern ve Şık Tasarım */
+
+/* CSS Variables */
+:root {
+  /* Cumhuriyet Renk Paleti */
+  --cum-red: #E30A17;
+  --cum-red-dark: #CC0000;
+  --cum-red-light: #FF5252;
+  --cum-red-rgb: 227, 10, 23;
+  
+  --cum-white: #FFFFFF;
+  --cum-white-off: #F8F9FA;
+  --cum-gray-light: #F1F3F4;
+  --cum-gray: #E8EAED;
+  --cum-gray-dark: #5F6368;
+  
+  /* Vurgu Renkleri */
+  --cum-accent: #FF6B6B;
+  --cum-accent-light: #FF8787;
+  --cum-accent-rgb: 255, 107, 107;
+  
+  /* Gradientler */
+  --cum-gradient-primary: linear-gradient(135deg, var(--cum-red) 0%, var(--cum-red-dark) 100%);
+  --cum-gradient-hero: linear-gradient(135deg, var(--cum-red) 0%, #CC0000 50%, #990000 100%);
+  --cum-gradient-white: linear-gradient(135deg, var(--cum-white) 0%, var(--cum-white-off) 100%);
+  --cum-gradient-subtle: linear-gradient(135deg, var(--cum-gray-light) 0%, var(--cum-gray) 100%);
+  --cum-gradient-star: radial-gradient(circle, var(--cum-white) 0%, transparent 70%);
+  
+  /* Gölgeler */
+  --cum-shadow-sm: 0 1px 3px rgba(227, 10, 23, 0.1);
+  --cum-shadow: 0 4px 6px rgba(227, 10, 23, 0.1), 0 2px 4px rgba(227, 10, 23, 0.06);
+  --cum-shadow-lg: 0 10px 15px rgba(227, 10, 23, 0.1), 0 4px 6px rgba(227, 10, 23, 0.05);
+  --cum-shadow-xl: 0 20px 25px rgba(227, 10, 23, 0.1), 0 10px 10px rgba(227, 10, 23, 0.04);
+  --cum-shadow-2xl: 0 25px 50px rgba(227, 10, 23, 0.25);
+  --cum-shadow-glow: 0 0 20px rgba(var(--cum-red-rgb), 0.3);
+  --cum-shadow-glow-strong: 0 0 40px rgba(var(--cum-red-rgb), 0.5);
+  
+  /* Geçişler */
+  --cum-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --cum-transition: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --cum-transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Border Radius */
+  --cum-radius-sm: 0.25rem;
+  --cum-radius: 0.5rem;
+  --cum-radius-lg: 0.75rem;
+  --cum-radius-xl: 1rem;
+  --cum-radius-2xl: 1.5rem;
+  --cum-radius-full: 9999px;
+  
+  /* Spacings */
+  --cum-space-xs: 0.25rem;
+  --cum-space-sm: 0.5rem;
+  --cum-space: 1rem;
+  --cum-space-lg: 1.5rem;
+  --cum-space-xl: 2rem;
+  --cum-space-2xl: 3rem;
+  --cum-space-3xl: 4rem;
+}
+
+/* Ana Sayfa Container - HTML yapısına uygun */
+.home-container {
+  min-height: 100vh;
+  background: var(--cum-gradient-hero);
+  position: relative;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Türk Bayrağı Desenli Arka Plan */
+.home-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(180deg, 
+      var(--cum-red) 0%, 
+      var(--cum-red) 33.33%, 
+      var(--cum-white) 33.33%, 
+      var(--cum-white) 66.66%, 
+      var(--cum-red) 66.66%, 
+      var(--cum-red) 100%
+    );
+  opacity: 0.1;
+  animation: flagWave 20s ease-in-out infinite;
+}
+
+@keyframes flagWave {
+  0%, 100% { transform: translateX(0) scaleY(1); }
+  25% { transform: translateX(-10px) scaleY(1.02); }
+  50% { transform: translateX(5px) scaleY(0.98); }
+  75% { transform: translateX(-5px) scaleY(1.01); }
+}
+
+/* Yıldız Animasyonları */
+.home-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 20%, var(--cum-white) 1px, transparent 1px),
+    radial-gradient(circle at 80% 30%, var(--cum-white) 1px, transparent 1px),
+    radial-gradient(circle at 40% 60%, var(--cum-white) 1px, transparent 1px),
+    radial-gradient(circle at 70% 80%, var(--cum-white) 1px, transparent 1px),
+    radial-gradient(circle at 30% 90%, var(--cum-white) 1px, transparent 1px);
+  background-size: 50px 50px, 60px 60px, 40px 40px, 70px 70px, 55px 55px;
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+/* Logo Container */
+.logo-container {
+  text-align: center;
+  z-index: 2;
+  position: relative;
+  margin-bottom: var(--cum-space-xl);
+  animation: fadeInUp 1s ease-out;
+}
+
+/* Türk Bayrağı Logo */
+.logo-container .logo {
+  width: 140px;
+  height: 140px;
+  margin: 0 auto var(--cum-space-lg);
+  background: var(--cum-white);
+  border-radius: var(--cum-radius-2xl);
+  display: block;
+  box-shadow: var(--cum-shadow-2xl);
+  border: 4px solid var(--cum-red);
+  position: relative;
+  animation: logoFloat 6s ease-in-out infinite;
+  overflow: hidden;
+}
+
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+/* Türk Bayrağı CSS */
+.logo-container .logo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 33.33%;
+  background: var(--cum-red);
+}
+
+.logo-container .logo::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 33.33%;
+  background: var(--cum-red);
+}
+
+/* Başlık ve Alt Başlık */
+.logo-container h1 {
+  font-size: 4.5rem;
+  font-weight: 900;
+  color: var(--cum-white);
+  margin: 0 0 var(--cum-space-lg);
+  text-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  letter-spacing: -0.02em;
+  animation: titleGlow 3s ease-in-out infinite alternate;
+  position: relative;
+}
+
+@keyframes titleGlow {
+  from { text-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.3); }
+  to { text-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.5); }
+}
+
+.logo-container .subtitle {
+  font-size: 1.75rem;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0;
+  font-weight: 300;
+  animation: fadeInUp 1s ease-out 0.2s both;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Search Container */
+.search-container {
+  max-width: 650px;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+  animation: fadeInUp 1s ease-out 0.4s both;
+  z-index: 2;
+}
+
+.search-box {
+  width: 100%;
+  padding: var(--cum-space-lg) var(--cum-space-xl);
+  font-size: 1.25rem;
+  border: 3px solid var(--cum-white);
+  border-radius: var(--cum-radius-full);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--cum-shadow-2xl);
+  transition: all var(--cum-transition);
+  outline: none;
+  color: var(--cum-gray-dark);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.search-box:focus-within {
+  transform: translateY(-2px);
+  box-shadow: var(--cum-shadow-2xl), var(--cum-shadow-glow-strong);
+  background: rgba(255, 255, 255, 1);
+  border-color: var(--cum-accent);
+}
+
+.search-icon {
+  color: var(--cum-red);
+  margin-right: var(--cum-space);
+  font-size: 1.2rem;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--cum-gray-dark);
+  font-weight: 500;
+}
+
+.search-input::placeholder {
+  color: var(--cum-gray);
+}
+
+/* Floating Stars */
+.floating-star {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background: var(--cum-gradient-star);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  animation: float 20s ease-in-out infinite;
+  opacity: 0.6;
+  z-index: 1;
+}
+
+.floating-star:nth-child(1) {
+  top: 15%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.floating-star:nth-child(2) {
+  top: 25%;
+  right: 15%;
+  animation-delay: 3s;
+}
+
+.floating-star:nth-child(3) {
+  bottom: 20%;
+  left: 20%;
+  animation-delay: 6s;
+}
+
+.floating-star:nth-child(4) {
+  top: 60%;
+  right: 10%;
+  animation-delay: 9s;
+}
+
+.floating-star:nth-child(5) {
+  bottom: 40%;
+  right: 25%;
+  animation-delay: 12s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(20px, -15px) rotate(90deg); }
+  50% { transform: translate(-15px, 10px) rotate(180deg); }
+  75% { transform: translate(-20px, -10px) rotate(270deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .logo-container h1 {
+    font-size: 3rem;
+  }
+  
+  .logo-container .subtitle {
+    font-size: 1.25rem;
+  }
+  
+  .search-box {
+    padding: var(--cum-space) var(--cum-space-lg);
+    font-size: 1.1rem;
+  }
+  
+  .logo-container .logo {
+    width: 120px;
+    height: 120px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus Styles */
+.search-box:focus-within,
+.search-input:focus {
+  outline: 3px solid var(--cum-red);
+  outline-offset: 2px;
+}

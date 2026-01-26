@@ -94,6 +94,9 @@ export const safeSearch = createPersistentStore('safeSearch', true);
 export const enableSuggestions = createPersistentStore('enableSuggestions', true);
 export const searchRegion = createPersistentStore('searchRegion', 'all'); // 'all', 'tr', 'us', etc.
 
+// --- Plugin Controls ---
+export const enableTranslatePlugin = createPersistentStore('enableTranslatePlugin', true);
+
 // --- New Features Stores ---
 // Search Home Design: 'simple' | 'modern' | 'artistic'
 export const searchHomeDesign = createPersistentStore('searchHomeDesign', 'simple');

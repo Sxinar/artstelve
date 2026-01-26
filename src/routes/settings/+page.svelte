@@ -1,9 +1,18 @@
 <script lang="js">
     import { getContext, onMount } from "svelte";
     import { writable } from "svelte/store";
+    import { goto } from "$app/navigation";
     import { browser } from "$app/environment";
     import { t } from "$lib/i18n.js";
     import { fade, slide, fly } from "svelte/transition";
+
+    // --- Debug Mode ---
+    const DEBUG = false;
+    function debugLog(message, data = null) {
+        if (DEBUG) {
+            console.log(`[Settings Debug] ${message}`, data);
+        }
+    }
 
     // --- Import Stores ---
     import {
@@ -21,6 +30,7 @@
         hybridProxyTimeoutMs,
         hybridProxyCache,
         enableSuggestions,
+        enableTranslatePlugin,
         themeMode,
         uiDensity,
         fontScale,
@@ -74,18 +84,17 @@
             label: "basicSettings",
         },
         { id: "Görünüm", icon: "fas fa-paint-brush", label: "appearance" },
-        { id: "Arayüz", icon: "fas fa-desktop", label: "interface" },
         {
             id: "Hybrid Proxy",
             icon: "fas fa-network-wired",
             label: "hybridProxy",
         },
-        { id: "Çeviri", icon: "fas fa-language", label: "translate" },
+        { id: "Çeviri", icon: "fas fa-language", label: "translate", show: true },
         { id: "Gelişmiş", icon: "fas fa-tools", label: "advanced" },
-        { id: "Eklentiler", icon: "fas fa-puzzle-piece", label: "plugins" },
-
         { id: "Özel CSS", icon: "fas fa-code", label: "customCSS" },
     ];
+    
+    $: filteredTabs = $enableTranslatePlugin ? tabs : tabs.filter(tab => tab.id !== "Çeviri");
 
     // --- Helper Functions ---
     function applyPresetCSS(preset) {
@@ -256,11 +265,14 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
     let installingId = null;
 
     async function fetchWorkshopItems() {
+        debugLog("fetchWorkshopItems started");
         isLoadingWorkshop.set(true);
         try {
             const response = await fetch("/api/workshop/items");
+            debugLog("Workshop API response", { status: response.status, ok: response.ok });
             if (response.ok) {
                 const data = await response.json();
+                debugLog("Workshop data received", { success: data.success, themesCount: data.themes?.length, pluginsCount: data.plugins?.length });
                 if (data.success) {
                     themes.set(data.themes || []);
 
@@ -293,23 +305,28 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                     logos.set(_logos);
                     homeThemes.set(_homeThemes);
                     workshopError.set(null);
+                    debugLog("Workshop items processed", { themes: _plugins.length, logos: _logos.length, homeThemes: _homeThemes.length });
                 } else {
                     workshopError.set(
                         data.error || "Bilinmeyen bir API hatası oluştu.",
                     );
+                    debugLog("Workshop API error", data.error);
                 }
             } else {
                 workshopError.set(`Sunucu hatası: ${response.status}`);
+                debugLog("Workshop server error", response.status);
             }
         } catch (err) {
             console.error(err);
             workshopError.set("Bağlantı hatası: " + err.message);
+            debugLog("Workshop fetch error", err.message);
         } finally {
             isLoadingWorkshop.set(false);
+            debugLog("fetchWorkshopItems completed");
         }
     }
 
-    async function applyRemoteItem(item, type) {
+    async function applyWorkshopItem(item, type) {
         if (!item.download_url) return;
 
         if (type === "theme") {
@@ -321,37 +338,30 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                 alert("Site teması anında uygulandı!");
             }
         } else if (type === "plugin") {
-            // Plugins are a bit trickier because they need to be loaded into the search page.
-            // But we can store the URL in a local store for "active Cloud plugins"
+            // Store active workshop plugins in localStorage
+            const activePlugins = JSON.parse(localStorage.getItem('activeWorkshopPlugins') || '[]');
+            if (!activePlugins.find(p => p.id === item.id)) {
+                activePlugins.push({
+                    id: item.id,
+                    name: item.name,
+                    url: item.download_url,
+                    category: item.category
+                });
+                localStorage.setItem('activeWorkshopPlugins', JSON.stringify(activePlugins));
+            }
             alert(
                 "Eklenti buluttan uygulandı! Bir sonraki aramanızda etkinleşecek.",
             );
-            // For now, let's just use the existing plugin loading logic in search page
-            // which will need to know about these "cloud" plugins.
         }
     }
 
+    // Since we're not downloading files anymore, we'll use direct workshop URLs
+    // Install function now just applies the item directly
     async function installItem(item, type) {
         if (installingId) return;
         installingId = item.id;
         try {
-            const res = await fetch("/api/workshop/install", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    downloadUrl: item.download_url,
-                    type: type,
-                    name: item.name,
-                    id: item.id,
-                }),
-            });
-            const result = await res.json();
-            if (result.success) {
-                alert("Başarıyla indirildi!");
-                fetchInstalledThemes(); // Listeyi yenile
-            } else {
-                alert("Hata: " + result.error);
-            }
+            await applyWorkshopItem(item, type);
         } catch (e) {
             alert("Hata: " + e.message);
         } finally {
@@ -360,12 +370,20 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
     }
 
     onMount(() => {
+        debugLog("Settings page mounted", { browser, activeTab });
         if (browser) {
+            debugLog("Fetching workshop items");
             fetchWorkshopItems();
+            debugLog("Fetching installed themes");
             fetchInstalledThemes();
+            debugLog("Fetching installed plugins");
             fetchInstalledPlugins();
             document.body.classList.add("settings-active");
-            return () => document.body.classList.remove("settings-active");
+            debugLog("Settings page initialized successfully");
+            return () => {
+                debugLog("Settings page cleanup");
+                document.body.classList.remove("settings-active");
+            };
         }
     });
 
@@ -386,34 +404,34 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             console.error("Failed to fetch installed themes:", e);
         }
     }
+    // Since we're not downloading files anymore, uninstall removes from active items
     async function uninstallItem(id, type) {
         if (
             !confirm(
                 "Bu " +
                     (type === "theme" ? "temayı" : "eklentiyi") +
-                    " silmek istediğinize emin misiniz?",
+                    " devre dışı bırakmak istediğinize emin misiniz?",
             )
         )
             return;
 
         try {
-            const res = await fetch("/api/workshop/uninstall", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id, type }),
-            });
-            const result = await res.json();
-            if (result.success) {
-                // Eğer silinen tema şu an seçiliyse varsayılana dön
-                if (type === "theme" && $selectedTheme === id) {
+            if (type === "theme") {
+                // If the theme being disabled is currently selected, reset to default
+                if ($selectedTheme === id) {
                     selectedTheme.set("klasik");
                 }
-                fetchInstalledThemes();
-                fetchInstalledPlugins();
-                alert("Başarıyla kaldırıldı.");
-            } else {
-                alert("Hata: " + result.error);
+                if ($searchHomeDesign === id) {
+                    searchHomeDesign.set("klasik");
+                }
+            } else if (type === "plugin") {
+                // Remove from active workshop plugins
+                const activePlugins = JSON.parse(localStorage.getItem('activeWorkshopPlugins') || '[]');
+                const filteredPlugins = activePlugins.filter(p => p.id !== id);
+                localStorage.setItem('activeWorkshopPlugins', JSON.stringify(filteredPlugins));
             }
+            
+            alert("Başarıyla devre dışı bırakıldı.");
         } catch (e) {
             alert("Hata: " + e.message);
         }
@@ -446,6 +464,19 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 </svelte:head>
 
 <div class="settings-page" transition:fade={{ duration: 300 }}>
+    {#if DEBUG}
+        <div class="debug-panel" style="position: fixed; top: 10px; right: 10px; background: #000; color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; z-index: 9999; max-width: 300px;">
+            <strong>DEBUG MODE</strong><br>
+            Active Tab: {activeTab}<br>
+            Workshop Loading: {$isLoadingWorkshop}<br>
+            Workshop Error: {$workshopError}<br>
+            Themes: {$themes.length}<br>
+            Plugins: {$plugins.length}<br>
+            Browser: {browser}<br>
+            <button on:click={() => console.log("Debug Data:", { activeTab, themes: $themes, plugins: $plugins, workshopError: $workshopError })} style="margin-top: 5px; padding: 2px 5px; font-size: 10px;">Log Data</button>
+        </div>
+    {/if}
+    
     <header class="settings-header">
         <div class="header-left">
             <a href="/" class="back-button" aria-label="Aramaya Dön">
@@ -461,7 +492,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         <aside class="settings-sidebar">
             <nav aria-label="Ayarlar Menüsü">
                 <ul>
-                    {#each tabs as tab}
+                    {#each filteredTabs as tab}
                         <li>
                             <button
                                 class:active={activeTab === tab.id}
@@ -472,6 +503,22 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                             </button>
                         </li>
                     {/each}
+                    <li>
+                        <button
+                            on:click={() => window.location.href = '/settings/themes'}
+                        >
+                            <i class="fas fa-paint-brush"></i>
+                            <span>Temalar</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button
+                            on:click={() => window.location.href = '/settings/plugins'}
+                        >
+                            <i class="fas fa-plug"></i>
+                            <span>Eklentiler</span>
+                        </button>
+                    </li>
                 </ul>
             </nav>
         </aside>
@@ -492,8 +539,6 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                     <option value="en">English</option>
                                     <option value="fr">Français</option>
                                 </select>
-                                <i class="fas fa-chevron-down dropdown-icon"
-                                ></i>
                             </div>
                         </div>
 
@@ -515,8 +560,6 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                     >
                                     <option disabled>Google (Yakında)</option>
                                 </select>
-                                <i class="fas fa-chevron-down dropdown-icon"
-                                ></i>
                             </div>
                         </div>
 
@@ -570,8 +613,6 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                     <option value="light">{$t("light")}</option>
                                     <option value="dark">{$t("dark")}</option>
                                 </select>
-                                <i class="fas fa-chevron-down dropdown-icon"
-                                ></i>
                             </div>
                         </div>
                         <div class="divider"></div>
@@ -586,8 +627,6 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                     <option value="medium">Orta</option>
                                     <option value="square">Keskin</option>
                                 </select>
-                                <i class="fas fa-chevron-down dropdown-icon"
-                                ></i>
                             </div>
                         </div>
                         <div class="divider"></div>
@@ -605,223 +644,58 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
                         <div class="divider"></div>
 
-                        <div
-                            class="setting-row"
-                            style="align-items: flex-start; flex-direction: column; gap:1rem;"
-                        >
+                        <div class="setting-row">
                             <div class="setting-info">
-                                <h3>Özel Logo</h3>
-                                <p>
-                                    Workshop'tan logo seçerek görünümü
-                                    kişiselleştirin.
-                                </p>
+                                <h3>Temalar ve Eklentiler</h3>
+                                <p>Workshop'tan temaları ve eklentileri yönetin.</p>
                             </div>
-
-                            <div
-                                class="logo-grid"
-                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; width: 100%;"
-                            >
-                                <button
-                                    class="logo-option"
-                                    class:active={$customLogo === "/logo.png"}
-                                    on:click={resetCustomLogo}
-                                    title="Varsayılan"
-                                >
-                                    <div class="logo-preview default">
-                                        <img
-                                            src="/logo.png"
-                                            alt="Varsayılan"
-                                            style="max-height: 50px; width: auto;"
-                                        />
-                                    </div>
-                                    <span class="logo-name">Varsayılan</span>
-                                </button>
-
-                                {#each $logos as logo}
-                                    <button
-                                        class="logo-option"
-                                        class:active={$customLogo ===
-                                            logo.download_url}
-                                        on:click={() =>
-                                            customLogo.set(logo.download_url)}
-                                        title={logo.name}
-                                    >
-                                        <div class="logo-preview">
-                                            <img
-                                                src={logo.image_url ||
-                                                    logo.download_url}
-                                                alt={logo.name}
-                                            />
-                                        </div>
-                                        <span class="logo-name"
-                                            >{logo.name}</span
-                                        >
-                                    </button>
-                                {/each}
+                            <div class="setting-actions">
+                                <a href="/settings/themes" class="btn btn-outline">
+                                    <i class="fas fa-paint-brush"></i>
+                                    Temalar
+                                </a>
+                                <a href="/settings/plugins" class="btn btn-outline">
+                                    <i class="fas fa-puzzle-piece"></i>
+                                    Eklentiler
+                                </a>
                             </div>
                         </div>
                     </div>
                 </section>
 
                 <style>
-                    .logo-option {
+                    /* Setting Actions */
+                    .setting-actions {
                         display: flex;
-                        flex-direction: column;
+                        gap: 0.5rem;
+                        flex-wrap: wrap;
+                    }
+                    
+                    .btn {
+                        display: inline-flex;
                         align-items: center;
-                        border: 2px solid transparent; /* Prepare for border */
-                        border-radius: 12px;
-                        padding: 0.8rem;
-                        background: var(--card-background);
-                        transition: all 0.2s;
+                        gap: 0.5rem;
+                        padding: 0.5rem 1rem;
+                        border: 1px solid transparent;
+                        border-radius: 0.375rem;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        text-decoration: none;
                         cursor: pointer;
-                        border: 1px solid var(--border-color);
-                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+                        transition: all 0.2s;
                     }
-                    .logo-option:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-                    }
-                    .logo-option.active {
+                    
+                    .btn-outline {
+                        background: transparent;
+                        color: var(--primary-color);
                         border-color: var(--primary-color);
-                        background: rgba(var(--primary-color-rgb), 0.08);
-                        box-shadow: 0 0 0 2px var(--primary-color); /* Strong outline */
                     }
-                    .logo-preview {
-                        height: 80px;
-                        width: 100%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        margin-bottom: 0.5rem;
-                        border-radius: 8px;
-                        background: var(
-                            --background-image,
-                            #f5f5f5
-                        ); /* Fallback */
-                        overflow: hidden;
-                    }
-                    .logo-preview img {
-                        max-width: 100%;
-                        max-height: 100%;
-                        object-fit: contain;
-                    }
-                    .logo-name {
-                        font-size: 0.85rem;
-                        text-align: center;
-                        color: var(--text-color);
-                        display: -webkit-box;
-                        -webkit-line-clamp: 2;
-                        -webkit-box-orient: vertical;
-                        overflow: hidden;
+                    
+                    .btn-outline:hover {
+                        background: var(--primary-color);
+                        color: white;
                     }
                 </style>
-            {:else if activeTab === "Arayüz"}
-                <section in:slide={{ duration: 300 }}>
-                    <h2 class="section-heading">Arayüz ve Navigasyon</h2>
-                    <div class="setting-card">
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>Ana Sayfa Tasarımı</h3>
-                                <p>
-                                    Arama ana sayfasının görünümünü
-                                    özelleştirin.
-                                </p>
-                            </div>
-                            <div class="select-wrapper">
-                                <select bind:value={$searchHomeDesign}>
-                                    <optgroup label="Sistem Tasarımları">
-                                        <option value="simple"
-                                            >Benim için sade (Simple)</option
-                                        >
-                                        <option value="modern"
-                                            >Modern & Canlı</option
-                                        >
-                                        <option value="artistic"
-                                            >Sanatsal</option
-                                        >
-                                    </optgroup>
-                                    {#if $homeThemes && $homeThemes.length > 0}
-                                        <optgroup label="Workshop (Uzak)">
-                                            {#each $homeThemes as hTheme}
-                                                <option
-                                                    value={hTheme.id ||
-                                                        hTheme.name.toLowerCase()}
-                                                >
-                                                    {hTheme.name}
-                                                </option>
-                                            {/each}
-                                        </optgroup>
-                                    {/if}
-                                    {#if installedHomeThemes.length > 0}
-                                        <optgroup
-                                            label="Yüklü Workshop Temaları"
-                                        >
-                                            {#each installedHomeThemes as hTheme}
-                                                <option value={hTheme.id}>
-                                                    {hTheme.name}
-                                                </option>
-                                            {/each}
-                                        </optgroup>
-                                    {/if}
-                                </select>
-                                <i class="fas fa-chevron-down dropdown-icon"
-                                ></i>
-                            </div>
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>Site Teması</h3>
-                                <p>
-                                    Tüm sitenin renk paletini ve stilini
-                                    değiştirin.
-                                </p>
-                            </div>
-                            <div class="select-wrapper">
-                                <select bind:value={$selectedTheme}>
-                                    <optgroup label="Sistem Temaları">
-                                        {#each ["klasik", "koyu", "mavi", "pastel", "doga", "terminal", "gece-yarisi", "gunesli", "retro", "komur", "okyanus"] as theme}
-                                            <option value={theme}
-                                                >{formatThemeName(
-                                                    theme,
-                                                )}</option
-                                            >
-                                        {/each}
-                                    </optgroup>
-                                    {#if installedGeneralThemes.length > 0}
-                                        <optgroup label="Yüklü Temalar">
-                                            {#each installedGeneralThemes as itheme}
-                                                <option value={itheme.id}
-                                                    >{itheme.name}</option
-                                                >
-                                            {/each}
-                                        </optgroup>
-                                    {/if}
-                                </select>
-                                <i class="fas fa-chevron-down dropdown-icon"
-                                ></i>
-                            </div>
-                        </div>
-                        <div class="divider"></div>
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>Navbar Alt Kategori</h3>
-                                <p>
-                                    Navigasyon çubuğunda ek alt kategori göster.
-                                </p>
-                            </div>
-                            <label class="switch">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={$showNavbarSubCategory}
-                                />
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </section>
             {:else if activeTab === "Hybrid Proxy"}
                 <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">Hybrid Proxy</h2>
@@ -971,70 +845,44 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                 </section>
             {:else if activeTab === "Çeviri"}
                 <section in:slide={{ duration: 300 }}>
-                    <h2 class="section-heading">🌍 Çeviri Ayarları</h2>
+                    <h2 class="section-heading">Çeviri Ayarları</h2>
                     
                     <div class="setting-card">
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>🚀 Hızlı Çeviri Komutları</h3>
-                                <p>Çeviri eklentisini kullanarak metinleri farklı dillere çevirin.</p>
+                                <h3>Çeviri Eklentisi</h3>
+                                <p>Çeviri özelliklerini aktif veya pasif hale getirin.</p>
+                            </div>
+                            <div class="setting-control">
+                                <label class="switch">
+                                    <input 
+                                        type="checkbox" 
+                                        bind:checked={$enableTranslatePlugin}
+                                    />
+                                    <span class="slider"></span>
+                                </label>
                             </div>
                         </div>
                         
-                        <div class="sample-box">
-                            <strong>📝 Komut Örnekleri</strong>
-                            <ul>
-                                <li><code>!tr hello</code> - İngilizce'den Türkçe'ye</li>
-                                <li><code>!en merhaba</code> - Türkçe'den İngilizce'ye</li>
-                                <li><code>!de hello</code> - İngilizce'den Almanca'ya</li>
-                                <li><code>!fr bonjour</code> - Fransızca'dan Türkçe'ye</li>
-                                <li><code>!tr</code> - Dil seçim ekranı</li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <div class="setting-card">
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>⌨️ Klavye Kısayolları</h3>
-                                <p>Hızlı çeviri için klavye kısayollarını kullanın.</p>
+                        {#if $enableTranslatePlugin}
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <h3> Hızlı Çeviri Komutları</h3>
+                                    <p>Çeviri eklentisini kullanarak metinleri farklı dillere çevirin.</p>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="shortcuts-list">
-                            <div class="shortcut-item">
-                                <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>
-                                <span>Türkçe çeviri modu</span>
+                            
+                            <div class="sample-box">
+                                <strong>Komut Örnekleri</strong>
+                                <ul>
+                                    <li><code>!tr hello</code> - İngilizce'den Türkçe'ye</li>
+                                    <li><code>!en merhaba</code> - Türkçe'den İngilizce'ye</li>
+                                    <li><code>!de hello</code> - İngilizce'den Almanca'ya</li>
+                                    <li><code>!fr bonjour</code> - Fransızca'dan Türkçe'ye</li>
+                                    <li><code>!tr</code> - Dil seçim ekranı</li>
+                                </ul>
                             </div>
-                            <div class="shortcut-item">
-                                <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd>
-                                <span>İngilizce çeviri modu</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="setting-card">
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>⚡ API Bilgileri</h3>
-                                <p>Çeviri eklentisi MyMemory API kullanır.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="api-info">
-                            <div class="api-item">
-                                <strong>API:</strong> MyMemory Translated
-                            </div>
-                            <div class="api-item">
-                                <strong>Limit:</strong> 5000 karakter/gün
-                            </div>
-                            <div class="api-item">
-                                <strong>Cache:</strong> Evet (hızlı tekrar)
-                            </div>
-                            <div class="api-item">
-                                <strong>Durum:</strong> <span style="color: var(--success-color);">✅ Aktif</span>
-                            </div>
-                        </div>
+                        {/if}
                     </div>
                 </section>
             {:else if activeTab === "Temalar"}
@@ -1399,6 +1247,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         flex-direction: column;
         min-height: 100vh;
         background-color: var(--background-color);
+        background-image: var(--background-image, none);
         color: var(--text-color);
         font-family: "Inter", sans-serif;
     }
@@ -1408,12 +1257,12 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         align-items: center;
         justify-content: space-between;
         padding: 1.5rem 3rem;
-        background: var(--card-background);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        background: transparent;
+        box-shadow: none;
         position: sticky;
         top: 0;
         z-index: 100;
-        backdrop-filter: blur(10px);
+        backdrop-filter: none;
     }
 
     .settings-title {
@@ -2323,6 +2172,88 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         color: var(--primary-color);
     }
     
+    /* Switch Toggle Styles */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+    
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+    }
+    
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+        background-color: var(--primary-color);
+    }
+    
+    input:focus + .slider {
+        box-shadow: 0 0 1px var(--primary-color);
+    }
+    
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+    
+    /* Setting Actions */
+    .setting-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border: 1px solid transparent;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-outline {
+        background: transparent;
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-outline:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+    
     @media (max-width: 768px) {
         .shortcuts-list {
             gap: 0.5rem;
@@ -2336,6 +2267,161 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         
         .api-info {
             grid-template-columns: 1fr;
+        }
+        
+        /* Hide dropdown icons on mobile */
+        .dropdown-icon {
+            display: none !important;
+        }
+        
+        /* Settings Page Responsive */
+        .settings-page {
+            padding: 1rem;
+        }
+        
+        .settings-header {
+            padding: 1rem 0;
+        }
+        
+        .page-title h1 {
+            font-size: 1.5rem;
+        }
+        
+        .tabs {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.5rem;
+        }
+        
+        .tab {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        .section {
+            padding: 1rem;
+        }
+        
+        .section-heading {
+            font-size: 1.25rem;
+        }
+        
+        .setting-card {
+            padding: 1rem;
+        }
+        
+        .setting-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .setting-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .text-input,
+        select {
+            width: 100%;
+        }
+        
+        .logo-grid {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.75rem;
+        }
+        
+        .logo-preview {
+            height: 60px;
+        }
+        
+        .logo-name {
+            font-size: 0.75rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .settings-page {
+            padding: 0.5rem;
+        }
+        
+        .page-title h1 {
+            font-size: 1.25rem;
+        }
+        
+        .section {
+            padding: 0.75rem;
+        }
+        
+        .section-heading {
+            font-size: 1.1rem;
+        }
+        
+        .setting-card {
+            padding: 0.75rem;
+        }
+        
+        .setting-info h3 {
+            font-size: 1rem;
+        }
+        
+        .setting-info p {
+            font-size: 0.9rem;
+        }
+        
+        .logo-grid {
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.5rem;
+        }
+        
+        .logo-preview {
+            height: 50px;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        /* Hybrid Proxy Mobile Responsive */
+        .setting-card {
+            padding: 1rem;
+        }
+        
+        .setting-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .setting-info {
+            width: 100%;
+        }
+        
+        .setting-info h3 {
+            font-size: 1rem;
+        }
+        
+        .setting-info p {
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        
+        .text-input,
+        select {
+            width: 100%;
+            font-size: 0.9rem;
+        }
+        
+        .divider {
+            margin: 1rem 0;
         }
     }
 </style>
