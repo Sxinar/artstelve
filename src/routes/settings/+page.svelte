@@ -1263,6 +1263,8 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         top: 0;
         z-index: 100;
         backdrop-filter: none;
+        border-radius: 12px;
+        margin: 0.5rem 1rem;
     }
 
     .settings-title {
@@ -2012,9 +2014,10 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         
         .settings-header {
             padding: 1rem 1.5rem;
-            margin: 0;
+            margin: 0.5rem 1rem;
             width: 100%;
             box-sizing: border-box;
+            border-radius: 12px;
         }
         
         .settings-content-wrapper {
