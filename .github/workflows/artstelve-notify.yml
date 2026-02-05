@@ -1,0 +1,16 @@
+name: Artstelve Repo Notification
+on: [push, pull_request]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send to Artstelve Channel
+        run: |
+          REPO="${{ github.repository }}"
+          USER="${{ github.actor }}"
+          MSG="🛠️ **Artstelve Güncellemesi!**\n👤 **Yapan:** $USER\n📝 **Mesaj:** ${{ github.event.head_commit.message }}\n🔗 [Detaylar için Tıkla](https://github.com/$REPO/commit/${{ github.sha }})"
+
+          curl -X POST https://stoat.chat/api/webhooks/01KGQ34WFB2HH440J4DEV4JM0Q/RF2h_nRlfb3DtQ4HaLKFPErRK7KFUlT3mSV1vWL5ev_90BNiG5LcX5Y9dhZ7D_bJ/ \
+          -H "Content-Type: application/json" \
+          -d "{\"content\": \"$MSG\"}"
