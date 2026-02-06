@@ -262,6 +262,7 @@ export async function GET({ url, setHeaders }) {
             // Cap at reasonable limit (e.g. 100) to prevent abuse/timeouts
             const limitTotal = Math.min(100, neededLimit);
 
+            const proxyParams = new URLSearchParams();
             proxyParams.set('q', query);
             proxyParams.set('limitTotal', String(limitTotal));
             proxyParams.set('cache', '1');
