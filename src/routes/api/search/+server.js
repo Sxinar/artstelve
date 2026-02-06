@@ -241,11 +241,30 @@ export async function GET({ url, setHeaders }) {
                 };
             });
 
+            // Check Wikipedia for infobox (Same logic as Brave handler)
+            let wikipediaInfo = null;
+            try {
+                const wikipediaApiUrl = `https://tr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+                const wikiResponse = await fetch(wikipediaApiUrl);
+
+                if (wikiResponse.ok) {
+                    const wikiData = await wikiResponse.json();
+                    if (wikiData.extract) {
+                        wikipediaInfo = {
+                            title: wikiData.title || query,
+                            extract: wikiData.extract,
+                            thumbnail: wikiData.thumbnail?.source,
+                            url: wikiData.content_urls?.desktop?.page || `https://tr.wikipedia.org/wiki/${encodeURIComponent(query)}`
+                        };
+                    }
+                }
+            } catch (wikiErr) { /* Ignore */ }
+
             return json({
                 ok: true,
                 type: searchType,
                 searchResults,
-                infoBoxResult: null
+                infoBoxResult: { wikipediaInfo }
             });
         } catch (err) {
             console.error('[API] Error fetching proxy search results:', err);
