@@ -5,7 +5,7 @@ import { json } from '@sveltejs/kit';
 const BRAVE_API_KEY = 'BSAuFJ0CRuCgoNsyYopbiFg6hItXpsL';
 // GEMINI_API_KEY Removed
 
-const PROXY_SEARCH_BASE_URL = process.env.PROXY_SEARCH_BASE_URL || 'http://127.0.0.1:8787';
+const PROXY_SEARCH_BASE_URL = process.env.PROXY_SEARCH_BASE_URL || 'https://artstelve-proxy.vercel.app';
 
 function mapEngineToProxyEngines(engine) {
     if (!engine) return undefined;
