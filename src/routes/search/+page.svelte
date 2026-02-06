@@ -127,20 +127,14 @@
             }
 
             const incoming = data.searchResults || [];
-            if (offset > 0) {
-                // append for pagination with deduplication
-                searchResults.update((prev) => {
-                    const combined = [...prev, ...incoming];
-                    const unique = Array.from(
-                        new Map(
-                            combined.map((item) => [item.url, item]),
-                        ).values(),
-                    );
-                    return unique;
-                });
+            if (incoming.length < count) {
+                hasMoreResults.set(false);
             } else {
-                searchResults.set(incoming);
+                hasMoreResults.set(true);
             }
+
+            // For pagination, we always REPLACE results, never append
+            searchResults.set(incoming);
             infoBoxResult.set(data.infoBoxResult || null);
             queryAiSummary.set(data.queryAiSummary || null); // Set the query AI summary store
         } catch (err) {
@@ -177,38 +171,51 @@
 
     async function loadPlugins() {
         if (!browser) return;
-        
+
         try {
             // Load active workshop plugins from localStorage
-            const activeWorkshopPlugins = JSON.parse(localStorage.getItem('activeWorkshopPlugins') || '[]');
-            
+            const activeWorkshopPlugins = JSON.parse(
+                localStorage.getItem("activeWorkshopPlugins") || "[]",
+            );
+
             // Load each active workshop plugin
             activeWorkshopPlugins.forEach((plugin) => {
                 const script = document.createElement("script");
                 script.src = plugin.url;
                 script.async = true;
-                script.onerror = () => console.error(`Failed to load workshop plugin: ${plugin.name}`);
+                script.onerror = () =>
+                    console.error(
+                        `Failed to load workshop plugin: ${plugin.name}`,
+                    );
                 document.head.appendChild(script);
             });
-            
+
             // Also load any available workshop plugins (for discovery)
             const res = await fetch("/api/workshop/plugins");
             if (res.ok) {
                 const data = await res.json();
                 const plugins = data.plugins || [];
-                
+
                 // Only load plugins that have workshop URLs and are not already loaded
                 plugins.forEach((p) => {
                     // Skip if already loaded as active plugin
-                    if (activeWorkshopPlugins.find(active => active.id === p.id)) return;
-                    
+                    if (
+                        activeWorkshopPlugins.find(
+                            (active) => active.id === p.id,
+                        )
+                    )
+                        return;
+
                     const script = document.createElement("script");
-                    
+
                     // If it's a workshop plugin with URL, use it directly
                     if (p.download_url && p.download_url.startsWith("http")) {
                         script.src = p.download_url;
                         script.async = true;
-                        script.onerror = () => console.error(`Failed to load workshop plugin: ${p.name}`);
+                        script.onerror = () =>
+                            console.error(
+                                `Failed to load workshop plugin: ${p.name}`,
+                            );
                         document.head.appendChild(script);
                     }
                 });
@@ -222,11 +229,44 @@
         loadPlugins();
     });
 
-    async function loadMore() {
-        if (isLoading) return;
-        offset += count;
+    // Pagination State
+    let hasMoreResults = writable(true); // Track if we can go further
+
+    async function goToPage(page) {
+        if (isLoading || page < 1) return;
+
+        // Calculate new offset
+        const newOffset = (page - 1) * count;
+        if (newOffset === offset) return; // Same page
+
+        offset = newOffset;
+
+        // Scroll to top
+        if (browser) window.scrollTo({ top: 0, behavior: "smooth" });
+
         await fetchSearchResults(searchQuery, activeSearchType);
     }
+
+    $: currentPage = Math.floor(offset / count) + 1;
+
+    // Generate page numbers window (e.g. [1, 2, 3, 4, 5])
+    $: paginationPages = (() => {
+        let pages = [];
+        // Show 5 pages window centered on current if possible
+        let start = Math.max(1, currentPage - 2);
+        let end = start + 4;
+
+        // If we are at page 1, show 1,2,3,4,5
+        if (currentPage <= 3) {
+            start = 1;
+            end = 5;
+        }
+
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+        return pages;
+    })();
 
     // Reactive statement to fetch results when the URL query parameter changes
     $: {
@@ -361,21 +401,26 @@
     let focusedSuggestionIndex = -1;
 
     async function fetchSuggestions(q) {
-        console.log('🔍 [SEARCH] fetchSuggestions called:', q, 'enableSuggestions:', $enableSuggestions);
+        console.log(
+            "🔍 [SEARCH] fetchSuggestions called:",
+            q,
+            "enableSuggestions:",
+            $enableSuggestions,
+        );
         if (!$enableSuggestions || !q || q.length < 2) {
-            console.log('❌ [SEARCH] Suggestions disabled or too short');
+            console.log("❌ [SEARCH] Suggestions disabled or too short");
             suggestions = [];
             return;
         }
         try {
-            console.log('🌐 [SEARCH] Fetching suggestions for:', q);
+            console.log("🌐 [SEARCH] Fetching suggestions for:", q);
             const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
             if (res.ok) {
                 const data = await res.json();
-                console.log('✅ [SEARCH] Suggestions received:', data);
+                console.log("✅ [SEARCH] Suggestions received:", data);
                 suggestions = data;
             } else {
-                console.log('❌ [SEARCH] API response not ok:', res.status);
+                console.log("❌ [SEARCH] API response not ok:", res.status);
                 suggestions = [];
             }
         } catch (e) {
@@ -386,20 +431,20 @@
 
     function handleInput(event) {
         const val = event.target.value;
-        console.log('⌨️ [SEARCH] handleInput:', val);
+        console.log("⌨️ [SEARCH] handleInput:", val);
         inputQuery = val;
         focusedSuggestionIndex = -1; // Reset focus on input
         clearTimeout(suggestTimeout);
         if (val.trim().length > 1) {
-            console.log('⏰ [SEARCH] Setting timeout for suggestions...');
+            console.log("⏰ [SEARCH] Setting timeout for suggestions...");
             suggestTimeout = setTimeout(() => {
                 fetchSuggestions(val);
                 showSuggestions = true;
-                console.log('👁️ [SEARCH] showSuggestions set to true');
+                console.log("👁️ [SEARCH] showSuggestions set to true");
             }, 300);
         } else {
             showSuggestions = false;
-            console.log('👁️ [SEARCH] showSuggestions set to false (too short)');
+            console.log("👁️ [SEARCH] showSuggestions set to false (too short)");
         }
     }
 
@@ -468,7 +513,12 @@
 <div class="search-results-page">
     <header class="search-header">
         <a href="/" class="logo-link" aria-label="Ana Sayfa">
-            <img src={$customLogo} alt="Artado Logo" class="header-logo" />
+            <img
+                src={$customLogo}
+                alt="Artado Logo"
+                class="header-logo"
+                on:error={(e) => (e.target.style.display = "none")}
+            />
         </a>
         <div class="search-bar-container">
             <div
@@ -659,8 +709,7 @@
                                         class="favicon"
                                         loading="lazy"
                                         on:error={(e) => {
-                                            e.target.style.visibility =
-                                                "hidden";
+                                            e.target.style.display = "none";
                                         }}
                                     />
                                     <span class="result-domain"
@@ -727,17 +776,6 @@
                                 </p>
                             </div>
                         {/each}
-                    </div>
-                    <div class="load-more-container">
-                        {#if isLoading && offset > 0}
-                            <div class="load-more-spinner">
-                                <i class="fas fa-circle-notch fa-spin"></i> Yükleniyor...
-                            </div>
-                        {:else if filteredResults.length > 0}
-                            <button class="load-more-btn" on:click={loadMore}>
-                                <i class="fas fa-plus"></i> Daha Fazla Sonuç Yükle
-                            </button>
-                        {/if}
                     </div>
                 {:else if searchQuery}
                     <!-- Fallback if all results are blocked -->
@@ -817,17 +855,6 @@
                             </div>
                         {/each}
                     </div>
-                    <div class="load-more-container">
-                        {#if isLoading && offset > 0}
-                            <div class="load-more-spinner">
-                                <i class="fas fa-circle-notch fa-spin"></i> Yükleniyor...
-                            </div>
-                        {:else if $searchResults.length > 0}
-                            <button class="load-more-btn" on:click={loadMore}>
-                                <i class="fas fa-plus"></i> Daha Fazla Görsel Yükle
-                            </button>
-                        {/if}
-                    </div>
                 {:else if searchQuery}
                     <div class="no-results">
                         <p>'{searchQuery}' için görsel sonucu bulunamadı.</p>
@@ -899,17 +926,6 @@
                             </div>
                         {/each}
                     </div>
-                    <div class="load-more-container">
-                        {#if isLoading && offset > 0}
-                            <div class="load-more-spinner">
-                                <i class="fas fa-circle-notch fa-spin"></i> Yükleniyor...
-                            </div>
-                        {:else if $searchResults.length > 0}
-                            <button class="load-more-btn" on:click={loadMore}>
-                                <i class="fas fa-plus"></i> Daha Fazla Video Yükle
-                            </button>
-                        {/if}
-                    </div>
                 {:else if searchQuery}
                     <div class="no-results">
                         <p>'{searchQuery}' için video sonucu bulunamadı.</p>
@@ -970,17 +986,6 @@
                             </div>
                         {/each}
                     </div>
-                    <div class="load-more-container">
-                        {#if isLoading && offset > 0}
-                            <div class="load-more-spinner">
-                                <i class="fas fa-circle-notch fa-spin"></i> Yükleniyor...
-                            </div>
-                        {:else if $searchResults.length > 0}
-                            <button class="load-more-btn" on:click={loadMore}>
-                                <i class="fas fa-plus"></i> Daha Fazla Haber Yükle
-                            </button>
-                        {/if}
-                    </div>
                 {:else if searchQuery}
                     <div class="no-results">
                         <p>'{searchQuery}' için haber bulunamadı.</p>
@@ -998,6 +1003,47 @@
                         '{searchQuery}' için ({activeSearchType}) sonucu
                         bulunamadı veya bu tür desteklenmiyor.
                     </p>
+                </div>
+            {/if}
+
+            <!-- Pagination Controls -->
+            {#if $searchResults.length > 0 && !isLoading}
+                <div class="pagination-container">
+                    <!-- Prev Button -->
+                    <button
+                        class="pagination-btn nav-btn"
+                        disabled={currentPage <= 1 || isLoading}
+                        on:click={() => goToPage(currentPage - 1)}
+                    >
+                        <i
+                            class="fas fa-chevron-left"
+                            style="margin-right: 5px;"
+                        ></i> Önceki
+                    </button>
+
+                    <!-- Page Numbers -->
+                    {#each paginationPages as page}
+                        <button
+                            class="pagination-btn"
+                            class:active={page === currentPage}
+                            on:click={() => goToPage(page)}
+                            disabled={isLoading}
+                        >
+                            {page}
+                        </button>
+                    {/each}
+
+                    <!-- Next Button -->
+                    <button
+                        class="pagination-btn nav-btn"
+                        disabled={!$hasMoreResults || isLoading}
+                        on:click={() => goToPage(currentPage + 1)}
+                    >
+                        Sonraki <i
+                            class="fas fa-chevron-right"
+                            style="margin-left: 5px;"
+                        ></i>
+                    </button>
                 </div>
             {/if}
         </main>
@@ -1276,10 +1322,14 @@
     }
 
     .suggestion-item::before {
-        content: '';
+        content: "";
         position: absolute;
         inset: 0;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+        background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.1),
+            rgba(255, 255, 255, 0.05)
+        );
         border-radius: 10px;
         opacity: 0;
         transition: opacity 0.2s ease;
@@ -1305,7 +1355,11 @@
 
     .suggestion-item.focused::before {
         opacity: 1;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+        background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.15),
+            rgba(255, 255, 255, 0.08)
+        );
         border-radius: 10px;
     }
 
@@ -1358,7 +1412,6 @@
         color: var(--primary-color);
     }
 
-
     .search-input {
         flex-grow: 1;
         border: none;
@@ -1368,7 +1421,7 @@
         background: transparent;
         color: var(--text-color);
     }
-    
+
     .search-input:focus-visible {
         outline: none;
         box-shadow: none;
@@ -1765,25 +1818,37 @@
         border-radius: 2px;
     }
 
-    /* --- Video Results Grid --- */
+    /* --- Video Results List Layout (YouTube-style) --- */
     .video-results-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
     }
 
     .video-card-modern {
         display: flex;
-        flex-direction: column;
-        padding: 0; /* Remove default padding */
-        gap: 0;
+        flex-direction: row;
+        padding: 0;
+        gap: 1rem;
+        background: var(--card-background);
+        border: 1px solid transparent;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: background-color 0.2s;
+    }
+
+    .video-card-modern:hover {
+        background-color: var(--hover-background);
     }
 
     .video-thumbnail-container {
         position: relative;
-        padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        width: 260px; /* Fixed width for desktop list view */
+        height: 146px; /* 16:9 aspect ratio approx */
+        flex-shrink: 0;
         background: #000;
         overflow: hidden;
+        border-radius: 8px;
     }
 
     .video-thumbnail {
@@ -1793,7 +1858,7 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-        opacity: 0.9;
+        opacity: 0.95;
         transition: opacity 0.2s;
     }
 
@@ -1965,11 +2030,57 @@
         }
     }
 
-    /* Load more area */
-    .load-more-wrapper {
+    /* Pagination Styles */
+    .pagination-container {
         display: flex;
         justify-content: center;
-        margin-top: 0.8rem;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 2rem 0 4rem;
+        flex-wrap: wrap;
+    }
+
+    .pagination-btn {
+        background: var(--card-background);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+        text-decoration: none;
+        user-select: none;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+        background: var(--hover-background);
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .pagination-btn.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+        font-weight: 700;
+        cursor: default;
+    }
+
+    .pagination-btn.nav-btn {
+        width: auto;
+        padding: 0 1rem;
+        border-radius: 20px;
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: var(--disabled-background);
     }
 
     .infobox-container {
@@ -2021,8 +2132,8 @@
             margin-top: 1rem;
         }
         .search-header {
-            padding: 0.6rem 1rem; /* Adjust padding */
-            gap: 0.8rem; /* Reduce gap */
+            padding: 0.5rem 0.8rem; /* Adjust padding */
+            gap: 0.5rem; /* Reduce gap */
             /* Hide logo on very small screens? Example: */
             /* @media (max-width: 480px) { & .logo-link { display: none; } } */
         }
@@ -2065,17 +2176,30 @@
             gap: 0.8rem; /* Reduce gap between results */
         }
         .result-item-card {
-            padding: 0.8rem 1rem; /* Reduce padding */
+            padding: 0.8rem; /* Reduce padding significantly */
         }
         .result-title {
-            font-size: 1.1rem; /* Reduce title size */
+            font-size: 1rem; /* Reduce title size */
+            line-height: 1.3;
         }
-        .video-item-card {
-            flex-direction: column; /* Stack video thumbnail and details */
+        .result-domain {
+            font-size: 0.75rem;
+        }
+        .result-description {
+            font-size: 0.85rem;
+        }
+        .news-thumbnail-wrapper {
+            width: 80px;
+            height: 80px;
+        }
+        .video-card-modern {
+            flex-direction: column; /* Stack on mobile */
+            gap: 0.5rem;
         }
         .video-thumbnail-container {
-            width: 100%; /* Full width thumbnail */
-            max-width: 250px; /* Optional max width */
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16/9;
         }
     }
     /* Filter Styles */
@@ -2750,7 +2874,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         .search-header {
             flex-direction: column;
             padding: 1rem;
@@ -2759,18 +2883,18 @@
             box-sizing: border-box;
             margin: 0;
         }
-        
+
         .search-bar-container {
             max-width: 100%;
             width: 100%;
         }
-        
+
         .header-actions {
             width: 100%;
             display: flex;
             justify-content: center;
         }
-        
+
         .settings-button-header {
             padding: 0.8rem;
             font-size: 1.4rem;
@@ -2780,22 +2904,22 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .search-type-nav {
             padding: 0 1rem;
             margin: 0;
         }
-        
+
         .search-type-nav-inner {
             padding: 0 0.5rem;
         }
-        
+
         .main-content-area {
             padding: 0;
             width: 100%;
             margin: 0;
         }
-        
+
         .results-container {
             padding: 0 1rem;
             width: 100%;
@@ -2804,38 +2928,38 @@
         }
     }
 
-        .logo-link {
-            margin-bottom: 0.5rem;
-        }
+    .logo-link {
+        margin-bottom: 0.5rem;
+    }
 
-        .header-logo {
-            height: 28px;
-        }
+    .header-logo {
+        height: 28px;
+    }
 
-        .search-bar-container {
-            width: 100%;
-        }
+    .search-bar-container {
+        width: 100%;
+    }
 
-        .search-results-page {
-            padding: 0 10px;
-        }
+    .search-results-page {
+        padding: 0 10px;
+    }
 
-        .results-container {
-            padding: 10px 0;
-        }
+    .results-container {
+        padding: 10px 0;
+    }
 
-        .result-item-card {
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
+    .result-item-card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
 
-        .result-title {
-            font-size: 1.1rem;
-        }
+    .result-title {
+        font-size: 1.1rem;
+    }
 
-        .result-description {
-            font-size: 0.9rem;
-        }
+    .result-description {
+        font-size: 0.9rem;
+    }
 
     @media (max-width: 480px) {
         .search-header {

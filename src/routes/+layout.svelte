@@ -15,8 +15,8 @@
 		// Set current route for CSS targeting
 		if (browser) {
 			const currentPath = window.location.pathname;
-			document.body.setAttribute('data-route', currentPath);
-			console.log('Route set to:', currentPath); // Debug log
+			document.body.setAttribute("data-route", currentPath);
+			console.log("Route set to:", currentPath); // Debug log
 		}
 	});
 
@@ -100,7 +100,7 @@
 	let externalThemeElement;
 	function applyExternalTheme(theme) {
 		if (!browser) return;
-		
+
 		console.log("[Layout] Applying external theme:", theme);
 
 		// Remove existing external theme link if it exists
@@ -111,7 +111,9 @@
 
 		// If it's a built-in theme, applyTheme handles classes (it's already subscribed)
 		if (themes.includes(theme)) {
-			console.log("[Layout] Built-in theme detected, skipping external load");
+			console.log(
+				"[Layout] Built-in theme detected, skipping external load",
+			);
 			return;
 		}
 
@@ -130,17 +132,25 @@
 			// Assuming external themes are in /themes/[themeName]/[themeName].css
 			// Or potentially /themes/home/ if it was selected globally (rare but possible)
 			externalThemeElement.href = `/themes/${theme}/${theme}.css`;
-			console.log("[Layout] Loading local theme:", externalThemeElement.href);
+			console.log(
+				"[Layout] Loading local theme:",
+				externalThemeElement.href,
+			);
 
 			// Fallback mechanism
 			externalThemeElement.onerror = () => {
-				console.log("[Layout] Primary theme load failed, trying fallback");
+				console.log(
+					"[Layout] Primary theme load failed, trying fallback",
+				);
 				if (
 					externalThemeElement &&
 					!externalThemeElement.href.includes("/home/")
 				) {
 					externalThemeElement.href = `/themes/home/${theme}/${theme}.css`;
-					console.log("[Layout] Trying fallback:", externalThemeElement.href);
+					console.log(
+						"[Layout] Trying fallback:",
+						externalThemeElement.href,
+					);
 				}
 			};
 		}
@@ -155,7 +165,9 @@
 			console.error("[Layout] Failed to load theme:", theme, e);
 			// Remove failed theme element
 			if (externalThemeElement.parentNode) {
-				externalThemeElement.parentNode.removeChild(externalThemeElement);
+				externalThemeElement.parentNode.removeChild(
+					externalThemeElement,
+				);
 			}
 			// Reset to default theme
 			selectedTheme.set("klasik");
@@ -168,7 +180,7 @@
 	let homeThemeElement;
 	function applyHomeTheme(theme) {
 		if (!browser) return;
-		
+
 		console.log("[Layout] Applying home theme:", theme);
 
 		// Remove existing home theme link if it exists
@@ -178,9 +190,11 @@
 		}
 
 		// If it's a built-in theme, skip external load
-		const builtInHomeThemes = ['simple', 'modern', 'artistic', 'klasik'];
+		const builtInHomeThemes = ["simple", "modern", "artistic", "klasik"];
 		if (builtInHomeThemes.includes(theme)) {
-			console.log("[Layout] Built-in home theme detected, skipping external load");
+			console.log(
+				"[Layout] Built-in home theme detected, skipping external load",
+			);
 			return;
 		}
 
@@ -198,17 +212,25 @@
 		} else {
 			// Assuming external themes are in /themes/[themeName]/[themeName].css
 			homeThemeElement.href = `/themes/${theme}/${theme}.css`;
-			console.log("[Layout] Loading local home theme:", homeThemeElement.href);
+			console.log(
+				"[Layout] Loading local home theme:",
+				homeThemeElement.href,
+			);
 
 			// Fallback mechanism
 			homeThemeElement.onerror = () => {
-				console.log("[Layout] Primary home theme load failed, trying fallback");
+				console.log(
+					"[Layout] Primary home theme load failed, trying fallback",
+				);
 				if (
 					homeThemeElement &&
 					!homeThemeElement.href.includes("/home/")
 				) {
 					homeThemeElement.href = `/themes/home/${theme}/${theme}.css`;
-					console.log("[Layout] Trying fallback:", homeThemeElement.href);
+					console.log(
+						"[Layout] Trying fallback:",
+						homeThemeElement.href,
+					);
 				}
 			};
 		}
@@ -387,7 +409,9 @@
 					workshopThemes.set(data.themes || []);
 					workshopError.set(null);
 				} else {
-					workshopError.set(data.error || "Bilinmeyen bir API hatası oluştu.");
+					workshopError.set(
+						data.error || "Bilinmeyen bir API hatası oluştu.",
+					);
 				}
 			} else {
 				workshopError.set(`Sunucu hatası: ${response.status}`);
@@ -452,18 +476,23 @@
 				<select bind:value={$selectedTheme} aria-label={$t("themes")}>
 					<optgroup label="Sistem Temaları">
 						{#each themes as themeName (themeName)}
-							<option value={themeName}>{formatThemeName(themeName)}</option>
+							<option value={themeName}
+								>{formatThemeName(themeName)}</option
+							>
 						{/each}
 					</optgroup>
 					{#if $workshopThemes && $workshopThemes.length > 0}
 						<optgroup label="Workshop Temaları">
 							{#each $workshopThemes as theme}
-								<option value={theme.download_url}>{theme.name}</option>
+								<option value={theme.download_url}
+									>{theme.name}</option
+								>
 							{/each}
 						</optgroup>
 					{/if}
 				</select>
-				<i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"></i>
+				<i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
+				></i>
 			</div>
 			{#if $isLoadingWorkshop}
 				<div class="loading-indicator">
@@ -1043,7 +1072,7 @@
 		:global(body[data-route="/settings"] .sidebar) {
 			display: none !important;
 		}
-		
+
 		:global(body[data-route="/settings"] .main-content-area) {
 			margin-left: 0 !important;
 		}
@@ -1063,7 +1092,7 @@
 	/* --- Responsive Design --- */
 	@media (max-width: 768px) {
 		.page-container {
-			padding: 0.5rem;
+			padding: 0;
 		}
 
 		.sidebar {
@@ -1081,7 +1110,7 @@
 
 	@media (max-width: 480px) {
 		.page-container {
-			padding: 0.25rem;
+			padding: 0;
 		}
 
 		.sidebar {

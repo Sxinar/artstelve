@@ -5,7 +5,7 @@ import { json } from '@sveltejs/kit';
 const BRAVE_API_KEY = 'BSAuFJ0CRuCgoNsyYopbiFg6hItXpsL';
 // GEMINI_API_KEY Removed
 
-const PROXY_SEARCH_BASE_URL = process.env.PROXY_SEARCH_BASE_URL || 'http://localhost:8787';
+const PROXY_SEARCH_BASE_URL = process.env.PROXY_SEARCH_BASE_URL || 'http://127.0.0.1:8787';
 
 function mapEngineToProxyEngines(engine) {
     if (!engine) return undefined;
@@ -161,7 +161,16 @@ export async function GET({ url, setHeaders }) {
     const query = url.searchParams.get('i');
     const searchType = url.searchParams.get('t') || 'web'; // Renamed variable from 'type'
     const engine = url.searchParams.get('engine') || 'Brave'; // Arama motoru parametresi
-    const proxyBaseUrl = url.searchParams.get('proxyBaseUrl') || PROXY_SEARCH_BASE_URL;
+    let proxyBaseUrl = url.searchParams.get('proxyBaseUrl') || PROXY_SEARCH_BASE_URL;
+
+    // Force IPv4 for local proxy to avoid IPv6 resolution issues
+    if (proxyBaseUrl.includes('localhost')) {
+        proxyBaseUrl = proxyBaseUrl.replace('localhost', '127.0.0.1');
+    }
+    // Remove trailing slash if present
+    if (proxyBaseUrl.endsWith('/')) {
+        proxyBaseUrl = proxyBaseUrl.slice(0, -1);
+    }
     const proxyEngines = url.searchParams.get('proxyEngines');
     const proxyLimitPerEngineRaw = url.searchParams.get('proxyLimitPerEngine');
     const proxyLimitTotalRaw = url.searchParams.get('proxyLimitTotal');
@@ -244,6 +253,126 @@ export async function GET({ url, setHeaders }) {
         }
     }
 
+    // === USE PROXY FOR IMAGES, VIDEOS, NEWS ===
+    // For these search types, use artstelve-proxy service instead of Brave API
+    if (['images', 'videos', 'news'].includes(searchType)) {
+        try {
+            // Pagination logic: Fetch enough results to cover the offset
+            const neededLimit = offset + count;
+            // Cap at reasonable limit (e.g. 100) to prevent abuse/timeouts
+            const limitTotal = Math.min(100, neededLimit);
+
+            proxyParams.set('q', query);
+            proxyParams.set('limitTotal', String(limitTotal));
+            proxyParams.set('cache', '1');
+
+            // Pass region and safe search to proxy for better relevance
+            if (region && region !== 'all') proxyParams.set('region', region);
+            if (safe) proxyParams.set('safe', safe);
+
+            const timeoutMs = Math.max(3000, Math.min(30000, 15000)); // Increased slightly
+            const proxyEndpoint = searchType; // 'images', 'videos', or 'news'
+            const proxyUrl = `${proxyBaseUrl}/search/${proxyEndpoint}?${proxyParams.toString()}`;
+
+            console.log(`[API] Fetching ${searchType} results from proxy: ${proxyUrl} (Offset: ${offset}, Limit: ${limitTotal})`);
+            console.log(`[API] Proxy Request Details: URL=${proxyUrl}`);
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+            const proxyResponse = await fetch(proxyUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (!proxyResponse.ok) {
+                let errorDetails = `Proxy request failed with status ${proxyResponse.status}`;
+                try { errorDetails = await proxyResponse.text(); } catch (e) { }
+                console.error(`[API] Proxy Error for ${searchType}:`, errorDetails);
+                return json({
+                    ok: false,
+                    error: `Proxy arama hatası: ${proxyResponse.status}`,
+                    details: errorDetails
+                }, { status: proxyResponse.status });
+            }
+
+            const proxyData = await proxyResponse.json();
+            const allResults = proxyData.results || [];
+            console.log(`[API] Proxy returned ${allResults.length} ${searchType} results`);
+
+            // Slice the results for pagination
+            // If we requested 40 items (offset 20 + count 20), we take 20..40
+            const slicedResults = allResults.slice(offset, offset + count);
+
+            let searchResults = [];
+
+            // Map proxy results to frontend-expected format
+            if (searchType === 'images') {
+                searchResults = slicedResults.map(item => ({
+                    title: item.title || 'Görsel',
+                    thumbnail: item.thumbnail || item.url,
+                    url: item.url,
+                    source: item.source || getDomain(item.url),
+                    width: item.width,
+                    height: item.height
+                }));
+            } else if (searchType === 'videos') {
+                searchResults = slicedResults.map(item => ({
+                    title: item.title || 'Video',
+                    description: item.snippet || '',
+                    url: item.url,
+                    thumbnail: item.thumbnail,
+                    duration: item.duration || '',
+                    publisher: item.channel || '',
+                    age: item.uploadDate || '',
+                    views: item.views || ''
+                }));
+            } else if (searchType === 'news') {
+                searchResults = slicedResults.map(item => ({
+                    title: item.title || 'Haber',
+                    url: item.url,
+                    source: item.source || getDomain(item.url),
+                    age: item.publishDate || '',
+                    thumbnail: item.imageUrl,
+                    description: item.snippet || ''
+                }));
+
+                // Apply news source filter if provided
+                if (newsSource) {
+                    const sourceLc = newsSource.toLowerCase();
+                    searchResults = searchResults.filter(r =>
+                        (r.source && String(r.source).toLowerCase().includes(sourceLc)) ||
+                        (r.url && getDomain(r.url).toLowerCase().includes(sourceLc))
+                    );
+                }
+            }
+
+            return json({
+                ok: true,
+                type: searchType,
+                searchResults,
+                infoBoxResult: null
+            });
+
+        } catch (err) {
+            console.error(`[API] Error fetching ${searchType} from proxy:`, err);
+
+            // If it's an abort error (timeout), provide specific message
+            if (err.name === 'AbortError') {
+                return json({
+                    ok: false,
+                    error: 'Proxy arama zaman aşımına uğradı',
+                    details: 'Lütfen tekrar deneyin'
+                }, { status: 504 });
+            }
+
+            return json({
+                ok: false,
+                error: 'Proxy sunucu hatası',
+                details: err.message
+            }, { status: 500 });
+        }
+    }
+
+    // === CONTINUE WITH BRAVE API FOR WEB SEARCH ===
     // Seçilen arama motoruna göre API URL'sini belirle
     let apiUrl;
     let useGoogleApi = false;
@@ -261,6 +390,9 @@ export async function GET({ url, setHeaders }) {
         if (!Number.isNaN(count) && count > 0) params.set('count', String(count));
         if (safe === 'on') params.set('safesearch', 'strict');
         if (region && region !== 'all') params.set('country', region); // Map region to country for Brave
+
+        // Request detailed snippets
+        params.set('extra_snippets', 'true');
 
         // Image specific filters (Brave supports some via query params)
         if (searchType === 'images') {
@@ -282,14 +414,6 @@ export async function GET({ url, setHeaders }) {
         let wikipediaInfo = null;
 
         if (useGoogleApi) {
-            // Google API kullanarak sonuçları getir
-            // const googleResults = await fetchGoogleResults(query, searchType); // Assuming this helper exists elsewhere or was previously imported but I missed it.
-            // If fetchGoogleResults was not defined in the original file I viewed, I should probably standardise.
-            // Wait, looking at Step 97, fetchGoogleResults call was there but no definition was visible in lines 1-481. 
-            // It might have been imported or defined further down?
-            // Actually, in the code snippet I saw, I didn't see definition.
-            // I will err on side of caution and return error for Google if not defined, OOH wait I am effectively rewriting the file.
-            // I'll keep the logic I saw.
             return json({ error: 'Google API integration incomplete' }, { status: 501 });
 
         } else if (engine === 'DuckDuckGo') {
@@ -300,15 +424,12 @@ export async function GET({ url, setHeaders }) {
             }
             searchResults = ddgResults;
         } else if (engine === 'Bing') {
-            // Placeholder for Bing implementation
             if (!BING_API_KEY) {
                 return json({ error: 'Bing API key not configured' }, { status: 501 });
             }
-            // Implementation would go here
             return json({ error: 'Bing integration pending' }, { status: 501 });
 
         } else if (['Yahoo', 'Yandex', 'Qwant', 'StartPage'].includes(engine)) {
-            // Placeholder for other engines
             return json({
                 warning: `${engine} Search API desteği henüz eklenmedi.`,
                 searchResults: [
@@ -335,11 +456,20 @@ export async function GET({ url, setHeaders }) {
                 let errorBody = `API request failed with status ${response.status}`;
                 try { errorBody = await response.text(); } catch (e) { }
                 console.error(`[API] Brave API Error: ${errorBody}`);
-                // Return a structured error
                 return json({ error: `Brave API hatası: ${response.status}`, details: errorBody }, { status: response.status });
             }
 
             data = await response.json();
+
+            // Wikipedia logic... (omitted to save tokens if unchanged, but I must replace contiguous block)
+            // Wait, I am replacing a huge block to add `extra_snippets` param.
+
+            // Re-inserting Wikipedia logic to match target block size?
+            // Actually, I can just target the block where I set params.
+            // Better to split this replacement.
+
+            // I'll just Replace the params block.
+
 
             // Wikipedia özeti için arama yap (web aramaları için)
             if (searchType === 'web') {
@@ -367,6 +497,11 @@ export async function GET({ url, setHeaders }) {
             // Web Results
             if (searchType === 'web' && data.web && data.web.results) {
                 searchResults = data.web.results.map(item => {
+                    // Combine description and extra snippets for detailed view
+                    let desc = item.description || '';
+                    if (item.extra_snippets && Array.isArray(item.extra_snippets)) {
+                        desc += ' ' + item.extra_snippets.join(' ');
+                    }
                     return {
                         title: item.title || 'Başlık Yok',
                         url: item.url || '#',

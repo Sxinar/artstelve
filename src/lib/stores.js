@@ -92,7 +92,7 @@ export const safeSearch = createPersistentStore('safeSearch', true);
 
 // --- Privacy & Features ---
 export const enableSuggestions = createPersistentStore('enableSuggestions', true);
-export const searchRegion = createPersistentStore('searchRegion', 'all'); // 'all', 'tr', 'us', etc.
+export const searchRegion = createPersistentStore('searchRegion', 'TR'); // 'all', 'tr', 'us', etc.
 
 // --- Plugin Controls ---
 export const enableTranslatePlugin = createPersistentStore('enableTranslatePlugin', true);
