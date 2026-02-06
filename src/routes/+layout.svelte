@@ -1046,7 +1046,7 @@
 		transition: all 0.2s ease;
 	}
 
-	.menu-button:hover {
+	.footer-action.menu-button:hover {
 		background: var(--primary-hover, #0056b3);
 		transform: translateY(-1px);
 	}
@@ -1065,6 +1065,20 @@
 	/* Ensure menu button is visible on homepage and other pages */
 	:global(body[data-route="/"] .menu-button) {
 		display: flex !important;
+	}
+
+	/* Search page should be full-bleed on mobile; layout padding creates side gaps */
+	:global(body[data-route="/search"] .main-content-area) {
+		padding: 0 !important;
+	}
+
+	:global(body[data-route="/search"]) {
+		background-color: var(--background-color);
+	}
+
+	:global(body[data-route="/search"] .page-container),
+	:global(body[data-route="/search"] .main-content-area) {
+		background-color: var(--background-color);
 	}
 
 	/* Hide sidebar on mobile for settings pages */

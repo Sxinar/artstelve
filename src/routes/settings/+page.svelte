@@ -2008,14 +2008,17 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             min-height: 100vh;
             background-color: var(--background-color);
             margin: 0;
-            padding: 0;
+            padding: 0 12px;
             box-sizing: border-box;
+            overflow-x: hidden;
         }
         
         .settings-header {
-            padding: 1rem 1.5rem;
-            margin: 0.5rem 1rem;
-            width: 100%;
+            position: relative;
+            left: -12px;
+            width: calc(100% + 24px);
+            padding: 1rem 12px;
+            margin: 0;
             box-sizing: border-box;
             border-radius: 12px;
         }
@@ -2038,7 +2041,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         .settings-main-content {
             order: 2;
             width: 100%;
-            padding: 1rem;
+            padding: 1rem 0;
         }
         
         .settings-title {
@@ -2048,7 +2051,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             display: none;
         }
         .setting-card {
-            padding: 1.5rem;
+            padding: 1rem;
         }
         .setting-row {
             flex-direction: column;
@@ -2313,11 +2316,14 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         
         /* Settings Page Responsive */
         .settings-page {
-            padding: 1rem;
+            padding: 0 12px;
         }
         
         .settings-header {
-            padding: 1rem 0;
+            position: relative;
+            left: -12px;
+            width: calc(100% + 24px);
+            padding: 1rem 12px;
         }
         
         .page-title h1 {
@@ -2338,7 +2344,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         }
         
         .section {
-            padding: 1rem;
+            padding: 1rem 0;
         }
         
         .section-heading {
@@ -2386,7 +2392,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
     
     @media (max-width: 480px) {
         .settings-page {
-            padding: 0.5rem;
+            padding: 0 12px;
         }
         
         .page-title h1 {
@@ -2394,7 +2400,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         }
         
         .section {
-            padding: 0.75rem;
+            padding: 0.75rem 0;
         }
         
         .section-heading {
@@ -2428,9 +2434,6 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         }
         
         /* Hybrid Proxy Mobile Responsive */
-        .setting-card {
-            padding: 1rem;
-        }
         
         .setting-row {
             flex-direction: column;

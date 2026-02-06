@@ -654,7 +654,7 @@
     (Kept structure if we want to re-enable or conditionally show for 'web' only if relevant)
     -->
 
-    <div class="main-content-area">
+    <div class="search-main-content">
         <main class="results-container" aria-live="polite">
             {#if isLoading}
                 <div
@@ -1215,6 +1215,8 @@
         display: flex;
         flex-direction: column;
         min-height: 100vh;
+        width: 100%;
+        box-sizing: border-box;
         background-color: var(--background-color);
     }
 
@@ -1539,32 +1541,12 @@
         font-weight: 600;
     }
 
-    /* ... rest of styles ... */
-
-    /* Adjust responsive breakpoints for inner container */
-    @media (max-width: 1200px) {
-        .search-type-nav-inner {
-            padding: 0 1rem; /* Adjust padding */
-        }
-        /* ... other styles ... */
-    }
-    @media (max-width: 768px) {
-        .search-type-nav-inner {
-            max-width: none; /* Remove max-width for scrolling */
-            padding: 0 1rem 0.3rem 1rem; /* Adjust padding */
-            gap: 0.8rem;
-        }
-        .search-type-nav {
-            /* Adjust sticky top if needed */
-            top: calc(var(--header-height-small, 50px) + 1px);
-        }
-        /* ... other styles ... */
-    }
-
     /* Main Content Area Layout */
-    .main-content-area {
+    .search-main-content {
         display: flex;
         flex-wrap: wrap;
+        width: 100%;
+        box-sizing: border-box;
         padding: 1.5rem; /* Add padding around content */
         gap: 2rem;
         align-items: flex-start;
@@ -1979,7 +1961,7 @@
     }
 
     .news-source {
-        font-weight: 600;
+        font-weight: 500;
         color: var(--text-color);
     }
 
@@ -2096,7 +2078,7 @@
     /* Responsive adjustments */
     @media (max-width: 1200px) {
         /* Adjust alignment margin */
-        .main-content-area {
+        .search-main-content {
             margin-left: 1rem;
             margin-right: 1rem;
         }
@@ -2106,7 +2088,7 @@
             width: 250px;
             top: calc(61px + 48px + 1rem); /* Adjust top for smaller padding */
         }
-        .main-content-area {
+        .search-main-content {
             /* margin needs to be adjusted for smaller screens */
             margin: 1rem 0 0 0; /* Remove side margin for full bleed */
         }
@@ -2117,22 +2099,25 @@
         }
     }
     @media (max-width: 768px) {
-        .main-content-area {
+        .search-main-content {
             flex-direction: column;
-            padding: 1rem;
+            padding: 0;
+            max-width: none;
+            margin: 0;
         }
         .results-container {
             max-width: 100%;
             order: 1;
         }
         .infobox-container {
-            width: 100%;
-            position: static;
-            order: 2;
-            margin-top: 1rem;
+            display: none;
         }
         .search-header {
-            padding: 0.5rem 0.8rem; /* Adjust padding */
+            position: relative;
+            left: -12px;
+            width: calc(100% + 24px);
+            padding: 0.5rem 12px;
+            box-sizing: border-box;
             gap: 0.5rem; /* Reduce gap */
             /* Hide logo on very small screens? Example: */
             /* @media (max-width: 480px) { & .logo-link { display: none; } } */
@@ -2202,6 +2187,7 @@
             aspect-ratio: 16/9;
         }
     }
+
     /* Filter Styles */
     .image-filters,
     .news-filters {
@@ -2568,7 +2554,6 @@
         background-color: var(--card-background);
         border-radius: 8px;
         border: 1px solid var(--border-color);
-        display: inline-block;
     }
 
     /* === Image Results Grid === */
@@ -2870,18 +2855,20 @@
             width: 100%;
             min-height: 100vh;
             background-color: var(--background-color);
-            margin: 0;
-            padding: 0;
+            padding: 0 12px;
             box-sizing: border-box;
         }
 
         .search-header {
             flex-direction: column;
-            padding: 1rem;
+            position: relative;
+            left: -12px;
+            width: calc(100% + 24px);
+            padding: 1rem 12px;
             gap: 1rem;
-            width: 100%;
             box-sizing: border-box;
-            margin: 0;
+            margin-top: 0;
+            margin-bottom: 0;
         }
 
         .search-bar-container {
@@ -2914,14 +2901,14 @@
             padding: 0 0.5rem;
         }
 
-        .main-content-area {
+        .search-main-content {
             padding: 0;
             width: 100%;
             margin: 0;
         }
 
         .results-container {
-            padding: 0 1rem;
+            padding: 0;
             width: 100%;
             box-sizing: border-box;
             margin: 0;
@@ -2940,12 +2927,14 @@
         width: 100%;
     }
 
-    .search-results-page {
-        padding: 0 10px;
-    }
+    @media (max-width: 768px) {
+        .search-results-page {
+            padding: 0 12px;
+        }
 
-    .results-container {
-        padding: 10px 0;
+        .results-container {
+            padding: 10px 0;
+        }
     }
 
     .result-item-card {
@@ -2963,7 +2952,7 @@
 
     @media (max-width: 480px) {
         .search-header {
-            padding: 0.5rem;
+            padding: 0.5rem 12px;
         }
 
         .search-action-button {
