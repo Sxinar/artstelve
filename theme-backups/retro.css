@@ -1,0 +1,25 @@
+/* Retro Theme - Vintage Orange Tones */
+body.retro {
+    --background-color: #fdf0d5;
+    --background-alt-color: #e07a5f;
+    --card-background: #ffffff;
+    --card-background-rgb: 255, 255, 255;
+    --text-color: #c1666b;
+    --text-color-secondary: #d4706d;
+    --text-muted-color: #e07a5f;
+    --border-color: #c1666b;
+    --border-color-soft: #e07a5f;
+    --input-background: #fffaf0;
+    --hover-background: rgba(193, 102, 107, 0.1);
+    --primary-color: #d4625d;
+    --primary-color-rgb: 212, 98, 93;
+    --primary-light-background: rgba(212, 98, 93, 0.1);
+    --primary-color-dark: #c44545;
+    --link-color: #d4625d;
+    --link-visited-color: #e07a5f;
+    --button-text-color: #ffffff;
+    --footer-background: #fdf0d5;
+    --toggle-background: #e07a5f;
+    --danger-color: #d32f2f;
+    --danger-color-rgb: 211, 47, 47;
+}

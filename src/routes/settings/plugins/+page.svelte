@@ -233,19 +233,21 @@
                     <h2 class="section-heading">Workshop Eklentileri</h2>
                     
                     {#if $isLoadingWorkshop}
-                        <div class="loading-container">
-                            <div class="spinner"></div>
-                            <p>Eklentiler yükleniyor...</p>
+                        <div class="setting-card">
+                            <div style="text-align: center; padding: 2rem;">
+                                <div class="spinner"></div>
+                                <p>Eklentiler yükleniyor...</p>
+                            </div>
                         </div>
                     {:else if $workshopError}
-                        <div class="error-container">
+                        <div class="setting-card error-card">
                             <i class="fas fa-exclamation-triangle"></i>
                             <p>{$workshopError}</p>
                         </div>
                     {:else}
                         <div class="workshop-grid">
                             {#each $plugins as plugin}
-                                <div class="workshop-item">
+                                <div class="setting-card workshop-item-card">
                                     <div class="item-header">
                                         <h3>{plugin.name}</h3>
                                         <span class="item-category">{plugin.category || "Genel"}</span>
@@ -301,19 +303,21 @@
                     <h2 class="section-heading">Yüklü Eklentiler</h2>
                     
                     {#if installedPluginsList.length === 0}
-                        <div class="empty-state">
-                            <i class="fas fa-puzzle-piece"></i>
-                            <h3>Henüz yüklü eklenti yok</h3>
-                            <p>Workshop'tan eklentileri kurarak başlayın.</p>
-                            <a href="/settings/plugins" class="btn btn-primary">
-                                <i class="fas fa-download"></i>
-                                Eklentileri Keşfet
-                            </a>
+                        <div class="setting-card">
+                            <div class="empty-state">
+                                <i class="fas fa-puzzle-piece"></i>
+                                <h3>Henüz yüklü eklenti yok</h3>
+                                <p>Workshop'tan eklentileri kurarak başlayın.</p>
+                                <a href="/settings/plugins" class="btn btn-primary">
+                                    <i class="fas fa-download"></i>
+                                    Eklentileri Keşfet
+                                </a>
+                            </div>
                         </div>
                     {:else}
                         <div class="installed-grid">
                             {#each installedPluginsList as plugin}
-                                <div class="installed-item">
+                                <div class="setting-card workshop-item-card">
                                     <div class="item-header">
                                         <h3>{plugin.name}</h3>
                                         <span class="item-status active">Aktif</span>
@@ -532,6 +536,22 @@
     .installed-item:hover {
         transform: translateY(-4px);
         box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        border-color: var(--primary-color);
+    }
+
+    .workshop-item-card {
+        background: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .workshop-item-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         border-color: var(--primary-color);
     }
 

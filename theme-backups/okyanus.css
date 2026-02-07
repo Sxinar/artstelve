@@ -1,0 +1,25 @@
+/* Ocean Theme - Deep Blue Waters */
+body.okyanus {
+    --background-color: #e0f7fa;
+    --background-alt-color: #b2ebf2;
+    --card-background: #ffffff;
+    --card-background-rgb: 255, 255, 255;
+    --text-color: #006064;
+    --text-color-secondary: #00838f;
+    --text-muted-color: #4dd0e1;
+    --border-color: #00acc1;
+    --border-color-soft: #4dd0e1;
+    --input-background: #f5f5f5;
+    --hover-background: rgba(77, 208, 225, 0.1);
+    --primary-color: #00bcd4;
+    --primary-color-rgb: 0, 188, 212;
+    --primary-light-background: rgba(0, 188, 212, 0.1);
+    --primary-color-dark: #00acc1;
+    --link-color: #00bcd4;
+    --link-visited-color: #4dd0e1;
+    --button-text-color: #ffffff;
+    --footer-background: #e0f7fa;
+    --toggle-background: #4dd0e1;
+    --danger-color: #f44336;
+    --danger-color-rgb: 244, 67, 54;
+}

@@ -1,0 +1,25 @@
+/* Sunny Theme - Bright Yellow Tones */
+body.gunesli {
+    --background-color: #fffde7;
+    --background-alt-color: #fff9c4;
+    --card-background: #ffffff;
+    --card-background-rgb: 255, 255, 255;
+    --text-color: #f57f17;
+    --text-color-secondary: #f9a825;
+    --text-muted-color: #fbc02d;
+    --border-color: #fbc02d;
+    --border-color-soft: #fff9c4;
+    --input-background: #fffff0;
+    --hover-background: rgba(251, 192, 45, 0.1);
+    --primary-color: #ffc107;
+    --primary-color-rgb: 255, 193, 7;
+    --primary-light-background: rgba(255, 193, 7, 0.1);
+    --primary-color-dark: #f9a825;
+    --link-color: #ffc107;
+    --link-visited-color: #ffeb3b;
+    --button-text-color: #000000;
+    --footer-background: #fffde7;
+    --toggle-background: #fbc02d;
+    --danger-color: #f44336;
+    --danger-color-rgb: 244, 67, 54;
+}

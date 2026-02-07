@@ -1,0 +1,25 @@
+/* Dark Theme - Classic Dark Mode */
+body.koyu {
+    --background-color: #1a1a1a;
+    --background-alt-color: #2d2d2d;
+    --card-background: #242424;
+    --card-background-rgb: 36, 36, 36;
+    --text-color: #e0e0e0;
+    --text-color-secondary: #b0b0b0;
+    --text-muted-color: #888888;
+    --border-color: #444444;
+    --border-color-soft: #333333;
+    --input-background: #2a2a2a;
+    --hover-background: rgba(255, 255, 255, 0.08);
+    --primary-color: #6366f1;
+    --primary-color-rgb: 99, 102, 241;
+    --primary-light-background: rgba(99, 102, 241, 0.1);
+    --primary-color-dark: #4f46e5;
+    --link-color: #6366f1;
+    --link-visited-color: #818cf8;
+    --button-text-color: #ffffff;
+    --footer-background: #1a1a1a;
+    --toggle-background: #666666;
+    --danger-color: #ef4444;
+    --danger-color-rgb: 239, 68, 68;
+}

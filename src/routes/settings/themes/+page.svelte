@@ -247,11 +247,19 @@
                 <ul>
                     <li>
                         <button
+                            on:click={() => goto('/settings/plugins')}
+                        >
+                            <i class="fas fa-puzzle-piece"></i>
+                            <span>Eklentiler</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button
                             class:active={activeTab === "Temalar"}
                             on:click={() => (activeTab = "Temalar")}
                         >
                             <i class="fas fa-paint-brush"></i>
-                            <span>Workshop Temaları</span>
+                            <span>Temalar</span>
                         </button>
                     </li>
                     <li>
@@ -308,19 +316,21 @@
                     <h2 class="section-heading">Workshop Temaları</h2>
                     
                     {#if $isLoadingWorkshop}
-                        <div class="loading-container">
-                            <div class="spinner"></div>
-                            <p>Temalar yükleniyor...</p>
+                        <div class="setting-card">
+                            <div style="text-align: center; padding: 2rem;">
+                                <div class="spinner"></div>
+                                <p>Temalar yükleniyor...</p>
+                            </div>
                         </div>
                     {:else if $workshopError}
-                        <div class="error-container">
+                        <div class="setting-card error-card">
                             <i class="fas fa-exclamation-triangle"></i>
                             <p>{$workshopError}</p>
                         </div>
                     {:else}
                         <div class="workshop-grid">
                             {#each $themes as theme}
-                                <div class="workshop-item">
+                                <div class="setting-card workshop-item-card">
                                     <div class="item-header">
                                         <h3>{theme.name}</h3>
                                         <span class="item-category">{theme.category || "Genel"}</span>
@@ -348,10 +358,10 @@
                                         >
                                             {#if installingId === theme.id}
                                                 <i class="fas fa-spinner fa-spin"></i>
-                                                Seçiliyor...
+                                                Kuruluyor...
                                             {:else}
-                                                <i class="fas fa-check"></i>
-                                                Temayı Seç
+                                                <i class="fas fa-download"></i>
+                                                Temayı Kur
                                             {/if}
                                         </button>
                                         {#if theme.download_url}
@@ -1070,6 +1080,22 @@
     .installed-item:hover {
         transform: translateY(-4px);
         box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        border-color: var(--primary-color);
+    }
+
+    .workshop-item-card {
+        background: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .workshop-item-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         border-color: var(--primary-color);
     }
 

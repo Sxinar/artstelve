@@ -1,0 +1,25 @@
+/* Nature Theme - Green Earth Tones */
+body.doga {
+    --background-color: #f0f4f0;
+    --background-alt-color: #a8d5ba;
+    --card-background: #ffffff;
+    --card-background-rgb: 255, 255, 255;
+    --text-color: #2e7d32;
+    --text-color-secondary: #388e3c;
+    --text-muted-color: #68b684;
+    --border-color: #68b684;
+    --border-color-soft: #a8d5ba;
+    --input-background: #f5f5f5;
+    --hover-background: rgba(104, 182, 132, 0.1);
+    --primary-color: #4caf50;
+    --primary-color-rgb: 76, 175, 80;
+    --primary-light-background: rgba(76, 175, 80, 0.1);
+    --primary-color-dark: #388e3c;
+    --link-color: #4caf50;
+    --link-visited-color: #68b684;
+    --button-text-color: #ffffff;
+    --footer-background: #f0f4f0;
+    --toggle-background: #68b684;
+    --danger-color: #f44336;
+    --danger-color-rgb: 244, 67, 54;
+}

@@ -1,0 +1,25 @@
+/* Pastel Theme - Soft and Gentle Colors */
+body.pastel {
+    --background-color: #fef6e4;
+    --background-alt-color: #f3d5c0;
+    --card-background: #fff8f0;
+    --card-background-rgb: 255, 248, 240;
+    --text-color: #8b4513;
+    --text-color-secondary: #a0522d;
+    --text-muted-color: #cd853f;
+    --border-color: #f8b500;
+    --border-color-soft: #ffe4b5;
+    --input-background: #fffef5;
+    --hover-background: rgba(248, 181, 0, 0.1);
+    --primary-color: #f8b500;
+    --primary-color-rgb: 248, 181, 0;
+    --primary-light-background: rgba(248, 181, 0, 0.1);
+    --primary-color-dark: #e6a300;
+    --link-color: #f8b500;
+    --link-visited-color: #d4a000;
+    --button-text-color: #ffffff;
+    --footer-background: #fef6e4;
+    --toggle-background: #cd853f;
+    --danger-color: #ff6b6b;
+    --danger-color-rgb: 255, 107, 107;
+}
