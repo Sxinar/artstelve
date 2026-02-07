@@ -199,7 +199,9 @@
         if (installingId) return;
         installingId = item.id;
         try {
-            await applyWorkshopItem(item, type);
+            // TEMPORARILY DISABLED: Workshop theme loading causing startsWith errors
+            // await applyWorkshopItem(item, type);
+            alert(`Tema yükleme geçici olarak devre dışı. Lütfen daha sonra tekrar deneyin.\n\nTema: ${item.name}`);
         } catch (e) {
             alert("Hata: " + e.message);
         } finally {
