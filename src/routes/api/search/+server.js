@@ -217,10 +217,8 @@ export async function GET({ url, setHeaders }) {
 
     if (searchType === 'web' && engine === 'Hybrid Proxy') {
         try {
-            // Pagination logic: Fetch enough results to cover the offset
-            const neededLimit = internalOffset + count;
-            // Cap at reasonable limit (e.g. 200) to prevent abuse/timeouts
-            const limitTotal = Math.max(1, Math.min(200, neededLimit));
+            // Use same pattern as images: let proxy handle offset, just request count results
+            const limitTotal = Math.max(1, Math.min(200, count));
             const proxyLimitPerEngine = Math.max(1, Math.min(20, Number(proxyLimitPerEngineRaw ?? Math.ceil(limitTotal / 4))));
             const timeoutMs = Math.max(3000, Math.min(30000, Number(proxyTimeoutMsRaw ?? 20000)));
             const cacheEnabled = proxyCacheRaw == null ? true : !(String(proxyCacheRaw) === '0' || String(proxyCacheRaw).toLowerCase() === 'false');
