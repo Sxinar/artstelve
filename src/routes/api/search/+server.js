@@ -158,7 +158,7 @@ export async function GET({ url, setHeaders }) {
         'Cache-Control': 'public, max-age=300, s-maxage=600'
     });
 
-    const query = url.searchParams.get('i');
+    const query = url.searchParams.get('i') || url.searchParams.get('q');
     const searchType = url.searchParams.get('t') || 'web'; // Renamed variable from 'type'
     const engine = url.searchParams.get('engine') || 'Brave'; // Arama motoru parametresi
     let proxyBaseUrl = url.searchParams.get('proxyBaseUrl') || PROXY_SEARCH_BASE_URL;
@@ -190,8 +190,20 @@ export async function GET({ url, setHeaders }) {
     const endDate = url.searchParams.get('endDate') || '';
 
     // Pagination
-    const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+    // Interpret p (1-based page) or offset (0-based page index)
+    const pParam = url.searchParams.get('p');
+    const offsetParamRaw = url.searchParams.get('offset') || '0';
+    let offsetParam;
+
+    if (pParam) {
+        const p = parseInt(pParam, 10) || 1;
+        offsetParam = Math.max(0, p - 1);
+    } else {
+        offsetParam = parseInt(offsetParamRaw, 10) || 0;
+    }
+
     const count = Math.min(parseInt(url.searchParams.get('count') || '20', 10), 50);
+    const internalOffset = offsetParam * count;
 
     if (!query) {
         return json({ error: 'Arama sorgusu gerekli' }, { status: 400 });
@@ -206,7 +218,7 @@ export async function GET({ url, setHeaders }) {
     if (searchType === 'web' && engine === 'Hybrid Proxy') {
         try {
             // Pagination logic: Fetch enough results to cover the offset
-            const neededLimit = offset + count;
+            const neededLimit = internalOffset + count;
             // Cap at reasonable limit (e.g. 200) to prevent abuse/timeouts
             const limitTotal = Math.max(1, Math.min(200, neededLimit));
             const proxyLimitPerEngine = Math.max(1, Math.min(20, Number(proxyLimitPerEngineRaw ?? Math.ceil(limitTotal / 4))));
@@ -222,6 +234,7 @@ export async function GET({ url, setHeaders }) {
             if (safe) params.set('safe', safe);
             if (region && region !== 'all') params.set('region', region); // Pass region to proxy if supported
             if (proxyEngines) params.set('engines', proxyEngines);
+            params.set('offset', String(offsetParam)); // Pass page index to proxy
 
             const proxyUrl = `${proxyBaseUrl}/search?${params.toString()}`;
             const response = await fetch(proxyUrl);
@@ -232,9 +245,7 @@ export async function GET({ url, setHeaders }) {
             }
 
             const data = await response.json();
-            const all = Array.isArray(data.results) ? data.results : [];
-            // Slice correctly using offset and count
-            const searchResults = all.slice(offset, offset + count).map((item) => {
+            const searchResults = (Array.isArray(data.results) ? data.results : []).map((item) => {
                 return {
                     title: item.title || 'Başlık Yok',
                     url: item.url || '#',
@@ -281,13 +292,14 @@ export async function GET({ url, setHeaders }) {
     if (['images', 'videos', 'news'].includes(searchType)) {
         try {
             // Pagination logic: Fetch enough results to cover the offset
-            const neededLimit = offset + count;
+            const neededLimit = internalOffset + count;
             // Cap at reasonable limit (e.g. 100) to prevent abuse/timeouts
             const limitTotal = Math.min(100, neededLimit);
 
             const proxyParams = new URLSearchParams();
             proxyParams.set('q', query);
-            proxyParams.set('limitTotal', String(limitTotal));
+            proxyParams.set('limitTotal', String(count)); // Request only 'count' results since proxy handles offset
+            proxyParams.set('offset', String(offsetParam)); // Pass page index to proxy
             proxyParams.set('cache', '1');
 
             // Pass region and safe search to proxy for better relevance
@@ -298,7 +310,7 @@ export async function GET({ url, setHeaders }) {
             const proxyEndpoint = searchType; // 'images', 'videos', or 'news'
             const proxyUrl = `${proxyBaseUrl}/search/${proxyEndpoint}?${proxyParams.toString()}`;
 
-            console.log(`[API] Fetching ${searchType} results from proxy: ${proxyUrl} (Offset: ${offset}, Limit: ${limitTotal})`);
+            console.log(`[API] Fetching ${searchType} results from proxy: ${proxyUrl} (Offset: ${offsetParam}, Limit: ${count})`);
             console.log(`[API] Proxy Request Details: URL=${proxyUrl}`);
 
             const controller = new AbortController();
@@ -319,12 +331,8 @@ export async function GET({ url, setHeaders }) {
             }
 
             const proxyData = await proxyResponse.json();
-            const allResults = proxyData.results || [];
-            console.log(`[API] Proxy returned ${allResults.length} ${searchType} results`);
-
-            // Slice the results for pagination
-            // If we requested 40 items (offset 20 + count 20), we take 20..40
-            const slicedResults = allResults.slice(offset, offset + count);
+            const slicedResults = proxyData.results || [];
+            console.log(`[API] Proxy returned ${slicedResults.length} ${searchType} results`);
 
             let searchResults = [];
 
@@ -410,7 +418,7 @@ export async function GET({ url, setHeaders }) {
     } else {
         const params = new URLSearchParams();
         params.set('q', query);
-        if (!Number.isNaN(offset) && offset > 0) params.set('offset', String(offset));
+        if (!Number.isNaN(internalOffset) && internalOffset > 0) params.set('offset', String(internalOffset));
         if (!Number.isNaN(count) && count > 0) params.set('count', String(count));
         if (safe === 'on') params.set('safesearch', 'strict');
         if (region && region !== 'all') params.set('country', region); // Map region to country for Brave

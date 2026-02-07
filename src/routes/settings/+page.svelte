@@ -89,12 +89,19 @@
             icon: "fas fa-network-wired",
             label: "hybridProxy",
         },
-        { id: "Çeviri", icon: "fas fa-language", label: "translate", show: true },
+        {
+            id: "Çeviri",
+            icon: "fas fa-language",
+            label: "translate",
+            show: true,
+        },
         { id: "Gelişmiş", icon: "fas fa-tools", label: "advanced" },
         { id: "Özel CSS", icon: "fas fa-code", label: "customCSS" },
     ];
-    
-    $: filteredTabs = $enableTranslatePlugin ? tabs : tabs.filter(tab => tab.id !== "Çeviri");
+
+    $: filteredTabs = $enableTranslatePlugin
+        ? tabs
+        : tabs.filter((tab) => tab.id !== "Çeviri");
 
     // --- Helper Functions ---
     function applyPresetCSS(preset) {
@@ -269,10 +276,17 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         isLoadingWorkshop.set(true);
         try {
             const response = await fetch("/api/workshop/items");
-            debugLog("Workshop API response", { status: response.status, ok: response.ok });
+            debugLog("Workshop API response", {
+                status: response.status,
+                ok: response.ok,
+            });
             if (response.ok) {
                 const data = await response.json();
-                debugLog("Workshop data received", { success: data.success, themesCount: data.themes?.length, pluginsCount: data.plugins?.length });
+                debugLog("Workshop data received", {
+                    success: data.success,
+                    themesCount: data.themes?.length,
+                    pluginsCount: data.plugins?.length,
+                });
                 if (data.success) {
                     themes.set(data.themes || []);
 
@@ -305,7 +319,11 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                     logos.set(_logos);
                     homeThemes.set(_homeThemes);
                     workshopError.set(null);
-                    debugLog("Workshop items processed", { themes: _plugins.length, logos: _logos.length, homeThemes: _homeThemes.length });
+                    debugLog("Workshop items processed", {
+                        themes: _plugins.length,
+                        logos: _logos.length,
+                        homeThemes: _homeThemes.length,
+                    });
                 } else {
                     workshopError.set(
                         data.error || "Bilinmeyen bir API hatası oluştu.",
@@ -339,15 +357,20 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             }
         } else if (type === "plugin") {
             // Store active workshop plugins in localStorage
-            const activePlugins = JSON.parse(localStorage.getItem('activeWorkshopPlugins') || '[]');
-            if (!activePlugins.find(p => p.id === item.id)) {
+            const activePlugins = JSON.parse(
+                localStorage.getItem("activeWorkshopPlugins") || "[]",
+            );
+            if (!activePlugins.find((p) => p.id === item.id)) {
                 activePlugins.push({
                     id: item.id,
                     name: item.name,
                     url: item.download_url,
-                    category: item.category
+                    category: item.category,
                 });
-                localStorage.setItem('activeWorkshopPlugins', JSON.stringify(activePlugins));
+                localStorage.setItem(
+                    "activeWorkshopPlugins",
+                    JSON.stringify(activePlugins),
+                );
             }
             alert(
                 "Eklenti buluttan uygulandı! Bir sonraki aramanızda etkinleşecek.",
@@ -426,11 +449,18 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                 }
             } else if (type === "plugin") {
                 // Remove from active workshop plugins
-                const activePlugins = JSON.parse(localStorage.getItem('activeWorkshopPlugins') || '[]');
-                const filteredPlugins = activePlugins.filter(p => p.id !== id);
-                localStorage.setItem('activeWorkshopPlugins', JSON.stringify(filteredPlugins));
+                const activePlugins = JSON.parse(
+                    localStorage.getItem("activeWorkshopPlugins") || "[]",
+                );
+                const filteredPlugins = activePlugins.filter(
+                    (p) => p.id !== id,
+                );
+                localStorage.setItem(
+                    "activeWorkshopPlugins",
+                    JSON.stringify(filteredPlugins),
+                );
             }
-            
+
             alert("Başarıyla devre dışı bırakıldı.");
         } catch (e) {
             alert("Hata: " + e.message);
@@ -465,18 +495,31 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
 <div class="settings-page" transition:fade={{ duration: 300 }}>
     {#if DEBUG}
-        <div class="debug-panel" style="position: fixed; top: 10px; right: 10px; background: #000; color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; z-index: 9999; max-width: 300px;">
-            <strong>DEBUG MODE</strong><br>
-            Active Tab: {activeTab}<br>
-            Workshop Loading: {$isLoadingWorkshop}<br>
-            Workshop Error: {$workshopError}<br>
-            Themes: {$themes.length}<br>
-            Plugins: {$plugins.length}<br>
-            Browser: {browser}<br>
-            <button on:click={() => console.log("Debug Data:", { activeTab, themes: $themes, plugins: $plugins, workshopError: $workshopError })} style="margin-top: 5px; padding: 2px 5px; font-size: 10px;">Log Data</button>
+        <div
+            class="debug-panel"
+            style="position: fixed; top: 10px; right: 10px; background: #000; color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; z-index: 9999; max-width: 300px;"
+        >
+            <strong>DEBUG MODE</strong><br />
+            Active Tab: {activeTab}<br />
+            Workshop Loading: {$isLoadingWorkshop}<br />
+            Workshop Error: {$workshopError}<br />
+            Themes: {$themes.length}<br />
+            Plugins: {$plugins.length}<br />
+            Browser: {browser}<br />
+            <button
+                on:click={() =>
+                    console.log("Debug Data:", {
+                        activeTab,
+                        themes: $themes,
+                        plugins: $plugins,
+                        workshopError: $workshopError,
+                    })}
+                style="margin-top: 5px; padding: 2px 5px; font-size: 10px;"
+                >Log Data</button
+            >
         </div>
     {/if}
-    
+
     <header class="settings-header">
         <div class="header-left">
             <a href="/" class="back-button" aria-label="Aramaya Dön">
@@ -505,7 +548,8 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                     {/each}
                     <li>
                         <button
-                            on:click={() => window.location.href = '/settings/themes'}
+                            on:click={() =>
+                                (window.location.href = "/settings/themes")}
                         >
                             <i class="fas fa-paint-brush"></i>
                             <span>Temalar</span>
@@ -513,7 +557,8 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                     </li>
                     <li>
                         <button
-                            on:click={() => window.location.href = '/settings/plugins'}
+                            on:click={() =>
+                                (window.location.href = "/settings/plugins")}
                         >
                             <i class="fas fa-plug"></i>
                             <span>Eklentiler</span>
@@ -647,14 +692,23 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>Temalar ve Eklentiler</h3>
-                                <p>Workshop'tan temaları ve eklentileri yönetin.</p>
+                                <p>
+                                    Workshop'tan temaları ve eklentileri
+                                    yönetin.
+                                </p>
                             </div>
                             <div class="setting-actions">
-                                <a href="/settings/themes" class="btn btn-outline">
+                                <a
+                                    href="/settings/themes"
+                                    class="btn btn-outline"
+                                >
                                     <i class="fas fa-paint-brush"></i>
                                     Temalar
                                 </a>
-                                <a href="/settings/plugins" class="btn btn-outline">
+                                <a
+                                    href="/settings/plugins"
+                                    class="btn btn-outline"
+                                >
                                     <i class="fas fa-puzzle-piece"></i>
                                     Eklentiler
                                 </a>
@@ -670,7 +724,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         gap: 0.5rem;
                         flex-wrap: wrap;
                     }
-                    
+
                     .btn {
                         display: inline-flex;
                         align-items: center;
@@ -684,13 +738,13 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         cursor: pointer;
                         transition: all 0.2s;
                     }
-                    
+
                     .btn-outline {
                         background: transparent;
                         color: var(--primary-color);
                         border-color: var(--primary-color);
                     }
-                    
+
                     .btn-outline:hover {
                         background: var(--primary-color);
                         color: white;
@@ -846,39 +900,54 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             {:else if activeTab === "Çeviri"}
                 <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">Çeviri Ayarları</h2>
-                    
+
                     <div class="setting-card">
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>Çeviri Eklentisi</h3>
-                                <p>Çeviri özelliklerini aktif veya pasif hale getirin.</p>
+                                <p>
+                                    Çeviri özelliklerini aktif veya pasif hale
+                                    getirin.
+                                </p>
                             </div>
                             <div class="setting-control">
                                 <label class="switch">
-                                    <input 
-                                        type="checkbox" 
+                                    <input
+                                        type="checkbox"
                                         bind:checked={$enableTranslatePlugin}
                                     />
                                     <span class="slider"></span>
                                 </label>
                             </div>
                         </div>
-                        
+
                         {#if $enableTranslatePlugin}
                             <div class="setting-row">
                                 <div class="setting-info">
-                                    <h3> Hızlı Çeviri Komutları</h3>
-                                    <p>Çeviri eklentisini kullanarak metinleri farklı dillere çevirin.</p>
+                                    <h3>Hızlı Çeviri Komutları</h3>
+                                    <p>
+                                        Çeviri eklentisini kullanarak metinleri
+                                        farklı dillere çevirin.
+                                    </p>
                                 </div>
                             </div>
-                            
+
                             <div class="sample-box">
                                 <strong>Komut Örnekleri</strong>
                                 <ul>
-                                    <li><code>!tr hello</code> - İngilizce'den Türkçe'ye</li>
-                                    <li><code>!en merhaba</code> - Türkçe'den İngilizce'ye</li>
-                                    <li><code>!de hello</code> - İngilizce'den Almanca'ya</li>
-                                    <li><code>!fr bonjour</code> - Fransızca'dan Türkçe'ye</li>
+                                    <li>
+                                        <code>!tr hello</code> - İngilizce'den Türkçe'ye
+                                    </li>
+                                    <li>
+                                        <code>!en merhaba</code> - Türkçe'den İngilizce'ye
+                                    </li>
+                                    <li>
+                                        <code>!de hello</code> - İngilizce'den Almanca'ya
+                                    </li>
+                                    <li>
+                                        <code>!fr bonjour</code> - Fransızca'dan
+                                        Türkçe'ye
+                                    </li>
                                     <li><code>!tr</code> - Dil seçim ekranı</li>
                                 </ul>
                             </div>
@@ -2012,7 +2081,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             box-sizing: border-box;
             overflow-x: hidden;
         }
-        
+
         .settings-header {
             position: relative;
             left: -12px;
@@ -2022,7 +2091,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             box-sizing: border-box;
             border-radius: 12px;
         }
-        
+
         .settings-content-wrapper {
             flex-direction: column;
             margin: 0;
@@ -2030,20 +2099,20 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             padding: 0;
             gap: 0;
         }
-        
+
         .settings-sidebar {
             width: 100%;
             order: 1;
             background: var(--card-background);
             border-bottom: 1px solid var(--border-color);
         }
-        
+
         .settings-main-content {
             order: 2;
             width: 100%;
             padding: 1rem 0;
         }
-        
+
         .settings-title {
             font-size: 1.2rem;
         }
@@ -2159,7 +2228,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         content: "•";
         color: var(--primary-color);
     }
-    
+
     /* Çeviri Ayarları Stilleri */
     .shortcuts-list {
         display: flex;
@@ -2167,7 +2236,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         gap: 1rem;
         margin-top: 1rem;
     }
-    
+
     .shortcut-item {
         display: flex;
         align-items: center;
@@ -2177,29 +2246,29 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         border-radius: 8px;
         border: 1px solid var(--border-color);
     }
-    
+
     .shortcut-item kbd {
         background: var(--card-background);
         border: 1px solid var(--border-color);
         border-radius: 4px;
         padding: 0.3rem 0.6rem;
         font-size: 0.8rem;
-        font-family: 'Courier New', monospace;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        font-family: "Courier New", monospace;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
-    
+
     .shortcut-item span {
         flex: 1;
         font-weight: 500;
     }
-    
+
     .api-info {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1rem;
         margin-top: 1rem;
     }
-    
+
     .api-item {
         padding: 0.8rem;
         background: var(--hover-background);
@@ -2207,11 +2276,11 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         border: 1px solid var(--border-color);
         font-size: 0.9rem;
     }
-    
+
     .api-item strong {
         color: var(--primary-color);
     }
-    
+
     /* Switch Toggle Styles */
     .switch {
         position: relative;
@@ -2219,13 +2288,13 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         width: 50px;
         height: 24px;
     }
-    
+
     .switch input {
         opacity: 0;
         width: 0;
         height: 0;
     }
-    
+
     .slider {
         position: absolute;
         cursor: pointer;
@@ -2234,10 +2303,10 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         right: 0;
         bottom: 0;
         background-color: #ccc;
-        transition: .4s;
+        transition: 0.4s;
         border-radius: 24px;
     }
-    
+
     .slider:before {
         position: absolute;
         content: "";
@@ -2246,29 +2315,29 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         left: 3px;
         bottom: 3px;
         background-color: white;
-        transition: .4s;
+        transition: 0.4s;
         border-radius: 50%;
     }
-    
+
     input:checked + .slider {
         background-color: var(--primary-color);
     }
-    
+
     input:focus + .slider {
         box-shadow: 0 0 1px var(--primary-color);
     }
-    
+
     input:checked + .slider:before {
         transform: translateX(26px);
     }
-    
+
     /* Setting Actions */
     .setting-actions {
         display: flex;
         gap: 0.5rem;
         flex-wrap: wrap;
     }
-    
+
     .btn {
         display: inline-flex;
         align-items: center;
@@ -2282,184 +2351,184 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         cursor: pointer;
         transition: all 0.2s;
     }
-    
+
     .btn-outline {
         background: transparent;
         color: var(--primary-color);
         border-color: var(--primary-color);
     }
-    
+
     .btn-outline:hover {
         background: var(--primary-color);
         color: white;
     }
-    
+
     @media (max-width: 768px) {
         .shortcuts-list {
             gap: 0.5rem;
         }
-        
+
         .shortcut-item {
             flex-direction: column;
             align-items: flex-start;
             gap: 0.5rem;
         }
-        
+
         .api-info {
             grid-template-columns: 1fr;
         }
-        
+
         /* Hide dropdown icons on mobile */
         .dropdown-icon {
             display: none !important;
         }
-        
+
         /* Settings Page Responsive */
         .settings-page {
             padding: 0 12px;
         }
-        
+
         .settings-header {
             position: relative;
             left: -12px;
             width: calc(100% + 24px);
             padding: 1rem 12px;
         }
-        
+
         .page-title h1 {
             font-size: 1.5rem;
         }
-        
+
         .tabs {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             padding-bottom: 0.5rem;
         }
-        
+
         .tab {
             padding: 0.5rem 1rem;
             font-size: 0.9rem;
             white-space: nowrap;
             flex-shrink: 0;
         }
-        
+
         .section {
             padding: 1rem 0;
         }
-        
+
         .section-heading {
             font-size: 1.25rem;
         }
-        
+
         .setting-card {
             padding: 1rem;
         }
-        
+
         .setting-row {
             flex-direction: column;
             align-items: flex-start;
             gap: 1rem;
         }
-        
+
         .setting-actions {
             width: 100%;
             justify-content: flex-start;
         }
-        
+
         .btn {
             width: 100%;
             justify-content: center;
         }
-        
+
         .text-input,
         select {
             width: 100%;
         }
-        
+
         .logo-grid {
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 0.75rem;
         }
-        
+
         .logo-preview {
             height: 60px;
         }
-        
+
         .logo-name {
             font-size: 0.75rem;
         }
     }
-    
+
     @media (max-width: 480px) {
         .settings-page {
             padding: 0 12px;
         }
-        
+
         .page-title h1 {
             font-size: 1.25rem;
         }
-        
+
         .section {
             padding: 0.75rem 0;
         }
-        
+
         .section-heading {
             font-size: 1.1rem;
         }
-        
+
         .setting-card {
             padding: 0.75rem;
         }
-        
+
         .setting-info h3 {
             font-size: 1rem;
         }
-        
+
         .setting-info p {
             font-size: 0.9rem;
         }
-        
+
         .logo-grid {
             grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             gap: 0.5rem;
         }
-        
+
         .logo-preview {
             height: 50px;
         }
-        
+
         .btn {
             padding: 0.5rem 1rem;
             font-size: 0.9rem;
         }
-        
+
         /* Hybrid Proxy Mobile Responsive */
-        
+
         .setting-row {
             flex-direction: column;
             align-items: flex-start;
             gap: 1rem;
         }
-        
+
         .setting-info {
             width: 100%;
         }
-        
+
         .setting-info h3 {
             font-size: 1rem;
         }
-        
+
         .setting-info p {
             font-size: 0.85rem;
             line-height: 1.4;
         }
-        
+
         .text-input,
         select {
             width: 100%;
             font-size: 0.9rem;
         }
-        
+
         .divider {
             margin: 1rem 0;
         }

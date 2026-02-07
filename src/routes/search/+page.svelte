@@ -96,7 +96,8 @@
                 if (newsStartDate) params.set("startDate", newsStartDate);
                 if (newsEndDate) params.set("endDate", newsEndDate);
             }
-            params.set("offset", String(offset));
+            const pageIndex = Math.floor(offset / count);
+            params.set("offset", String(pageIndex));
             params.set("count", String(count));
             const apiUrl = `/api/search?${params.toString()}`;
 
@@ -241,11 +242,17 @@
 
         offset = newOffset;
 
-        // Persist page in URL
+        // Persist page in URL (custom logic: Page 1 -> p=0, others -> p=pageNum)
         const current = get(page);
         const url = new URL(current.url);
-        url.searchParams.set("p", String(pageNum));
-        goto(url.pathname + "?" + url.searchParams.toString(), { replaceState: false, keepFocus: true, noScroll: true });
+        const pVal = pageNum === 1 ? 0 : pageNum;
+        url.searchParams.set("p", String(pVal));
+        url.searchParams.delete("offset"); // Cleanup
+        goto(url.pathname + "?" + url.searchParams.toString(), {
+            replaceState: false,
+            keepFocus: true,
+            noScroll: true,
+        });
 
         // Scroll to top
         if (browser) window.scrollTo({ top: 0, behavior: "smooth" });
@@ -278,16 +285,25 @@
     $: {
         const queryParam = $page.url.searchParams.get("i");
         const typeParam = $page.url.searchParams.get("t") || "web";
-        const pageParamRaw = $page.url.searchParams.get("p") || "1";
-        const pageParam = Math.max(1, parseInt(pageParamRaw, 10) || 1);
+        const pParam = $page.url.searchParams.get("p");
+        const offsetParamRaw = $page.url.searchParams.get("offset") || "0";
+
+        let offsetParam;
+        if (pParam) {
+            const p = parseInt(pParam, 10) || 1;
+            offsetParam = Math.max(0, p - 1);
+        } else {
+            offsetParam = parseInt(offsetParamRaw, 10) || 0;
+        }
+
         if (queryParam !== searchQuery || typeParam !== activeSearchType) {
             searchQuery = queryParam || "";
             activeSearchType = typeParam;
             inputQuery = searchQuery;
-            offset = (pageParam - 1) * count; // init from URL
+            offset = offsetParam * count; // init from URL
             fetchSearchResults(searchQuery, activeSearchType);
         } else {
-            const newOffset = (pageParam - 1) * count;
+            const newOffset = offsetParam * count;
             if (newOffset !== offset) {
                 offset = newOffset;
                 fetchSearchResults(searchQuery, activeSearchType);
@@ -297,7 +313,9 @@
 
     function handleSearchSubmit(type = activeSearchType) {
         if (!inputQuery.trim()) return;
-        goto(`/search?i=${encodeURIComponent(inputQuery.trim())}&t=${type}&p=1`);
+        goto(
+            `/search?i=${encodeURIComponent(inputQuery.trim())}&t=${type}&p=0`,
+        );
     }
 
     function handleKeyPress(event) {
@@ -726,15 +744,18 @@
                                             e.target.style.display = "none";
                                         }}
                                     />
-                                    <span class="result-domain">{getDomain(result.url)}</span>
+                                    <span class="result-domain"
+                                        >{getDomain(result.url)}</span
+                                    >
                                     {#if Array.isArray(result.sources) && result.sources.length > 1}
                                         <span class="result-age">
                                             - {result.sources
-                                                .map((s) =>
-                                                    String(s)
-                                                        .charAt(0)
-                                                        .toUpperCase() +
-                                                    String(s).slice(1),
+                                                .map(
+                                                    (s) =>
+                                                        String(s)
+                                                            .charAt(0)
+                                                            .toUpperCase() +
+                                                        String(s).slice(1),
                                                 )
                                                 .join(" + ")}
                                         </span>
