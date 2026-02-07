@@ -194,6 +194,12 @@
                     const themes = data.themes || [];
                     const activeThemeId = $selectedTheme;
                     
+                    // Only proceed if activeThemeId is a valid string
+                    if (!activeThemeId || typeof activeThemeId !== 'string') {
+                        console.log("[Themes] No valid active theme to reload");
+                        return;
+                    }
+                    
                     // Find and reload the active theme
                     const activeTheme = themes.find(t => t.id === activeThemeId && t.category !== "home");
                     if (activeTheme && activeTheme.download_url) {
