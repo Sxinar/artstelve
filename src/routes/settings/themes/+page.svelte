@@ -257,30 +257,46 @@
         console.log("[Themes] Debug - currentPlugins:", currentPlugins);
         
         // Add currently selected theme if it's a workshop theme
-        if ($selectedTheme && typeof $selectedTheme === 'string' && ($selectedTheme.startsWith('http://') || $selectedTheme.startsWith('https://'))) {
-            // Find this theme in workshop themes
-            const workshopTheme = currentThemes.find(t => t.download_url === $selectedTheme);
-            if (workshopTheme) {
-                activeThemes.push({
-                    ...workshopTheme,
-                    id: workshopTheme.download_url,
-                    category: 'general'
-                });
-                console.log("[Themes] Added site theme:", workshopTheme.name);
+        const selectedThemeValue = $selectedTheme;
+        if (selectedThemeValue && typeof selectedThemeValue === 'string') {
+            try {
+                const isWorkshopTheme = selectedThemeValue.startsWith('http://') || selectedThemeValue.startsWith('https://');
+                if (isWorkshopTheme) {
+                    // Find this theme in workshop themes
+                    const workshopTheme = currentThemes.find(t => t.download_url === selectedThemeValue);
+                    if (workshopTheme) {
+                        activeThemes.push({
+                            ...workshopTheme,
+                            id: workshopTheme.download_url,
+                            category: 'general'
+                        });
+                        console.log("[Themes] Added site theme:", workshopTheme.name);
+                    }
+                }
+            } catch (error) {
+                console.error("[Themes] Error checking selectedTheme:", error, "Value:", selectedThemeValue);
             }
         }
         
         // Add currently selected home theme if it's a workshop theme
-        if ($searchHomeDesign && typeof $searchHomeDesign === 'string' && ($searchHomeDesign.startsWith('http://') || $searchHomeDesign.startsWith('https://'))) {
-            // Find this theme in workshop plugins (ana sayfa temaları plugins içinde gelir)
-            const workshopHomeTheme = currentPlugins.find(t => t.download_url === $searchHomeDesign && (t.category === 'home' || t.category === 'ana_sayfa'));
-            if (workshopHomeTheme) {
-                activeThemes.push({
-                    ...workshopHomeTheme,
-                    id: workshopHomeTheme.download_url,
-                    category: 'home'
-                });
-                console.log("[Themes] Added home theme:", workshopHomeTheme.name);
+        const searchHomeDesignValue = $searchHomeDesign;
+        if (searchHomeDesignValue && typeof searchHomeDesignValue === 'string') {
+            try {
+                const isWorkshopHomeTheme = searchHomeDesignValue.startsWith('http://') || searchHomeDesignValue.startsWith('https://');
+                if (isWorkshopHomeTheme) {
+                    // Find this theme in workshop plugins (ana sayfa temaları plugins içinde gelir)
+                    const workshopHomeTheme = currentPlugins.find(t => t.download_url === searchHomeDesignValue && (t.category === 'home' || t.category === 'ana_sayfa'));
+                    if (workshopHomeTheme) {
+                        activeThemes.push({
+                            ...workshopHomeTheme,
+                            id: workshopHomeTheme.download_url,
+                            category: 'home'
+                        });
+                        console.log("[Themes] Added home theme:", workshopHomeTheme.name);
+                    }
+                }
+            } catch (error) {
+                console.error("[Themes] Error checking searchHomeDesign:", error, "Value:", searchHomeDesignValue);
             }
         }
         
