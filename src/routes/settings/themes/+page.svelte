@@ -114,6 +114,18 @@
                     }
                     const cssContent = await response.text();
                     
+                    // Extract theme class name from CSS content
+                    const themeClassMatch = cssContent.match(/body\.(\w+)\s*\{/);
+                    const themeClass = themeClassMatch ? themeClassMatch[1] : null;
+                    
+                    // Remove all existing workshop theme classes
+                    document.querySelectorAll('style[id^="workshop-theme-"]').forEach(style => {
+                        const classMatch = style.textContent.match(/body\.(\w+)\s*\{/);
+                        if (classMatch) {
+                            document.body.classList.remove(classMatch[1]);
+                        }
+                    });
+                    
                     // Apply the CSS by creating a style element
                     const styleId = `workshop-theme-${item.id}`;
                     let styleElement = document.getElementById(styleId);
@@ -125,6 +137,12 @@
                         styleElement.id = styleId;
                         styleElement.textContent = cssContent;
                         document.head.appendChild(styleElement);
+                    }
+                    
+                    // Apply the theme class to body if found
+                    if (themeClass) {
+                        document.body.classList.add(themeClass);
+                        console.log(`[Themes] Applied body class: ${themeClass}`);
                     }
                     
                     // Set theme identifier
@@ -184,6 +202,11 @@
                             const cssResponse = await fetch(`/api/workshop/css?url=${encodeURIComponent(activeTheme.download_url)}`);
                             if (cssResponse.ok) {
                                 const cssContent = await cssResponse.text();
+                                
+                                // Extract theme class name from CSS content
+                                const themeClassMatch = cssContent.match(/body\.(\w+)\s*\{/);
+                                const themeClass = themeClassMatch ? themeClassMatch[1] : null;
+                                
                                 const styleId = `workshop-theme-${activeTheme.id}`;
                                 let styleElement = document.getElementById(styleId);
                                 
@@ -194,6 +217,12 @@
                                     styleElement.id = styleId;
                                     styleElement.textContent = cssContent;
                                     document.head.appendChild(styleElement);
+                                }
+                                
+                                // Apply the theme class to body if found
+                                if (themeClass) {
+                                    document.body.classList.add(themeClass);
+                                    console.log(`[Themes] Re-applied body class: ${themeClass}`);
                                 }
                             }
                         } catch (error) {
@@ -274,6 +303,13 @@
                 // Remove CSS style element if it exists
                 const styleElement = document.getElementById(`workshop-theme-${id}`);
                 if (styleElement) {
+                    // Extract theme class from CSS before removing
+                    const cssContent = styleElement.textContent;
+                    const classMatch = cssContent.match(/body\.(\w+)\s*\{/);
+                    if (classMatch) {
+                        document.body.classList.remove(classMatch[1]);
+                        console.log(`[Themes] Removed body class: ${classMatch[1]}`);
+                    }
                     styleElement.remove();
                 }
                 
