@@ -1,0 +1,24 @@
+body.komur {
+    --background-color: #121212; /* Near black */
+    --background-alt-color: #1a1a1a;
+    --card-background: #1e1e1e;
+    --card-background-rgb: 30, 30, 30;
+    --text-color: #e0e0e0;
+    --text-color-secondary: #a0a0a0;
+    --text-muted-color: #757575;
+    --border-color: #424242;
+    --border-color-soft: #303030;
+    --input-background: #333333;
+    --hover-background: rgba(255, 255, 255, 0.08);
+    --primary-color: #bb86fc; /* Purple accent */
+    --primary-color-rgb: 187, 134, 252;
+    --primary-light-background: rgba(187, 134, 252, 0.1);
+    --primary-color-dark: #a46edb;
+    --link-color: #bb86fc;
+    --link-visited-color: #e1bee7;
+    --button-text-color: #000000;
+    --footer-background: #121212;
+    --toggle-background: #757575;
+    --danger-color: #cf6679;
+    --danger-color-rgb: 207, 102, 121;
+}

@@ -676,6 +676,14 @@
     }
 
     /* Responsive Design */
+    @media (max-width: 1024px) {
+        .workshop-grid,
+        .installed-grid {
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.25rem;
+        }
+    }
+
     @media (max-width: 768px) {
         .settings-page {
             width: 100%;
@@ -700,6 +708,9 @@
             padding: 1rem;
             order: 1;
             background: var(--card-background);
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
 
         .settings-main-content {
@@ -722,62 +733,133 @@
 
         .workshop-grid,
         .installed-grid {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
             gap: 1rem;
+        }
+
+        .workshop-item,
+        .installed-item {
+            padding: 1.25rem;
+        }
+
+        .item-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
         }
 
         .item-actions {
             flex-direction: column;
+            gap: 0.5rem;
         }
 
         .item-actions button,
         .item-actions a {
             width: 100%;
             justify-content: center;
+            padding: 0.75rem 1rem;
+        }
+
+        .item-meta {
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .section-heading {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
         }
     }
 
     @media (max-width: 480px) {
+        .settings-header {
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0.5rem;
+        }
+
+        .back-button {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .back-button span {
+            display: none;
+        }
+
+        .settings-title {
+            font-size: 1.25rem;
+        }
+
         .settings-sidebar {
             padding: 0.75rem;
         }
-        
-        .sidebar-header {
-            gap: 0.5rem;
+
+        .settings-sidebar button {
+            padding: 0.75rem;
+            font-size: 0.85rem;
         }
-        
-        .sidebar-header h2 {
-            font-size: 1rem;
-        }
-        
-        .sidebar-nav button {
-            padding: 0.4rem 0.75rem;
+
+        .settings-sidebar button span {
             font-size: 0.8rem;
         }
-        
+
         .settings-main-content {
-            padding: 0.75rem 0;
-        }
-        
-        .settings-title {
-            font-size: 1.1rem;
-        }
-        
-        .plugin-item {
             padding: 0.75rem;
         }
-        
-        .plugin-header h3 {
-            font-size: 0.95rem;
+
+        .workshop-item,
+        .installed-item {
+            padding: 1rem;
+            border-radius: 0.75rem;
         }
-        
-        .plugin-description {
-            font-size: 0.85rem;
+
+        .item-header h3 {
+            font-size: 1rem;
+            line-height: 1.4;
         }
-        
-        .btn {
-            padding: 0.5rem 1rem;
+
+        .item-category,
+        .item-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .item-content p {
             font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .item-meta {
+            font-size: 0.75rem;
+            gap: 0.75rem;
+        }
+
+        .item-actions button,
+        .item-actions a {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.8rem;
+        }
+
+        .section-heading {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state {
+            padding: 2rem 1rem;
+        }
+
+        .empty-state i {
+            font-size: 2rem;
+        }
+
+        .empty-state h3 {
+            font-size: 1.1rem;
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
         }
     }
 </style>

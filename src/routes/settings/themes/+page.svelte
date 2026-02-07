@@ -1208,131 +1208,422 @@
         color: var(--text-color);
         margin: 0 0 0.5rem 0;
     }
-
-    .empty-state p {
-        margin: 0 0 1.5rem 0;
-    }
-
-    @media (max-width: 768px) {
-        .settings-page {
-            padding: 0;
             margin: 0;
-            width: 100%;
-            min-height: 100vh;
-            background-color: var(--background-color);
-        }
-        
-        .settings-content-wrapper {
-            flex-direction: column;
-            width: 100%;
-            min-height: calc(100vh - 80px);
+            line-height: 1.5;
         }
 
-        .settings-sidebar {
+        .select-wrapper {
+            position: relative;
+            min-width: 200px;
+        }
+
+        .select-wrapper select {
             width: 100%;
-            border-left: none;
-            border-bottom: 1px solid var(--border-color);
-            padding: 1rem;
-            order: 1;
-            background: var(--card-background);
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            background: var(--input-background);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            cursor: pointer;
+            appearance: none;
+            transition: all 0.3s ease;
         }
 
-        .settings-main-content {
-            padding: 1rem;
-            order: 2;
-            width: 100%;
-            max-width: none;
+        .select-wrapper select:hover {
+            border-color: var(--primary-color);
         }
 
-        .settings-header {
-            padding: 1rem 1.5rem;
-            background: var(--card-background);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .settings-title {
-            font-size: 1.5rem;
+        .select-wrapper select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
         }
 
         .workshop-grid,
         .installed-grid {
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-
-        .setting-row {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-        }
-
-        .select-wrapper {
-            width: 100%;
-            min-width: auto;
-        }
-
-        .item-actions {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .item-actions button,
-        .item-actions a {
-            width: 100%;
-            text-align: center;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .settings-page {
-            padding: 0;
-            margin: 0;
-            width: 100%;
-            min-height: 100vh;
-            background-color: var(--background-color);
-        }
-        
-        .settings-header {
-            padding: 0.75rem 1rem;
-        }
-
-        .settings-title {
-            font-size: 1.25rem;
-        }
-
-        .section-heading {
-            font-size: 1.5rem;
-        }
-
-        .setting-card {
-            padding: 0.75rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
         }
 
         .workshop-item,
         .installed-item {
-            padding: 0.75rem;
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .workshop-item:hover,
+        .installed-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary-color);
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
         }
 
         .item-title {
-            font-size: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .item-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .item-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
         }
 
         .item-description {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 1rem;
         }
-        
-        .settings-sidebar {
-            padding: 0.75rem;
+
+        .item-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
-        
-        .settings-main-content {
-            padding: 0.75rem;
-        }
-        
+
         .item-actions button,
         .item-actions a {
-            padding: 0.5rem 1rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
             font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid transparent;
         }
-    }
-</style>
+
+        .item-actions button {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .item-actions button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .item-actions a {
+            background: var(--card-background);
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+
+        .item-actions a:hover {
+            background: var(--hover-background);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            color: var(--danger-color);
+            text-align: center;
+        }
+
+        .error-container i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            color: var(--text-color);
+            margin: 0 0 0.5rem 0;
+        }
+
+        .empty-state p {
+            margin: 0 0 1.5rem 0;
+        }
+
+        @media (max-width: 1024px) {
+            .workshop-grid,
+            .installed-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 1.25rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .settings-page {
+                padding: 0;
+                margin: 0;
+                width: 100%;
+                min-height: 100vh;
+                background-color: var(--background-color);
+                box-sizing: border-box;
+            }
+            
+            .settings-content-wrapper {
+                flex-direction: column;
+                width: 100%;
+                min-height: calc(100vh - 80px);
+            }
+
+            .settings-sidebar {
+                width: 100%;
+                border-left: none;
+                border-bottom: 1px solid var(--border-color);
+                padding: 1rem;
+                order: 1;
+                background: var(--card-background);
+                position: sticky;
+                top: 0;
+                z-index: 50;
+            }
+
+            .settings-main-content {
+                padding: 1rem;
+                order: 2;
+                width: 100%;
+                max-width: none;
+            }
+
+            .settings-header {
+                padding: 1rem 1.5rem;
+                margin: 0.5rem 1rem;
+                background: var(--card-background);
+                border-bottom: 1px solid var(--border-color);
+                border-radius: 12px;
+                width: calc(100% - 1rem);
+                box-sizing: border-box;
+            }
+
+            .settings-title {
+                font-size: 1.5rem;
+            }
+
+            .workshop-grid,
+            .installed-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .workshop-item,
+            .installed-item {
+                padding: 1.25rem;
+            }
+
+            .item-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .item-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .item-actions button,
+            .item-actions a {
+                width: 100%;
+                justify-content: center;
+                padding: 0.75rem 1rem;
+            }
+
+            .item-meta {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .setting-row {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+
+            .setting-card {
+                padding: 1rem;
+            }
+
+            .section-heading {
+                font-size: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .settings-page {
+                padding: 0;
+                margin: 0;
+                width: 100%;
+                min-height: 100vh;
+                background-color: var(--background-color);
+            }
+            
+            .settings-header {
+                padding: 0.75rem 1rem;
+                margin: 0.25rem 0.5rem;
+                width: calc(100% - 0.5rem);
+            }
+
+            .back-button {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.9rem;
+            }
+
+            .back-button span {
+                display: none;
+            }
+
+            .settings-title {
+                font-size: 1.25rem;
+            }
+
+            .section-heading {
+                font-size: 1.25rem;
+                margin-bottom: 1rem;
+            }
+
+            .setting-card {
+                padding: 0.75rem;
+            }
+
+            .workshop-item,
+            .installed-item {
+                padding: 1rem;
+                border-radius: 0.75rem;
+            }
+
+            .item-header h3 {
+                font-size: 1rem;
+                line-height: 1.4;
+            }
+
+            .item-category,
+            .item-status {
+                font-size: 0.75rem;
+                padding: 0.25rem 0.5rem;
+            }
+
+            .item-content p {
+                font-size: 0.85rem;
+                line-height: 1.4;
+            }
+
+            .item-meta {
+                font-size: 0.75rem;
+                gap: 0.75rem;
+            }
+
+            .item-actions button,
+            .item-actions a {
+                padding: 0.625rem 0.875rem;
+                font-size: 0.8rem;
+            }
+            
+            .settings-sidebar {
+                padding: 0.75rem;
+            }
+
+            .settings-sidebar button {
+                padding: 0.75rem;
+                font-size: 0.85rem;
+            }
+
+            .settings-sidebar button span {
+                font-size: 0.8rem;
+            }
+            
+            .settings-main-content {
+                padding: 0.75rem;
+            }
+
+            .theme-preview {
+                height: 120px;
+                border-radius: 0.5rem;
+            }
+
+            .color-swatch {
+                width: 24px;
+                height: 24px;
+            }
+
+            .empty-state {
+                padding: 2rem 1rem;
+            }
+
+            .empty-state i {
+                font-size: 2rem;
+            }
+
+            .empty-state h3 {
+                font-size: 1.1rem;
+            }
+
+            .empty-state p {
+                font-size: 0.9rem;
+            }
+        }
