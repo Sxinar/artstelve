@@ -199,9 +199,15 @@
         if (installingId) return;
         installingId = item.id;
         try {
-            // TEMPORARILY DISABLED: Workshop theme loading causing startsWith errors
-            // await applyWorkshopItem(item, type);
-            alert(`Tema yükleme geçici olarak devre dışı. Lütfen daha sonra tekrar deneyin.\n\nTema: ${item.name}`);
+            // Enable home themes, disable workshop themes only
+            if (type === "theme" && item.category === "home") {
+                await applyWorkshopItem(item, type);
+            } else if (type === "theme") {
+                // Workshop themes disabled
+                alert(`Workshop temaları geçici olarak devre dışı. Lütfen daha sonra tekrar deneyin.\n\nTema: ${item.name}`);
+            } else {
+                await applyWorkshopItem(item, type);
+            }
         } catch (e) {
             alert("Hata: " + e.message);
         } finally {
