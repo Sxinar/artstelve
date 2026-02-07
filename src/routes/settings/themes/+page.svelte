@@ -222,7 +222,7 @@
         console.log("[Themes] Debug - currentPlugins:", currentPlugins);
         
         // Add currently selected theme if it's a workshop theme
-        if ($selectedTheme && ($selectedTheme.startsWith('http://') || $selectedTheme.startsWith('https://'))) {
+        if ($selectedTheme && typeof $selectedTheme === 'string' && ($selectedTheme.startsWith('http://') || $selectedTheme.startsWith('https://'))) {
             // Find this theme in workshop themes
             const workshopTheme = currentThemes.find(t => t.download_url === $selectedTheme);
             if (workshopTheme) {
@@ -236,7 +236,7 @@
         }
         
         // Add currently selected home theme if it's a workshop theme
-        if ($searchHomeDesign && ($searchHomeDesign.startsWith('http://') || $searchHomeDesign.startsWith('https://'))) {
+        if ($searchHomeDesign && typeof $searchHomeDesign === 'string' && ($searchHomeDesign.startsWith('http://') || $searchHomeDesign.startsWith('https://'))) {
             // Find this theme in workshop plugins (ana sayfa temaları plugins içinde gelir)
             const workshopHomeTheme = currentPlugins.find(t => t.download_url === $searchHomeDesign && (t.category === 'home' || t.category === 'ana_sayfa'));
             if (workshopHomeTheme) {
