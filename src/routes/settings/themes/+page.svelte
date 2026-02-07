@@ -106,8 +106,34 @@
                 searchHomeDesign.set(item.download_url);
                 alert("Ana sayfa teması seçildi!");
             } else {
-                selectedTheme.set(item.download_url);
-                alert("Site teması seçildi!");
+                try {
+                    // Load CSS from workshop URL
+                    const response = await fetch(item.download_url);
+                    if (!response.ok) {
+                        throw new Error(`CSS yüklenemedi: ${response.status}`);
+                    }
+                    const cssContent = await response.text();
+                    
+                    // Apply the CSS by creating a style element
+                    const styleId = `workshop-theme-${item.id}`;
+                    let styleElement = document.getElementById(styleId);
+                    
+                    if (styleElement) {
+                        styleElement.textContent = cssContent;
+                    } else {
+                        styleElement = document.createElement('style');
+                        styleElement.id = styleId;
+                        styleElement.textContent = cssContent;
+                        document.head.appendChild(styleElement);
+                    }
+                    
+                    // Set theme identifier
+                    selectedTheme.set(item.id);
+                    alert(`"${item.name}" teması başarıyla uygulandı!`);
+                } catch (error) {
+                    console.error('Tema yüklenirken hata:', error);
+                    alert(`Tema yüklenemedi: ${error.message}`);
+                }
             }
         }
     }
@@ -128,10 +154,57 @@
     onMount(() => {
         if (browser) {
             fetchWorkshopItems();
+            fetchInstalledThemes();
             document.body.classList.add("settings-active");
-            return () => document.body.classList.remove("settings-active");
+            
+            // Reload active workshop themes
+            reloadActiveThemes();
+            
+            return () => {
+                document.body.classList.remove("settings-active");
+            };
         }
     });
+
+    // Function to reload active workshop themes
+    async function reloadActiveThemes() {
+        try {
+            const response = await fetch("/api/workshop/items");
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    const themes = data.themes || [];
+                    const activeThemeId = $selectedTheme;
+                    
+                    // Find and reload the active theme
+                    const activeTheme = themes.find(t => t.id === activeThemeId && t.category !== "home");
+                    if (activeTheme && activeTheme.download_url) {
+                        try {
+                            const cssResponse = await fetch(activeTheme.download_url);
+                            if (cssResponse.ok) {
+                                const cssContent = await cssResponse.text();
+                                const styleId = `workshop-theme-${activeTheme.id}`;
+                                let styleElement = document.getElementById(styleId);
+                                
+                                if (styleElement) {
+                                    styleElement.textContent = cssContent;
+                                } else {
+                                    styleElement = document.createElement('style');
+                                    styleElement.id = styleId;
+                                    styleElement.textContent = cssContent;
+                                    document.head.appendChild(styleElement);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Aktif tema yeniden yüklenemedi:', error);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Workshop temaları yüklenemedi:', error);
+        }
+    }
 
     let installedGeneralThemes = [];
     let installedHomeThemes = [];
@@ -197,6 +270,12 @@
 
         try {
             if (type === "theme") {
+                // Remove CSS style element if it exists
+                const styleElement = document.getElementById(`workshop-theme-${id}`);
+                if (styleElement) {
+                    styleElement.remove();
+                }
+                
                 // If the theme being disabled is currently selected, reset to default
                 if ($selectedTheme === id) {
                     selectedTheme.set("klasik");
