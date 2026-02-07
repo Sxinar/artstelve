@@ -2,7 +2,7 @@
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
     import { onMount, getContext } from "svelte";
-    import { writable } from "svelte/store";
+    import { get, writable } from "svelte/store";
     import {
         aiSummaryEnabled,
         selectedEngine,
@@ -232,14 +232,20 @@
     // Pagination State
     let hasMoreResults = writable(true); // Track if we can go further
 
-    async function goToPage(page) {
-        if (isLoading || page < 1) return;
+    async function goToPage(pageNum) {
+        if (isLoading || pageNum < 1) return;
 
         // Calculate new offset
-        const newOffset = (page - 1) * count;
+        const newOffset = (pageNum - 1) * count;
         if (newOffset === offset) return; // Same page
 
         offset = newOffset;
+
+        // Persist page in URL
+        const current = get(page);
+        const url = new URL(current.url);
+        url.searchParams.set("p", String(pageNum));
+        goto(url.pathname + "?" + url.searchParams.toString(), { replaceState: false, keepFocus: true, noScroll: true });
 
         // Scroll to top
         if (browser) window.scrollTo({ top: 0, behavior: "smooth" });
@@ -272,18 +278,26 @@
     $: {
         const queryParam = $page.url.searchParams.get("i");
         const typeParam = $page.url.searchParams.get("t") || "web";
+        const pageParamRaw = $page.url.searchParams.get("p") || "1";
+        const pageParam = Math.max(1, parseInt(pageParamRaw, 10) || 1);
         if (queryParam !== searchQuery || typeParam !== activeSearchType) {
             searchQuery = queryParam || "";
             activeSearchType = typeParam;
             inputQuery = searchQuery;
-            offset = 0; // reset pagination on type or query change
+            offset = (pageParam - 1) * count; // init from URL
             fetchSearchResults(searchQuery, activeSearchType);
+        } else {
+            const newOffset = (pageParam - 1) * count;
+            if (newOffset !== offset) {
+                offset = newOffset;
+                fetchSearchResults(searchQuery, activeSearchType);
+            }
         }
     }
 
     function handleSearchSubmit(type = activeSearchType) {
         if (!inputQuery.trim()) return;
-        goto(`/search?i=${encodeURIComponent(inputQuery.trim())}&t=${type}`);
+        goto(`/search?i=${encodeURIComponent(inputQuery.trim())}&t=${type}&p=1`);
     }
 
     function handleKeyPress(event) {
@@ -712,9 +726,19 @@
                                             e.target.style.display = "none";
                                         }}
                                     />
-                                    <span class="result-domain"
-                                        >{getDomain(result.url)}</span
-                                    >
+                                    <span class="result-domain">{getDomain(result.url)}</span>
+                                    {#if Array.isArray(result.sources) && result.sources.length > 1}
+                                        <span class="result-age">
+                                            - {result.sources
+                                                .map((s) =>
+                                                    String(s)
+                                                        .charAt(0)
+                                                        .toUpperCase() +
+                                                    String(s).slice(1),
+                                                )
+                                                .join(" + ")}
+                                        </span>
+                                    {/if}
                                     {#if result.age}
                                         <span class="result-age">
                                             - {formatAge(result.age)}</span

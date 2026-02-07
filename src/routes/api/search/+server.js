@@ -237,6 +237,7 @@ export async function GET({ url, setHeaders }) {
                     url: item.url || '#',
                     description: item.snippet || '',
                     icon: `https://icons.duckduckgo.com/ip3/${getDomain(item.url)}.ico`,
+                    sources: Array.isArray(item.sources) && item.sources.length ? item.sources : (item.engine ? [item.engine] : []),
                     age: ''
                 };
             });
