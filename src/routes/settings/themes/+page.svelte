@@ -107,8 +107,8 @@
                 alert("Ana sayfa teması seçildi!");
             } else {
                 try {
-                    // Load CSS from workshop URL
-                    const response = await fetch(item.download_url);
+                    // Use server-side proxy to fetch CSS content
+                    const response = await fetch(`/api/workshop/css?url=${encodeURIComponent(item.download_url)}`);
                     if (!response.ok) {
                         throw new Error(`CSS yüklenemedi: ${response.status}`);
                     }
@@ -180,7 +180,8 @@
                     const activeTheme = themes.find(t => t.id === activeThemeId && t.category !== "home");
                     if (activeTheme && activeTheme.download_url) {
                         try {
-                            const cssResponse = await fetch(activeTheme.download_url);
+                            // Use server-side proxy to fetch CSS content
+                            const cssResponse = await fetch(`/api/workshop/css?url=${encodeURIComponent(activeTheme.download_url)}`);
                             if (cssResponse.ok) {
                                 const cssContent = await cssResponse.text();
                                 const styleId = `workshop-theme-${activeTheme.id}`;
@@ -326,14 +327,6 @@
                 <ul>
                     <li>
                         <button
-                            on:click={() => goto('/settings/plugins')}
-                        >
-                            <i class="fas fa-puzzle-piece"></i>
-                            <span>Eklentiler</span>
-                        </button>
-                    </li>
-                    <li>
-                        <button
                             class:active={activeTab === "Temalar"}
                             on:click={() => (activeTab = "Temalar")}
                         >
@@ -375,14 +368,6 @@
                         >
                             <i class="fas fa-adjust"></i>
                             <span>Tema Modu</span>
-                        </button>
-                    </li>
-                    <li>
-                        <button
-                            on:click={() => goto('/settings/plugins')}
-                        >
-                            <i class="fas fa-plug"></i>
-                            <span>Eklentiler</span>
                         </button>
                     </li>
                 </ul>
