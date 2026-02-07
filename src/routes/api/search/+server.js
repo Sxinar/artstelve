@@ -205,18 +205,21 @@ export async function GET({ url, setHeaders }) {
 
     if (searchType === 'web' && engine === 'Hybrid Proxy') {
         try {
-            const configuredLimitTotal = Math.max(1, Math.min(100, Number(proxyLimitTotalRaw ?? 20)));
-            const limitTotal = Math.max(1, Math.min(100, Math.max(configuredLimitTotal, offset + count)));
+            // Pagination logic: Fetch enough results to cover the offset
+            const neededLimit = offset + count;
+            // Cap at reasonable limit (e.g. 200) to prevent abuse/timeouts
+            const limitTotal = Math.max(1, Math.min(200, neededLimit));
             const proxyLimitPerEngine = Math.max(1, Math.min(20, Number(proxyLimitPerEngineRaw ?? Math.ceil(limitTotal / 4))));
             const timeoutMs = Math.max(3000, Math.min(30000, Number(proxyTimeoutMsRaw ?? 20000)));
             const cacheEnabled = proxyCacheRaw == null ? true : !(String(proxyCacheRaw) === '0' || String(proxyCacheRaw).toLowerCase() === 'false');
 
+            // Build proxy request query
             const params = new URLSearchParams();
             params.set('q', query);
             params.set('limitTotal', String(limitTotal));
             params.set('limitPerEngine', String(proxyLimitPerEngine));
-            params.set('timeoutMs', String(timeoutMs));
             params.set('cache', cacheEnabled ? '1' : '0');
+            if (safe) params.set('safe', safe);
             if (region && region !== 'all') params.set('region', region); // Pass region to proxy if supported
             if (proxyEngines) params.set('engines', proxyEngines);
 
