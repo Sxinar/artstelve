@@ -710,6 +710,14 @@
                     <i class="fas fa-exclamation-triangle" aria-hidden="true"
                     ></i>
                     Sonuçlar yüklenirken hata oluştu: {$error}
+                    <button 
+                        class="refresh-btn" 
+                        on:click={() => fetchSearchResults(searchQuery, activeSearchType)}
+                        disabled={isLoading}
+                    >
+                        <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                        Yenile
+                    </button>
                 </div>
 
                 <!-- === WEB RESULTS === -->
@@ -1048,6 +1056,14 @@
                         '{searchQuery}' için ({activeSearchType}) sonucu
                         bulunamadı veya bu tür desteklenmiyor.
                     </p>
+                    <button 
+                        class="refresh-btn" 
+                        on:click={() => fetchSearchResults(searchQuery, activeSearchType)}
+                        disabled={isLoading}
+                    >
+                        <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                        Yenile
+                    </button>
                 </div>
             {/if}
 
@@ -2350,6 +2366,36 @@
     }
     .no-results p:last-child {
         margin-bottom: 0;
+    }
+    
+    .refresh-btn {
+        margin-top: 1rem;
+        padding: 0.5rem 1rem;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .refresh-btn:hover:not(:disabled) {
+        background-color: var(--primary-color-hover);
+        transform: translateY(-1px);
+    }
+    
+    .refresh-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .refresh-btn i {
+        font-size: 0.8rem;
     }
 
     /* Enhanced Result Item Card */
