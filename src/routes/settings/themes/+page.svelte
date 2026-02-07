@@ -115,14 +115,25 @@
                     const cssContent = await response.text();
                     
                     // Extract theme class name from CSS content
-                    const themeClassMatch = cssContent.match(/body\.(\w+)\s*\{/);
-                    const themeClass = themeClassMatch ? themeClassMatch[1] : null;
+                    let themeClass = null;
+                    try {
+                        const themeClassMatch = cssContent.match(/body\.(\w+)\s*\{/);
+                        themeClass = themeClassMatch ? themeClassMatch[1] : null;
+                    } catch (error) {
+                        console.error("[Themes] Error extracting theme class:", error);
+                    }
                     
                     // Remove all existing workshop theme classes
                     document.querySelectorAll('style[id^="workshop-theme-"]').forEach(style => {
-                        const classMatch = style.textContent.match(/body\.(\w+)\s*\{/);
-                        if (classMatch) {
-                            document.body.classList.remove(classMatch[1]);
+                        try {
+                            if (style.textContent) {
+                                const classMatch = style.textContent.match(/body\.(\w+)\s*\{/);
+                                if (classMatch && classMatch[1]) {
+                                    document.body.classList.remove(classMatch[1]);
+                                }
+                            }
+                        } catch (error) {
+                            console.error("[Themes] Error removing theme class:", error);
                         }
                     });
                     
@@ -210,8 +221,13 @@
                                 const cssContent = await cssResponse.text();
                                 
                                 // Extract theme class name from CSS content
-                                const themeClassMatch = cssContent.match(/body\.(\w+)\s*\{/);
-                                const themeClass = themeClassMatch ? themeClassMatch[1] : null;
+                                let themeClass = null;
+                                try {
+                                    const themeClassMatch = cssContent.match(/body\.(\w+)\s*\{/);
+                                    themeClass = themeClassMatch ? themeClassMatch[1] : null;
+                                } catch (error) {
+                                    console.error("[Themes] Error extracting theme class during reload:", error);
+                                }
                                 
                                 const styleId = `workshop-theme-${activeTheme.id}`;
                                 let styleElement = document.getElementById(styleId);
@@ -325,12 +341,18 @@
                 // Remove CSS style element if it exists
                 const styleElement = document.getElementById(`workshop-theme-${id}`);
                 if (styleElement) {
-                    // Extract theme class from CSS before removing
-                    const cssContent = styleElement.textContent;
-                    const classMatch = cssContent.match(/body\.(\w+)\s*\{/);
-                    if (classMatch) {
-                        document.body.classList.remove(classMatch[1]);
-                        console.log(`[Themes] Removed body class: ${classMatch[1]}`);
+                    try {
+                        // Extract theme class from CSS before removing
+                        const cssContent = styleElement.textContent;
+                        if (cssContent) {
+                            const classMatch = cssContent.match(/body\.(\w+)\s*\{/);
+                            if (classMatch && classMatch[1]) {
+                                document.body.classList.remove(classMatch[1]);
+                                console.log(`[Themes] Removed body class: ${classMatch[1]}`);
+                            }
+                        }
+                    } catch (error) {
+                        console.error("[Themes] Error extracting theme class during uninstall:", error);
                     }
                     styleElement.remove();
                 }
