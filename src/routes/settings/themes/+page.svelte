@@ -107,43 +107,66 @@
                 alert("Ana sayfa teması seçildi!");
             } else {
                 try {
+                    console.log("[Themes] Starting theme application for:", item.name, "ID:", item.id);
+                    console.log("[Themes] Download URL:", item.download_url);
+                    
                     // Use server-side proxy to fetch CSS content
                     const response = await fetch(`/api/workshop/css?url=${encodeURIComponent(item.download_url)}`);
                     if (!response.ok) {
                         throw new Error(`CSS yüklenemedi: ${response.status}`);
                     }
                     const cssContent = await response.text();
+                    console.log("[Themes] CSS content length:", cssContent.length);
+                    console.log("[Themes] CSS content preview:", cssContent.substring(0, 200));
                     
                     // Extract theme class name from CSS content
                     let themeClass = null;
                     try {
+                        console.log("[Themes] Attempting CSS extraction...");
                         const themeClassMatch = cssContent.match(/body\.(\w+)\s*\{/);
+                        console.log("[Themes] Theme class match result:", themeClassMatch);
                         themeClass = themeClassMatch ? themeClassMatch[1] : null;
+                        console.log("[Themes] Extracted theme class:", themeClass);
                     } catch (error) {
                         console.error("[Themes] Error extracting theme class:", error);
+                        console.error("[Themes] Error details:", error.message, error.stack);
                     }
                     
                     // Remove all existing workshop theme classes
-                    document.querySelectorAll('style[id^="workshop-theme-"]').forEach(style => {
+                    console.log("[Themes] Removing existing theme classes...");
+                    const existingStyles = document.querySelectorAll('style[id^="workshop-theme-"]');
+                    console.log("[Themes] Found existing styles:", existingStyles.length);
+                    
+                    existingStyles.forEach((style, index) => {
+                        console.log(`[Themes] Processing style ${index}:`, style.id);
                         try {
                             if (style.textContent) {
+                                console.log(`[Themes] Style ${index} content length:`, style.textContent.length);
                                 const classMatch = style.textContent.match(/body\.(\w+)\s*\{/);
+                                console.log(`[Themes] Style ${index} class match:`, classMatch);
                                 if (classMatch && classMatch[1]) {
+                                    console.log(`[Themes] Removing class:`, classMatch[1]);
                                     document.body.classList.remove(classMatch[1]);
                                 }
+                            } else {
+                                console.log(`[Themes] Style ${index} has no textContent`);
                             }
                         } catch (error) {
                             console.error("[Themes] Error removing theme class:", error);
+                            console.error("[Themes] Error details:", error.message, error.stack);
                         }
                     });
                     
                     // Apply the CSS by creating a style element
                     const styleId = `workshop-theme-${item.id}`;
+                    console.log("[Themes] Creating style element with ID:", styleId);
                     let styleElement = document.getElementById(styleId);
                     
                     if (styleElement) {
+                        console.log("[Themes] Updating existing style element");
                         styleElement.textContent = cssContent;
                     } else {
+                        console.log("[Themes] Creating new style element");
                         styleElement = document.createElement('style');
                         styleElement.id = styleId;
                         styleElement.textContent = cssContent;
@@ -152,8 +175,11 @@
                     
                     // Apply the theme class to body if found
                     if (themeClass) {
+                        console.log("[Themes] Applying body class:", themeClass);
                         document.body.classList.add(themeClass);
-                        console.log(`[Themes] Applied body class: ${themeClass}`);
+                        console.log("[Themes] Body classes after adding:", document.body.classList.toString());
+                    } else {
+                        console.log("[Themes] No theme class found to apply");
                     }
                     
                     // Set theme identifier
@@ -161,6 +187,7 @@
                     alert(`"${item.name}" teması başarıyla uygulandı!`);
                 } catch (error) {
                     console.error('Tema yüklenirken hata:', error);
+                    console.error('Tema yükleme hatası detayları:', error.message, error.stack);
                     alert(`Tema yüklenemedi: ${error.message}`);
                 }
             }
