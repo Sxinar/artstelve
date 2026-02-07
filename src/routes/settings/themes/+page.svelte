@@ -251,8 +251,8 @@
         const currentThemes = $themes;
         const currentPlugins = $plugins; // Plugins store'unu kullan
         
-        console.log("[Themes] Debug - selectedTheme:", $selectedTheme);
-        console.log("[Themes] Debug - searchHomeDesign:", $searchHomeDesign);
+        console.log("[Themes] Debug - selectedTheme:", $selectedTheme, "Type:", typeof $selectedTheme);
+        console.log("[Themes] Debug - searchHomeDesign:", $searchHomeDesign, "Type:", typeof $searchHomeDesign);
         console.log("[Themes] Debug - currentThemes:", currentThemes);
         console.log("[Themes] Debug - currentPlugins:", currentPlugins);
         
