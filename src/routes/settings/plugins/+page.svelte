@@ -56,18 +56,10 @@
                     const _plugins = [];
 
                     allPlugins.forEach((p) => {
-                        const type = (p.category || "").toLowerCase();
-                        const u = (p.download_url || "").toLowerCase();
-                        if (
-                            !u.endsWith(".png") &&
-                            !u.endsWith(".jpg") &&
-                            !u.endsWith(".jpeg") &&
-                            !u.endsWith(".gif") &&
-                            !u.endsWith(".svg") &&
-                            !u.endsWith(".webp") &&
-                            type !== "ana-sayfa" &&
-                            type !== "home"
-                        ) {
+                        const category = (p.category || "").toLowerCase();
+                        
+                        // Only include artado_eklenti category
+                        if (category === 'artado_eklenti') {
                             _plugins.push(p);
                         }
                     });
