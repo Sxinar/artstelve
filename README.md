@@ -1,6 +1,6 @@
 # 🔍 Artado Search
 
-Artado Search (eski adıyla Artstelve), gizlilik odaklı, yüksek performanslı ve modern bir hibrit arama motorudur. SvelteKit ve Svelte 5 altyapısı ile geliştirilen bu proje, kullanıcıların verilerini takip etmeden birden fazla kaynaktan gelen sonuçları en hızlı şekilde sunmayı hedefler.
+Artado Search, gizlilik odaklı, yüksek performanslı ve modern bir hibrit arama motorudur. SvelteKit ve Svelte 5 altyapısı ile geliştirilen bu proje, kullanıcıların verilerini takip etmeden birden fazla kaynaktan gelen sonuçları en hızlı şekilde sunmayı hedefler.
 
 ## ✨ Temel Özellikler
 
@@ -17,7 +17,7 @@ Artado Search (eski adıyla Artstelve), gizlilik odaklı, yüksek performanslı 
 ### 🎨 Kullanıcı Deneyimi (UX)
 - **Akıllı Otomatik Tamamlama**: Yazmaya başladığınız anda Türkçe karakter uyumlu öneriler.
 - **Yazım Denetimi**: "Bunu mu demek istediniz?" özelliği ile hatalı sorgular için anında düzeltme önerisi.
-- **Premium Tasarım**: Karanlık mod desteği, mikro-animasyonlar ve özelleştirilebilir vurgu renkleri.
+- **Premium Tasarım**: Karanlık mod desteği, animasyonlar ve özelleştirilebilir vurgu renkleri ve kullanıcılar tarafından oluşturulan Devs tema ve eklentileri.
 - **Modern Bilgi Kartları**: Wikipedia ve diğer kaynaklardan gelen zengin infobox'lar.
 
 
@@ -32,7 +32,7 @@ Artado Search (eski adıyla Artstelve), gizlilik odaklı, yüksek performanslı 
 ### Backend (API Katmanı)
 - **Search API**: Birden fazla motoru yöneten ve sonuçları normalize eden yapı.
 - **Suggest API**: Google Suggest API'sini `windows-1254` kodlaması ile Türkiye lokasyonuna özel işleyen servis.
-- **Workshop API**: Bulut tabanlı tema ve eklenti yönetim sistemi.
+- **Workshop API**: Bulut tabanlı tema ,eklenti ve proje yönetim ve yayınlama sistemi.
 
 ## ⚙️ Kurulum Rehberi
 
