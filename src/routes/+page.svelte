@@ -3,6 +3,25 @@
   import { writable } from "svelte/store"; // For local state if needed
   import { goto } from "$app/navigation"; // Import goto for navigation
 
+  // Güvenli metin vurgulama - XSS güvenli (innerHTML kullanmaz)
+  function highlightParts(text, query) {
+    if (!query || query.length < 2) return [{ text, bold: false }];
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escaped})`, "gi");
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex)
+        parts.push({ text: text.slice(lastIndex, match.index), bold: false });
+      parts.push({ text: match[0], bold: true });
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length)
+      parts.push({ text: text.slice(lastIndex), bold: false });
+    return parts;
+  }
+
   import { fade } from "svelte/transition";
 
   // Get stores from context provided by layout
@@ -25,21 +44,23 @@
   function toggleSidebar() {
     isSidebarOpen.set(!$isSidebarOpen);
   }
-  
+
   // Add touch event handling for mobile
   function handleTouchStart(event) {
     // Prevent default touch behavior to ensure click events work
-    if (event.target.classList.contains('menu-button')) {
+    if (event.target.classList.contains("menu-button")) {
       event.preventDefault();
     }
   }
-  
+
   // Add touch event listeners on mount
   onMount(() => {
     if (browser) {
-      document.addEventListener('touchstart', handleTouchStart, { passive: false });
+      document.addEventListener("touchstart", handleTouchStart, {
+        passive: false,
+      });
       return () => {
-        document.removeEventListener('touchstart', handleTouchStart);
+        document.removeEventListener("touchstart", handleTouchStart);
       };
     }
   });
@@ -139,38 +160,44 @@
     searchQuery = "";
     searchResults = [];
     suggestions = [];
+    spellCorrection = null;
     showSuggestions = false;
     clearTimeout(suggestTimeout);
-    // Optionally focus the input after clearing
-    // document.querySelector('.search-box input[type="text"] ').focus();
   }
 
   // --- Autosuggest Logic ---
   let suggestions = [];
+  let spellCorrection = null;
   let showSuggestions = false;
   let suggestTimeout;
 
   async function fetchSuggestions(q) {
-    console.log('🔍 fetchSuggestions called:', q, 'enableSuggestions:', $enableSuggestions);
     if (!$enableSuggestions || !q || q.length < 2) {
-      console.log('❌ Suggestions disabled or too short');
       suggestions = [];
+      spellCorrection = null;
       return;
     }
     try {
-      console.log('🌐 Fetching suggestions for:', q);
       const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
       if (res.ok) {
         const data = await res.json();
-        console.log('✅ Suggestions received:', data);
-        suggestions = data;
+        // Yeni API formatı: { suggestions: [...], spellCorrection: {...} | null }
+        if (Array.isArray(data)) {
+          // Geriye dönük uyumluluk: eski format
+          suggestions = data;
+          spellCorrection = null;
+        } else {
+          suggestions = data.suggestions || [];
+          spellCorrection = data.spellCorrection || null;
+        }
       } else {
-        console.log('❌ API response not ok:', res.status);
         suggestions = [];
+        spellCorrection = null;
       }
     } catch (e) {
-      console.error("❌ Suggestion fetch error", e);
+      console.error("Suggestion fetch error", e);
       suggestions = [];
+      spellCorrection = null;
     }
   }
 
@@ -178,21 +205,21 @@
 
   function handleInput(event) {
     const val = event.target.value;
-    console.log('⌨️ handleInput:', val);
+    console.log("⌨️ handleInput:", val);
     searchQuery = val;
     focusedSuggestionIndex = -1; // Reset focus on input
     clearTimeout(suggestTimeout);
 
     if (val.trim().length > 1) {
-      console.log('⏰ Setting timeout for suggestions...');
+      console.log("⏰ Setting timeout for suggestions...");
       suggestTimeout = setTimeout(() => {
         fetchSuggestions(val);
         showSuggestions = true;
-        console.log('👁️ showSuggestions set to true');
+        console.log("👁️ showSuggestions set to true");
       }, 300);
     } else {
       showSuggestions = false;
-      console.log('👁️ showSuggestions set to false (too short)');
+      console.log("👁️ showSuggestions set to false (too short)");
     }
   }
 
@@ -341,17 +368,14 @@
 
 <svelte:window on:click={clickOutsideSuggestions} />
 
-<div class="home-container"
+<div
+  class="home-container"
   class:modern={$searchHomeDesign === "modern"}
   class:artistic={$searchHomeDesign === "artistic"}
   in:fade={{ duration: 400 }}
 >
   <div class="home-header">
-    <button
-      class="menu-button"
-      on:click={toggleSidebar}
-      aria-label="Menüyü aç"
-    >
+    <button class="menu-button" on:click={toggleSidebar} aria-label="Menüyü aç">
       <i class="fas fa-sliders"></i>
     </button>
   </div>
@@ -380,35 +404,46 @@
           class="search-input"
           autocomplete="off"
         />
-        {#if showSuggestions && suggestions.length > 0}
+        {#if showSuggestions && (suggestions.length > 0 || spellCorrection)}
           <div
             class="suggestions-dropdown"
             transition:fly={{ y: 20, duration: 400, delay: 0 }}
           >
-            <div class="suggestions-header">
-              <i class="fas fa-magic"></i> Öneriler
-            </div>
-            {#each suggestions.slice(0, 7) as s, i}
+            {#if spellCorrection}
               <button
-                class="suggestion-item"
-                class:focused={i === focusedSuggestionIndex}
-                on:click={() => selectSuggestion(s)}
+                class="did-you-mean-row"
+                on:click={() => selectSuggestion(spellCorrection.corrected)}
               >
-                <div class="suggestion-icon-wrapper">
-                  <i class="fas fa-search"></i>
-                </div>
+                <i class="fas fa-spell-check"></i>
                 <span
-                  >{@html s.replace(
-                    new RegExp(
-                      searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-                      "gi",
-                    ),
-                    (match) => `<b>${match}</b>`,
-                  )}</span
+                  >Bunu mu demek istediniz: <strong
+                    >{spellCorrection.corrected}</strong
+                  >?</span
                 >
-                <i class="fas fa-arrow-up suggestion-arrow"></i>
               </button>
-            {/each}
+            {/if}
+            {#if suggestions.length > 0}
+              <div class="suggestions-header">
+                <i class="fas fa-magic"></i> Öneriler
+              </div>
+              {#each suggestions.slice(0, 7) as s, i}
+                <button
+                  class="suggestion-item"
+                  class:focused={i === focusedSuggestionIndex}
+                  on:click={() => selectSuggestion(s)}
+                >
+                  <div class="suggestion-icon-wrapper">
+                    <i class="fas fa-search"></i>
+                  </div>
+                  <span
+                    >{#each highlightParts(s, searchQuery) as part}{#if part.bold}<b
+                          >{part.text}</b
+                        >{:else}{part.text}{/if}{/each}</span
+                  >
+                  <i class="fas fa-arrow-up suggestion-arrow"></i>
+                </button>
+              {/each}
+            {/if}
           </div>
         {/if}
       </div>
@@ -716,6 +751,39 @@
     margin-bottom: 4px;
   }
 
+  .did-you-mean-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(26, 115, 232, 0.08);
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    text-align: left;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    font-size: 0.88rem;
+    margin-bottom: 6px;
+    transition: background 0.2s ease;
+  }
+
+  .did-you-mean-row:hover {
+    background: rgba(26, 115, 232, 0.18);
+  }
+
+  .did-you-mean-row i {
+    color: #4d9af0;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .did-you-mean-row strong {
+    color: #4d9af0;
+    font-style: normal;
+  }
+
   .suggestion-item {
     display: flex;
     align-items: center;
@@ -740,10 +808,14 @@
   }
 
   .suggestion-item::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.05)
+    );
     border-radius: 10px;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -769,7 +841,11 @@
 
   .suggestion-item.focused::before {
     opacity: 1;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.15),
+      rgba(255, 255, 255, 0.08)
+    );
     border-radius: 10px;
   }
 
@@ -821,7 +897,6 @@
     transform: translateX(0) rotate(-45deg);
     color: #ffffff;
   }
-
 
   .results {
     text-align: left;
@@ -951,7 +1026,7 @@
     outline-offset: 2px;
     box-shadow: 0 0 0 4px var(--primary-color-light);
   }
-  
+
   input:not(.search-input):focus-visible {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
@@ -1019,17 +1094,17 @@
       background-color: var(--background-color);
       background-image: var(--background-image, none);
     }
-    
+
     .home-header {
       padding: 0 1rem;
       margin-bottom: 1.5rem;
       width: 100%;
     }
-    
+
     .home-header h1 {
       font-size: 2rem;
     }
-    
+
     .home-header .menu-button {
       padding: 0.6rem 1rem;
       font-size: 0.8rem;
@@ -1038,40 +1113,40 @@
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
     }
-    
+
     .logo-container {
       margin-bottom: 2rem;
       gap: 1rem;
       text-align: center;
       width: 100%;
     }
-    
+
     .logo {
       width: 70px;
       height: 70px;
       filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
     }
-    
+
     h1 {
       font-size: 1.75rem;
       letter-spacing: -0.5px;
       margin: 0 0 1rem 0;
       line-height: 1.2;
     }
-    
+
     .subtitle {
       font-size: 0.9rem;
       opacity: 0.8;
       margin: 0;
     }
-    
+
     .search-container {
       width: 100% !important;
       max-width: none !important;
       padding: 0 1rem;
       margin: 0 auto;
     }
-    
+
     .search-box {
       padding: 1rem;
       height: 52px;
@@ -1081,42 +1156,42 @@
       width: 100%;
       max-width: 100%;
     }
-    
+
     .search-input {
       font-size: 1rem;
       width: 100% !important;
     }
-    
+
     .search-icon {
       font-size: 1.1rem;
       margin-right: 0.75rem;
       flex-shrink: 0;
     }
-    
+
     .voice-search-btn {
       width: 40px;
       height: 40px;
       font-size: 0.9rem;
       flex-shrink: 0;
     }
-    
+
     .suggestion-item {
       padding: 0.8rem 1rem;
       gap: 0.75rem;
       font-size: 0.95rem;
     }
-    
+
     .suggestion-icon-wrapper {
       width: 28px;
       height: 28px;
       font-size: 0.8rem;
     }
-    
+
     .results {
       padding: 0 1rem;
       width: 100%;
     }
-    
+
     /* Search Results Mobile Responsive */
     .results {
       margin-top: 1.5rem;
@@ -1124,38 +1199,38 @@
       padding: 0 1rem;
       width: 100%;
     }
-    
+
     .result-item {
       padding: 1rem;
       margin-bottom: 1rem;
       border-radius: 0.875rem;
     }
-    
+
     .result-title {
       font-size: 1.1rem;
       margin: 0 0 0.3rem 0;
       line-height: 1.3;
     }
-    
+
     .result-url {
       font-size: 0.8rem;
       margin: 0 0 0.5rem 0;
     }
-    
+
     .result-snippet {
       font-size: 0.9rem;
       line-height: 1.4;
     }
-    
+
     .loading-initial {
       margin-top: 2rem;
     }
-    
+
     .loading-initial i {
       font-size: 2rem !important;
     }
   }
-  
+
   /* --- Homepage Mobile Design --- */
   @media (max-width: 480px) {
     .home-container {
@@ -1168,134 +1243,134 @@
       background-color: var(--background-color);
       background-image: var(--background-image, none);
     }
-    
+
     .home-header {
       padding: 0 0.75rem;
       margin-bottom: 1rem;
       width: 100%;
     }
-    
+
     .logo-container {
       margin-bottom: 1.5rem;
       gap: 0.75rem;
       width: 100%;
     }
-    
+
     .logo {
       width: 50px;
       height: 50px;
     }
-    
+
     h1 {
       font-size: 1.5rem;
       margin: 0 0 0.5rem 0;
       line-height: 1.1;
     }
-    
+
     .subtitle {
       font-size: 0.85rem;
     }
-    
+
     .search-container {
       padding: 0 0.75rem;
       width: 100% !important;
     }
-    
+
     .search-box {
       padding: 0.875rem;
       height: 48px;
       font-size: 0.9rem;
       border-radius: 0.875rem;
     }
-    
+
     .search-input {
       font-size: 0.9rem;
     }
-    
+
     .search-icon {
       font-size: 1rem;
       margin-right: 0.5rem;
     }
-    
+
     .voice-search-btn {
       width: 36px;
       height: 36px;
       font-size: 0.8rem;
     }
-    
+
     .suggestion-item {
       padding: 0.75rem;
       gap: 0.5rem;
       font-size: 0.9rem;
     }
-    
+
     .suggestion-icon-wrapper {
       width: 24px;
       height: 24px;
       font-size: 0.7rem;
     }
-    
+
     .results {
       padding: 0 0.75rem;
       width: 100%;
     }
-    
+
     .result-item {
       padding: 0.75rem;
       margin-bottom: 0.75rem;
     }
-    
+
     .result-title {
       font-size: 1rem;
       margin: 0 0 0.25rem 0;
     }
-    
+
     .result-url {
       font-size: 0.75rem;
       margin: 0 0 0.4rem 0;
     }
-    
+
     .result-description {
       font-size: 0.85rem;
       line-height: 1.3;
     }
   }
-    
-    /* Search Results Mobile Responsive */
-    .results {
-      margin-top: 1rem;
-      padding: 0 0.25rem;
-    }
-    
-    .result-item {
-      padding: 0.75rem;
-      margin-bottom: 0.75rem;
-      border-radius: 0.75rem;
-    }
-    
-    .result-title {
-      font-size: 1rem;
-      margin: 0 0 0.25rem 0;
-      line-height: 1.2;
-    }
-    
-    .result-url {
-      font-size: 0.75rem;
-      margin: 0 0 0.4rem 0;
-    }
-    
-    .result-snippet {
-      font-size: 0.85rem;
-      line-height: 1.3;
-    }
-    
-    .loading-initial {
-      margin-top: 1.5rem;
-    }
-    
-    .loading-initial i {
-      font-size: 1.5rem !important;
-    }
+
+  /* Search Results Mobile Responsive */
+  .results {
+    margin-top: 1rem;
+    padding: 0 0.25rem;
+  }
+
+  .result-item {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    border-radius: 0.75rem;
+  }
+
+  .result-title {
+    font-size: 1rem;
+    margin: 0 0 0.25rem 0;
+    line-height: 1.2;
+  }
+
+  .result-url {
+    font-size: 0.75rem;
+    margin: 0 0 0.4rem 0;
+  }
+
+  .result-snippet {
+    font-size: 0.85rem;
+    line-height: 1.3;
+  }
+
+  .loading-initial {
+    margin-top: 1.5rem;
+  }
+
+  .loading-initial i {
+    font-size: 1.5rem !important;
+  }
 
   /* --- Extra Small Mobile --- */
   @media (max-width: 360px) {
@@ -1303,21 +1378,21 @@
       padding: 0.5rem;
       padding-top: 1rem;
     }
-    
+
     h1 {
       font-size: 1.3rem;
     }
-    
+
     .search-box {
       height: 44px;
       padding: 0.75rem;
       font-size: 0.85rem;
     }
-    
+
     .search-input {
       font-size: 0.85rem;
     }
-    
+
     .logo {
       width: 45px;
       height: 45px;

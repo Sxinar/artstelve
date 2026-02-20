@@ -5,7 +5,7 @@ import { json } from '@sveltejs/kit';
 const BRAVE_API_KEY = 'BSAuFJ0CRuCgoNsyYopbiFg6hItXpsL';
 // GEMINI_API_KEY Removed
 
-const PROXY_SEARCH_BASE_URL = process.env.PROXY_SEARCH_BASE_URL || 'https://artstelve-proxy.vercel.app';
+const PROXY_SEARCH_BASE_URL = process.env.PROXY_SEARCH_BASE_URL || 'https://artstelve-proxy.vercel.app'; // Proxy sunucusu henüz rename edilmediyse bu kalabilir
 
 function mapEngineToProxyEngines(engine) {
     if (!engine) return undefined;
@@ -230,9 +230,10 @@ export async function GET({ url, setHeaders }) {
             params.set('limitPerEngine', String(proxyLimitPerEngine));
             params.set('cache', cacheEnabled ? '1' : '0');
             if (safe) params.set('safe', safe);
-            if (region && region !== 'all') params.set('region', region); // Pass region to proxy if supported
+            if (region && region !== 'all') params.set('region', region);
             if (proxyEngines) params.set('engines', proxyEngines);
-            params.set('offset', String(offsetParam)); // Pass page index to proxy
+            params.set('p', String(offsetParam + 1)); // Pass 1-based page to proxy for consistency
+            params.set('offset', String(internalOffset)); // Also pass raw offset for engines that need it
 
             const proxyUrl = `${proxyBaseUrl}/search?${params.toString()}`;
             const response = await fetch(proxyUrl);
@@ -285,9 +286,9 @@ export async function GET({ url, setHeaders }) {
         }
     }
 
-    // === USE PROXY FOR IMAGES, VIDEOS, NEWS ===
-    // For these search types, use artstelve-proxy service instead of Brave API
-    if (['images', 'videos', 'news'].includes(searchType)) {
+    // === USE PROXY FOR IMAGES, VIDEOS, NEWS, SCHOLAR ===
+    // For these search types, use Artado proxy service instead of Brave API
+    if (['images', 'videos', 'news', 'scholar'].includes(searchType)) {
         try {
             // Pagination logic: Fetch enough results to cover the offset
             const neededLimit = internalOffset + count;
@@ -296,8 +297,9 @@ export async function GET({ url, setHeaders }) {
 
             const proxyParams = new URLSearchParams();
             proxyParams.set('q', query);
-            proxyParams.set('limitTotal', String(count)); // Request only 'count' results since proxy handles offset
-            proxyParams.set('offset', String(offsetParam)); // Pass page index to proxy
+            proxyParams.set('limitTotal', String(count));
+            proxyParams.set('p', String(offsetParam + 1));
+            proxyParams.set('offset', String(internalOffset));
             proxyParams.set('cache', '1');
 
             // Pass region and safe search to proxy for better relevance
@@ -305,7 +307,8 @@ export async function GET({ url, setHeaders }) {
             if (safe) proxyParams.set('safe', safe);
 
             const timeoutMs = Math.max(3000, Math.min(30000, 15000)); // Increased slightly
-            const proxyEndpoint = searchType; // 'images', 'videos', or 'news'
+            const proxyEndpoint = searchType === 'scholar' ? 'web' : searchType; // Map scholar to web on proxy if needed or direct endpoint
+            if (searchType === 'scholar') proxyParams.set('engines', 'google_scholar,bing_academic');
             const proxyUrl = `${proxyBaseUrl}/search/${proxyEndpoint}?${proxyParams.toString()}`;
 
             console.log(`[API] Fetching ${searchType} results from proxy: ${proxyUrl} (Offset: ${offsetParam}, Limit: ${count})`);

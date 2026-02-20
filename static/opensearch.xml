@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/"
+                       xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+  <ShortName>Artado Search</ShortName>
+  <Description>Artado ile güvenli ve hızlı arama yapın.</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image width="16" height="16" type="image/png">/favicon.png</Image>
+  <Url type="text/html"
+       method="get"
+       template="/search?i={searchTerms}"/>
+  <Url type="application/x-suggestions+json"
+       template="/api/suggest?q={searchTerms}"/>
+  <moz:SearchForm>/</moz:SearchForm>
+  <Language>tr-TR</Language>
+  <OutputEncoding>UTF-8</OutputEncoding>
+</OpenSearchDescription>

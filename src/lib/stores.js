@@ -64,7 +64,7 @@ export const selectedLanguage = createPersistentStore('selectedLanguage', 'tr');
 // Search Engine Store (persisted)
 export const selectedEngine = createPersistentStore('selectedEngine', 'Hybrid Proxy'); // Default Hybrid Proxy 
 
-export const hybridProxyBaseUrl = createPersistentStore('hybridProxyBaseUrl', 'https://artstelve-proxy.vercel.app');
+export const hybridProxyBaseUrl = createPersistentStore('hybridProxyBaseUrl', 'https://artstelve-proxy.vercel.app'); // Gelecekte artado-proxy olarak güncellenebilir
 export const hybridProxyEngines = createPersistentStore('hybridProxyEngines', 'duckduckgo,google,bing,yandex,yahoo,brave,startpage,qwant,ecosia,mojeek,ask,aol');
 export const hybridProxyLimitPerEngine = createPersistentStore('hybridProxyLimitPerEngine', 5);
 export const hybridProxyLimitTotal = createPersistentStore('hybridProxyLimitTotal', 20);
@@ -109,4 +109,10 @@ export const showNavbarSearch = createPersistentStore('showNavbarSearch', true);
 export const showNavbarSubCategory = createPersistentStore('showNavbarSubCategory', false); // Extra subcategory in navbar
 
 // Custom Homepage Theme (from workshop)
-export const searchHomeCustomTheme = createPersistentStore('searchHomeCustomTheme', ''); 
+export const searchHomeCustomTheme = createPersistentStore('searchHomeCustomTheme', '');
+
+// --- Translation Stores (Devs only, no local persistence for data) ---
+export const translateInput = writable('');
+export const translateOutput = writable('');
+export const translateTargetLang = writable('tr');
+export const isTranslating = writable(false);

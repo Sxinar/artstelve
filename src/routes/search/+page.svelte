@@ -3,6 +3,28 @@
     import { goto } from "$app/navigation";
     import { onMount, getContext } from "svelte";
     import { get, writable } from "svelte/store";
+
+    // Güvenli metin vurgulama - XSS güvenli (@html kullanmaz)
+    function highlightParts(text, query) {
+        if (!query || query.length < 2) return [{ text, bold: false }];
+        const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(`(${escaped})`, "gi");
+        const parts = [];
+        let lastIndex = 0;
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            if (match.index > lastIndex)
+                parts.push({
+                    text: text.slice(lastIndex, match.index),
+                    bold: false,
+                });
+            parts.push({ text: match[0], bold: true });
+            lastIndex = regex.lastIndex;
+        }
+        if (lastIndex < text.length)
+            parts.push({ text: text.slice(lastIndex), bold: false });
+        return parts;
+    }
     import {
         aiSummaryEnabled,
         selectedEngine,
@@ -24,34 +46,51 @@
     // Get sidebar store from context
     const isSidebarOpen = getContext("sidebar");
 
-    let searchQuery = "";
-    let inputQuery = ""; // Separate state for the input field
-    let isLoading = false;
+    let searchQuery = $state("");
+    let inputQuery = $state(""); // Separate state for the input field
+    let isLoading = $state(false);
     let searchResults = writable([]);
     let specialResults = writable([]); // Results from plugins
     let error = writable(null); // Use writable store for error
-    let activeSearchType = "web"; // 'web', 'images', 'videos', 'news' etc.
-    let imageSize = "";
-    let imageColor = "";
-    let imageAspect = "";
-    let imageType = "";
-    let imagePalette = "";
+    let activeSearchType = $state("web"); // 'web', 'images', 'videos', 'news' etc.
+    let imageSize = $state("");
+    let imageColor = $state("");
+    let imageAspect = $state("");
+    let imageType = $state("");
+    let imagePalette = $state("");
 
     // News filters
-    let newsSource = "";
-    let newsStartDate = "";
-    let newsEndDate = "";
+    let newsSource = $state("");
+    let newsStartDate = $state("");
+    let newsEndDate = $state("");
 
     // Pagination state
-    let offset = 0;
-    let count = 20;
+    let offset = $state(0);
+    let count = $state(20);
     let infoBoxResult = writable(null);
     let queryAiSummary = writable(null); // Store for the query AI summary
 
-    $: count = $selectedEngine === "Hybrid Proxy" ? $hybridProxyLimitTotal : 20;
+    function performSearch(query, skipSpelling = false) {
+        if (!query) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set("i", query);
+        url.searchParams.set("p", "1");
+        if (skipSpelling) url.searchParams.set("spelling", "0");
+        else url.searchParams.delete("spelling");
+        goto(url.toString());
+    }
+
+    let count_val = $derived(
+        $selectedEngine === "Hybrid Proxy" ? $hybridProxyLimitTotal : 20,
+    );
+    // count_val local state'e atanıyor
+    $effect(() => {
+        count = count_val;
+    });
 
     // Fetch results from our backend API endpoint
     async function fetchSearchResults(query, type = "web") {
+        const skipSpelling = $page.url.searchParams.get("spelling") === "0";
         if (!query) {
             searchResults.set([]);
             infoBoxResult.set(null);
@@ -71,6 +110,7 @@
             params.set("i", query);
             params.set("t", type);
             params.set("engine", $selectedEngine);
+            if (skipSpelling) params.set("spelling", "0");
             if ($selectedEngine === "Hybrid Proxy") {
                 params.set("proxyBaseUrl", $hybridProxyBaseUrl);
                 params.set("proxyEngines", $hybridProxyEngines);
@@ -138,6 +178,11 @@
             searchResults.set(incoming);
             infoBoxResult.set(data.infoBoxResult || null);
             queryAiSummary.set(data.queryAiSummary || null); // Set the query AI summary store
+
+            // Arama yapıldığında yazım hatası kontrolü yap (Bunu mu demek istediniz banner'ı için)
+            if (query && type === "web") {
+                fetchSuggestions(query);
+            }
         } catch (err) {
             console.error("[Frontend] Error fetching search results:", err);
             error.set(err.message); // Set error store
@@ -151,7 +196,7 @@
             if (browser) {
                 specialResults.set([]); // Clear previous
                 window.dispatchEvent(
-                    new CustomEvent("artstelve_search", {
+                    new CustomEvent("artado_search", {
                         detail: {
                             query: query,
                             type: type,
@@ -237,16 +282,18 @@
         if (isLoading || pageNum < 1) return;
 
         // Calculate new offset
+        if (pageNum > 12) return; // Limit to 12 pages
+
+        // Calculate new offset
         const newOffset = (pageNum - 1) * count;
         if (newOffset === offset) return; // Same page
 
         offset = newOffset;
 
-        // Persist page in URL (custom logic: Page 1 -> p=0, others -> p=pageNum)
+        // Persist page in URL
         const current = get(page);
         const url = new URL(current.url);
-        const pVal = pageNum === 1 ? 0 : pageNum;
-        url.searchParams.set("p", String(pVal));
+        url.searchParams.set("p", String(pageNum));
         url.searchParams.delete("offset"); // Cleanup
         goto(url.pathname + "?" + url.searchParams.toString(), {
             replaceState: false,
@@ -260,29 +307,36 @@
         await fetchSearchResults(searchQuery, activeSearchType);
     }
 
-    $: currentPage = Math.floor(offset / count) + 1;
+    let currentPage = $derived(Math.floor(offset / count) + 1);
 
     // Generate page numbers window (e.g. [1, 2, 3, 4, 5])
-    $: paginationPages = (() => {
-        let pages = [];
-        // Show 5 pages window centered on current if possible
-        let start = Math.max(1, currentPage - 2);
-        let end = start + 4;
+    let paginationPages = $derived(
+        (() => {
+            let pages = [];
+            // Show 5 pages window centered on current if possible
+            let start = Math.max(1, currentPage - 2);
+            let end = Math.min(12, start + 4);
 
-        // If we are at page 1, show 1,2,3,4,5
-        if (currentPage <= 3) {
-            start = 1;
-            end = 5;
-        }
+            // Adjust start if end is 12
+            if (end === 12) {
+                start = Math.max(1, 12 - 4);
+            }
 
-        for (let i = start; i <= end; i++) {
-            pages.push(i);
-        }
-        return pages;
-    })();
+            // If we are at page 1, show 1,2,3,4,5
+            if (currentPage <= 3) {
+                start = 1;
+                end = Math.min(12, 5);
+            }
+
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+            return pages;
+        })(),
+    );
 
     // Reactive statement to fetch results when the URL query parameter changes
-    $: {
+    $effect(() => {
         const queryParam = $page.url.searchParams.get("i");
         const typeParam = $page.url.searchParams.get("t") || "web";
         const pParam = $page.url.searchParams.get("p");
@@ -309,12 +363,12 @@
                 fetchSearchResults(searchQuery, activeSearchType);
             }
         }
-    }
+    });
 
     function handleSearchSubmit(type = activeSearchType) {
         if (!inputQuery.trim()) return;
         goto(
-            `/search?i=${encodeURIComponent(inputQuery.trim())}&t=${type}&p=0`,
+            `/search?i=${encodeURIComponent(inputQuery.trim())}&t=${type}&p=1`,
         );
     }
 
@@ -392,7 +446,7 @@
     }
 
     // --- Blocking & Menu Logic ---
-    let openMenuUrl = null; // Track via URL instead of index for stability
+    let openMenuUrl = $state(null); // Track via URL instead of index for stability
 
     function toggleMenu(url, event) {
         event.stopPropagation();
@@ -420,44 +474,47 @@
     }
 
     // Filter results
-    $: filteredResults = $searchResults.filter((result) => {
-        if (activeSearchType !== "web") return true; // Only block web results for now
-        const domain = getDomain(result.url);
-        return !$blockedSites.includes(domain);
-    });
+    let filteredResults = $derived(
+        $searchResults.filter((result) => {
+            if (activeSearchType !== "web") return true; // Only block web results for now
+            const domain = getDomain(result.url);
+            return !$blockedSites.includes(domain);
+        }),
+    );
 
     // --- Autosuggest Logic ---
-    let suggestions = [];
-    let showSuggestions = false;
+    let suggestions = $state([]);
+    let spellCorrection = $state(null);
+    let showSuggestions = $state(false);
     let suggestTimeout;
-    let focusedSuggestionIndex = -1;
+    let focusedSuggestionIndex = $state(-1);
 
     async function fetchSuggestions(q) {
-        console.log(
-            "🔍 [SEARCH] fetchSuggestions called:",
-            q,
-            "enableSuggestions:",
-            $enableSuggestions,
-        );
         if (!$enableSuggestions || !q || q.length < 2) {
-            console.log("❌ [SEARCH] Suggestions disabled or too short");
             suggestions = [];
+            spellCorrection = null;
             return;
         }
         try {
-            console.log("🌐 [SEARCH] Fetching suggestions for:", q);
             const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
             if (res.ok) {
                 const data = await res.json();
-                console.log("✅ [SEARCH] Suggestions received:", data);
-                suggestions = data;
+                // Yeni format: { suggestions: [...], spellCorrection: {...} | null }
+                if (Array.isArray(data)) {
+                    suggestions = data;
+                    spellCorrection = null;
+                } else {
+                    suggestions = data.suggestions || [];
+                    spellCorrection = data.spellCorrection || null;
+                }
             } else {
-                console.log("❌ [SEARCH] API response not ok:", res.status);
                 suggestions = [];
+                spellCorrection = null;
             }
         } catch (e) {
-            console.error("❌ [SEARCH] Suggestion fetch error", e);
+            console.error("[SEARCH] Suggestion fetch error", e);
             suggestions = [];
+            spellCorrection = null;
         }
     }
 
@@ -527,12 +584,72 @@
             showSuggestions = false;
         }
     }
+
+    // New Plugins Logic (Matrix & Scholar Linker)
+    $effect(() => {
+        if (!browser) return;
+
+        // Matrix Effect Plugin
+        if (searchQuery.toLowerCase().includes("matrix")) {
+            const hasMatrix = get(specialResults).some(
+                (r) => r.id === "matrix-effect",
+            );
+            if (!hasMatrix) {
+                specialResults.update((prev) => [
+                    {
+                        id: "matrix-effect",
+                        type: "custom",
+                        title: "System Failure...",
+                        content: "Wake up, Artado user. The Matrix has you.",
+                        style: "background: #000; color: #0f0; font-family: monospace; padding: 10px; border: 1px solid #0f0; margin-bottom: 15px; border-radius: 4px;",
+                    },
+                    ...prev,
+                ]);
+            }
+        }
+
+        // Scholar Linker Plugin
+        if (activeSearchType === "scholar") {
+            const hasScholar = get(specialResults).some(
+                (r) => r.id === "scholar-links",
+            );
+            if (!hasScholar) {
+                specialResults.update((prev) => [
+                    {
+                        id: "scholar-links",
+                        type: "links",
+                        title: "Akademik Kaynaklar",
+                        links: [
+                            {
+                                name: "Google Akademik",
+                                url: `https://scholar.google.com/scholar?q=${encodeURIComponent(searchQuery)}`,
+                            },
+                            {
+                                name: "ResearchGate",
+                                url: `https://www.researchgate.net/search?q=${encodeURIComponent(searchQuery)}`,
+                            },
+                            {
+                                name: "ArXiv",
+                                url: `https://arxiv.org/search/?query=${encodeURIComponent(searchQuery)}`,
+                            },
+                        ],
+                        style: "background: var(--card-bg); padding: 10px; margin-bottom: 15px; border-left: 4px solid var(--accent-color); border-radius: 4px;",
+                    },
+                    ...prev,
+                ]);
+            }
+        }
+    });
 </script>
 
-<svelte:window
-    on:click={handleOutsideClick}
-    on:click={clickOutsideSuggestions}
-/>
+<div
+    class="search-results-overlay"
+    onclick={() => {
+        handleOutsideClick();
+        clickOutsideSuggestions();
+    }}
+    aria-hidden="true"
+></div>
 
 <svelte:head>
     <title
@@ -549,7 +666,7 @@
                 src={$customLogo}
                 alt="Artado Logo"
                 class="header-logo"
-                on:error={(e) => (e.target.style.display = "none")}
+                onerror={(e) => (e.target.style.display = "none")}
             />
         </a>
         <div class="search-bar-container">
@@ -560,10 +677,10 @@
                 <input
                     type="text"
                     value={inputQuery}
-                    on:input={handleInput}
-                    on:keydown={handleKeyDown}
-                    on:blur={handleBlur}
-                    on:focus={() => {
+                    oninput={handleInput}
+                    onkeydown={handleKeyDown}
+                    onblur={handleBlur}
+                    onfocus={() => {
                         if (inputQuery.length > 1 && suggestions.length > 0)
                             showSuggestions = true;
                     }}
@@ -572,45 +689,55 @@
                     class="search-input"
                     autocomplete="off"
                 />
-                {#if showSuggestions && suggestions.length > 0}
+                {#if showSuggestions && (suggestions.length > 0 || spellCorrection)}
                     <div
                         class="suggestions-dropdown"
                         transition:fly={{ y: 20, duration: 400, delay: 0 }}
                     >
-                        <div class="suggestions-header">
-                            <i class="fas fa-magic"></i> Öneriler
-                        </div>
-                        {#each suggestions.slice(0, 7) as s, i}
+                        {#if spellCorrection}
                             <button
-                                class="suggestion-item"
-                                class:focused={i === focusedSuggestionIndex}
-                                on:click={() => selectSuggestion(s)}
+                                class="did-you-mean-row"
+                                onclick={() =>
+                                    selectSuggestion(spellCorrection.corrected)}
                             >
-                                <div class="suggestion-icon-wrapper">
-                                    <i class="fas fa-search"></i>
-                                </div>
+                                <i class="fas fa-spell-check"></i>
                                 <span
-                                    >{@html s.replace(
-                                        new RegExp(
-                                            inputQuery.replace(
-                                                /[.*+?^${}()|[\]\\]/g,
-                                                "\\$&",
-                                            ),
-                                            "gi",
-                                        ),
-                                        (match) => `<b>${match}</b>`,
-                                    )}</span
+                                    >Bunu mu demek istediniz: <strong
+                                        >{spellCorrection.corrected}</strong
+                                    >?</span
                                 >
-                                <i class="fas fa-arrow-up suggestion-arrow"></i>
                             </button>
-                        {/each}
+                        {/if}
+                        {#if suggestions.length > 0}
+                            <div class="suggestions-header">
+                                <i class="fas fa-magic"></i> Öneriler
+                            </div>
+                            {#each suggestions.slice(0, 7) as s, i}
+                                <button
+                                    class="suggestion-item"
+                                    class:focused={i === focusedSuggestionIndex}
+                                    onclick={() => selectSuggestion(s)}
+                                >
+                                    <div class="suggestion-icon-wrapper">
+                                        <i class="fas fa-search"></i>
+                                    </div>
+                                    <span
+                                        >{#each highlightParts(s, inputQuery) as part}{#if part.bold}<b
+                                                    >{part.text}</b
+                                                >{:else}{part.text}{/if}{/each}</span
+                                    >
+                                    <i class="fas fa-arrow-up suggestion-arrow"
+                                    ></i>
+                                </button>
+                            {/each}
+                        {/if}
                     </div>
                 {/if}
             </div>
             {#if inputQuery}
                 <button
                     class="clear-button-header"
-                    on:click={() => {
+                    onclick={() => {
                         inputQuery = "";
                         suggestions = [];
                         showSuggestions = false;
@@ -623,7 +750,7 @@
             {/if}
             <button
                 class="search-button-header"
-                on:click={() => handleSearchSubmit()}
+                onclick={() => handleSearchSubmit()}
                 aria-label="Ara"
             >
                 <i class="fas fa-search"></i>
@@ -633,7 +760,7 @@
             <button
                 class="icon-button settings-button-header"
                 aria-label={$t("settings")}
-                on:click={toggleSidebar}
+                onclick={toggleSidebar}
             >
                 <i class="fas fa-sliders-h"></i>
             </button>
@@ -641,37 +768,38 @@
     </header>
 
     <!-- Search Type Tabs -->
-    <nav class="search-type-nav" aria-label="Arama türleri">
+    <nav class="search-type-nav">
         <div class="search-type-nav-inner">
             <button
                 class:active={activeSearchType === "web"}
-                on:click={() => changeSearchType("web")}
+                onclick={() => changeSearchType("web")}
             >
-                <i class="fas fa-search" aria-hidden="true"></i>
-                {$t("all")}
+                <i class="fas fa-search"></i> Tümü
             </button>
             <button
                 class:active={activeSearchType === "images"}
-                on:click={() => changeSearchType("images")}
+                onclick={() => changeSearchType("images")}
             >
-                <i class="fas fa-image" aria-hidden="true"></i>
-                {$t("images")}
+                <i class="fas fa-image"></i> Görseller
             </button>
             <button
                 class:active={activeSearchType === "videos"}
-                on:click={() => changeSearchType("videos")}
+                onclick={() => changeSearchType("videos")}
             >
-                <i class="fas fa-video" aria-hidden="true"></i>
-                {$t("videos")}
+                <i class="fas fa-video"></i> Videolar
             </button>
             <button
                 class:active={activeSearchType === "news"}
-                on:click={() => changeSearchType("news")}
+                onclick={() => changeSearchType("news")}
             >
-                <i class="fas fa-newspaper" aria-hidden="true"></i>
-                {$t("news")}
+                <i class="fas fa-newspaper"></i> Haberler
             </button>
-            <!-- Add more types like News if needed -->
+            <button
+                class:active={activeSearchType === "scholar"}
+                onclick={() => changeSearchType("scholar")}
+            >
+                <i class="fas fa-graduation-cap"></i> Akademik
+            </button>
         </div>
     </nav>
 
@@ -689,423 +817,536 @@
     <div class="search-main-content">
         <main class="results-container" aria-live="polite">
             {#if isLoading}
-                <div
-                    class="loading-skeleton-container"
-                    in:fade={{ duration: 200 }}
-                >
-                    <!-- Skeleton Items -->
-                    {#each Array(5) as _, i}
-                        <div class="skeleton-card">
-                            <div class="skeleton-header">
-                                <div class="skeleton-icon"></div>
-                                <div class="skeleton-domain"></div>
-                            </div>
-                            <div class="skeleton-title"></div>
-                            <div class="skeleton-desc"></div>
-                        </div>
-                    {/each}
+                <div class="loading-container" in:fade={{ duration: 200 }}>
+                    <div class="loading-spinner"></div>
+                    <p>{$t("loading") || "Sonuçlar yükleniyor..."}</p>
                 </div>
             {:else if $error}
-                <div class="error-message" role="alert">
-                    <i class="fas fa-exclamation-triangle" aria-hidden="true"
-                    ></i>
-                    Sonuçlar yüklenirken hata oluştu: {$error}
-                    <button 
-                        class="refresh-btn" 
-                        on:click={() => fetchSearchResults(searchQuery, activeSearchType)}
+                <div class="error-container" in:fade={{ duration: 200 }}>
+                    <p class="error-text">
+                        Sonuçlar yüklenirken hata oluştu: {$error}
+                    </p>
+                    <button
+                        class="refresh-btn"
+                        onclick={() =>
+                            fetchSearchResults(searchQuery, activeSearchType)}
                         disabled={isLoading}
                     >
-                        <i class="fas fa-sync-alt" aria-hidden="true"></i>
-                        Yenile
+                        <i class="fas fa-sync-alt"></i> Tekrar Dene
                     </button>
                 </div>
-
-                <!-- === WEB RESULTS === -->
-            {:else if activeSearchType === "web"}
-                {#if filteredResults.length > 0 || $specialResults.length > 0}
-                    <div class="results-list web-results">
-                        <!-- Plugin Special Results -->
-                        {#each $specialResults as res (res.id)}
-                            <div
-                                class="result-item-card special-plugin-card"
-                                in:fly={{ y: 20, duration: 400 }}
-                            >
-                                <div class="special-badge">
-                                    <i class={res.icon}></i>
-                                    {res.plugin}
-                                </div>
-                                <h3 class="result-title">{res.title}</h3>
-                                <div class="result-content plugin-content">
-                                    {@html res.content}
-                                </div>
-                            </div>
-                        {/each}
-                        {#each filteredResults as result (result.url)}
-                            <div class="result-item-card">
-                                <div class="result-header">
-                                    <img
-                                        src={result.icon || "/favicon.ico"}
-                                        alt=""
-                                        class="favicon"
-                                        loading="lazy"
-                                        on:error={(e) => {
-                                            e.target.style.display = "none";
-                                        }}
-                                    />
-                                    <span class="result-domain"
-                                        >{getDomain(result.url)}</span
+            {:else}
+                <div class="search-results-list">
+                    <!-- Global Special Results (Plugins) -->
+                    {#if $specialResults && $specialResults.length > 0}
+                        <div
+                            class="special-results-container"
+                            style="margin-bottom: 20px;"
+                        >
+                            {#each $specialResults as res (res.id)}
+                                <div
+                                    class="special-result-item"
+                                    style={res.style}
+                                >
+                                    <div
+                                        class="special-badge"
+                                        style="display: inline-flex; align-items: center; gap: 5px; background: var(--hover-background); padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; margin-bottom: 5px; border: 1px solid var(--border-color);"
                                     >
-                                    {#if Array.isArray(result.sources) && result.sources.length > 1}
-                                        <span class="result-age">
-                                            - {result.sources
-                                                .map(
-                                                    (s) =>
-                                                        String(s)
-                                                            .charAt(0)
-                                                            .toUpperCase() +
-                                                        String(s).slice(1),
-                                                )
-                                                .join(" + ")}
-                                        </span>
-                                    {/if}
-                                    {#if result.age}
-                                        <span class="result-age">
-                                            - {formatAge(result.age)}</span
+                                        <i class={res.icon || "fas fa-magic"}
+                                        ></i>
+                                        <span>{res.plugin}</span>
+                                    </div>
+                                    <h4
+                                        style="margin: 0 0 5px 0; font-size: 1.1rem;"
+                                    >
+                                        {res.title}
+                                    </h4>
+                                    <div
+                                        class="special-content"
+                                        style="font-size: 0.9rem; line-height: 1.5; color: var(--text-color);"
+                                    >
+                                        {@html res.content}
+                                    </div>
+                                    {#if res.type === "links" && res.links}
+                                        <div
+                                            class="special-links"
+                                            style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;"
                                         >
+                                            {#each res.links as link}
+                                                <a
+                                                    href={link.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style="padding: 5px 12px; background: var(--primary-color); color: white; border-radius: 20px; text-decoration: none; font-size: 0.8rem; font-weight: 500; transition: opacity 0.2s;"
+                                                >
+                                                    {link.name}
+                                                </a>
+                                            {/each}
+                                        </div>
                                     {/if}
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
 
-                                    <div class="result-menu-container">
-                                        <button
-                                            class="more-options"
-                                            aria-label="Daha fazla seçenek"
-                                            on:click={(e) =>
-                                                toggleMenu(result.url, e)}
-                                        >
-                                            <i
-                                                class="fas fa-ellipsis-v"
-                                                aria-hidden="true"
-                                            ></i>
-                                        </button>
-                                        {#if openMenuUrl === result.url}
-                                            <div
-                                                class="dropdown-menu"
-                                                transition:fade={{
-                                                    duration: 100,
+                    <!-- === WEB & SCHOLAR RESULTS === -->
+                    {#if activeSearchType === "web" || activeSearchType === "scholar"}
+                        {#if filteredResults.length > 0}
+                            <div class="results-list web-results">
+                                <!-- Spell Correction Banner -->
+                                {#if spellCorrection}
+                                    <div
+                                        class="did-you-mean-banner"
+                                        in:slide={{ duration: 300 }}
+                                    >
+                                        <i class="fas fa-spell-check"></i>
+                                        <span
+                                            >Bunu mu demek istediniz:
+                                            <button
+                                                class="did-you-mean-link"
+                                                onclick={() => {
+                                                    const corrected =
+                                                        spellCorrection.corrected;
+                                                    searchQuery = corrected;
+                                                    inputQuery = corrected;
+                                                    performSearch(corrected);
+                                                    spellCorrection = null;
                                                 }}
+                                                aria-label="Düzeltilmiş sorgu ile ara: {spellCorrection.corrected}"
+                                                ><strong
+                                                    >{spellCorrection.corrected}</strong
+                                                ></button
+                                            >?
+                                            <button
+                                                class="original-search-link"
+                                                onclick={() => {
+                                                    const original =
+                                                        spellCorrection.original;
+                                                    searchQuery = original;
+                                                    inputQuery = original;
+                                                    performSearch(
+                                                        original,
+                                                        true,
+                                                    );
+                                                    spellCorrection = null;
+                                                }}
+                                                aria-label="Orijinal sorgu ile ara: {spellCorrection.original}"
                                             >
-                                                <button
-                                                    on:click={() =>
-                                                        blockSite(result.url)}
+                                                (Yine de bunu ara: {spellCorrection.original})</button
+                                            >
+                                        </span>
+                                    </div>
+                                {/if}
+
+                                <!-- Results Loop -->
+                                {#each filteredResults as result (result.url)}
+                                    <div class="result-item-card">
+                                        <div class="result-header">
+                                            <img
+                                                src={result.icon ||
+                                                    "/favicon.ico"}
+                                                alt=""
+                                                class="favicon"
+                                                loading="lazy"
+                                                onerror={(e) => {
+                                                    e.target.style.display =
+                                                        "none";
+                                                }}
+                                            />
+                                            <span class="result-domain"
+                                                >{getDomain(result.url)}</span
+                                            >
+                                            {#if Array.isArray(result.sources) && result.sources.length > 1}
+                                                <span class="result-age">
+                                                    - {result.sources
+                                                        .map(
+                                                            (s) =>
+                                                                String(s)
+                                                                    .charAt(0)
+                                                                    .toUpperCase() +
+                                                                String(s).slice(
+                                                                    1,
+                                                                ),
+                                                        )
+                                                        .join(" + ")}
+                                                </span>
+                                            {/if}
+                                            {#if result.age}
+                                                <span class="result-age">
+                                                    - {formatAge(
+                                                        result.age,
+                                                    )}</span
                                                 >
-                                                    <i class="fas fa-ban"></i> Bu
-                                                    siteyi engelle
-                                                </button>
+                                            {/if}
+
+                                            <div class="result-menu-container">
                                                 <button
-                                                    on:click={() => {
-                                                        navigator.clipboard.writeText(
+                                                    class="more-options"
+                                                    aria-label="Daha fazla seçenek"
+                                                    onclick={(e) =>
+                                                        toggleMenu(
                                                             result.url,
-                                                        );
-                                                        closeMenu();
-                                                    }}
+                                                            e,
+                                                        )}
                                                 >
-                                                    <i class="fas fa-copy"></i> Bağlantıyı
-                                                    kopyala
+                                                    <i
+                                                        class="fas fa-ellipsis-v"
+                                                        aria-hidden="true"
+                                                    ></i>
                                                 </button>
+                                                {#if openMenuUrl === result.url}
+                                                    <div
+                                                        class="dropdown-menu"
+                                                        transition:fade={{
+                                                            duration: 100,
+                                                        }}
+                                                    >
+                                                        <button
+                                                            onclick={() =>
+                                                                blockSite(
+                                                                    result.url,
+                                                                )}
+                                                        >
+                                                            <i
+                                                                class="fas fa-ban"
+                                                            ></i> Bu siteyi engelle
+                                                        </button>
+                                                        <button
+                                                            onclick={() => {
+                                                                navigator.clipboard.writeText(
+                                                                    result.url,
+                                                                );
+                                                                closeMenu();
+                                                            }}
+                                                        >
+                                                            <i
+                                                                class="fas fa-copy"
+                                                            ></i> Bağlantıyı kopyala
+                                                        </button>
+                                                    </div>
+                                                {/if}
+                                            </div>
+                                        </div>
+                                        <h3 class="result-title">
+                                            <a
+                                                href={result.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                >{result.title}</a
+                                            >
+                                        </h3>
+                                        <p class="result-description">
+                                            {result.description ||
+                                                "Açıklama yok."}
+                                        </p>
+                                    </div>
+                                {/each}
+                            </div>
+                        {:else if searchQuery}
+                            <div class="no-results">
+                                <p>
+                                    "<strong>{searchQuery}</strong>" için sonuç
+                                    bulunamadı.
+                                </p>
+                            </div>
+                        {/if}
+
+                        <!-- === IMAGE RESULTS === -->
+                    {:else if activeSearchType === "images"}
+                        {#if $searchResults.length > 0}
+                            <div class="results-grid image-results">
+                                {#each $searchResults as result, i (result.thumbnail + i)}
+                                    <div class="image-result-item">
+                                        <div class="image-wrapper">
+                                            <img
+                                                src={result.thumbnail}
+                                                alt={result.title || "Görsel"}
+                                                loading="lazy"
+                                                onerror={(e) => {
+                                                    e.target.style.display =
+                                                        "none";
+                                                    e.target.parentElement.classList.add(
+                                                        "no-image",
+                                                    );
+                                                }}
+                                            />
+                                            <div class="image-overlay">
+                                                <a
+                                                    href={result.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="overlay-btn"
+                                                    title="Siteye Git"
+                                                >
+                                                    <i
+                                                        class="fas fa-external-link-alt"
+                                                    ></i>
+                                                </a>
+                                                <a
+                                                    href={result.thumbnail}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="overlay-btn"
+                                                    title="Tam Boyut"
+                                                >
+                                                    <i class="fas fa-expand"
+                                                    ></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <a
+                                            href={result.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="image-info"
+                                        >
+                                            <span class="image-title"
+                                                >{result.title}</span
+                                            >
+                                            <span class="image-source">
+                                                {#if result.sourceIcon}<img
+                                                        src={result.sourceIcon}
+                                                        alt=""
+                                                        class="source-icon"
+                                                    />{/if}
+                                                {getDomain(result.source)}
+                                            </span>
+                                        </a>
+                                    </div>
+                                {/each}
+                            </div>
+                        {:else if searchQuery}
+                            <div class="no-results">
+                                <p>
+                                    '{searchQuery}' için görsel sonucu
+                                    bulunamadı.
+                                </p>
+                            </div>
+                        {/if}
+
+                        <!-- === VIDEO RESULTS === -->
+                    {:else if activeSearchType === "videos"}
+                        {#if $searchResults.length > 0}
+                            <div class="results-grid video-results-grid">
+                                {#each $searchResults as result (result.url)}
+                                    <div
+                                        class="result-item-card video-card-modern"
+                                    >
+                                        <div class="video-thumbnail-container">
+                                            <a
+                                                href={result.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                aria-label={result.title}
+                                            >
+                                                <img
+                                                    src={result.thumbnail}
+                                                    alt=""
+                                                    class="video-thumbnail"
+                                                    loading="lazy"
+                                                    onerror={(e) => {
+                                                        e.target.style.visibility =
+                                                            "hidden";
+                                                    }}
+                                                />
+                                                <div class="play-overlay">
+                                                    <i class="fas fa-play"></i>
+                                                </div>
+                                                {#if result.duration}
+                                                    <span class="video-duration"
+                                                        >{formatDuration(
+                                                            result.duration,
+                                                        )}</span
+                                                    >
+                                                {/if}
+                                            </a>
+                                        </div>
+                                        <div class="video-details">
+                                            <h3
+                                                class="result-title video-title"
+                                            >
+                                                <a
+                                                    href={result.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    >{result.title}</a
+                                                >
+                                            </h3>
+                                            <div class="video-meta-row">
+                                                <span class="video-publisher"
+                                                    >{result.publisher ||
+                                                        getDomain(
+                                                            result.url,
+                                                        )}</span
+                                                >
+                                                {#if result.age}<span
+                                                        class="separator"
+                                                        >•</span
+                                                    >
+                                                    <span class="video-age"
+                                                        >{formatAge(
+                                                            result.age,
+                                                        )}</span
+                                                    >{/if}
+                                            </div>
+                                            <p
+                                                class="result-description video-description"
+                                            >
+                                                {result.description || ""}
+                                            </p>
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                        {:else if searchQuery}
+                            <div class="no-results">
+                                <p>
+                                    '{searchQuery}' için video sonucu
+                                    bulunamadı.
+                                </p>
+                            </div>
+                        {/if}
+
+                        <!-- === NEWS RESULTS === -->
+                    {:else if activeSearchType === "news"}
+                        {#if $searchResults.length > 0}
+                            <div class="results-list news-results">
+                                {#each $searchResults as result (result.url)}
+                                    <div
+                                        class="result-item-card news-item-modern"
+                                    >
+                                        <div class="news-content">
+                                            <div class="news-header-meta">
+                                                {#if result.icon}<img
+                                                        src={result.icon}
+                                                        alt=""
+                                                        class="news-source-icon"
+                                                    />{/if}
+                                                <span class="news-source"
+                                                    >{result.source ||
+                                                        getDomain(
+                                                            result.url,
+                                                        )}</span
+                                                >
+                                                {#if result.age}<span
+                                                        class="separator"
+                                                        >•</span
+                                                    >
+                                                    <span class="news-age"
+                                                        >{result.age}</span
+                                                    >{/if}
+                                            </div>
+                                            <h3 class="result-title news-title">
+                                                <a
+                                                    href={result.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    >{result.title}</a
+                                                >
+                                            </h3>
+                                            {#if result.description}
+                                                <p
+                                                    class="result-description news-desc"
+                                                >
+                                                    {result.description}
+                                                </p>
+                                            {/if}
+                                        </div>
+                                        {#if result.thumbnail}
+                                            <div class="news-thumbnail-wrapper">
+                                                <img
+                                                    src={result.thumbnail}
+                                                    alt=""
+                                                    class="news-thumbnail"
+                                                    loading="lazy"
+                                                    onerror={(e) => {
+                                                        e.target.style.display =
+                                                            "none";
+                                                    }}
+                                                />
                                             </div>
                                         {/if}
                                     </div>
-                                </div>
-                                <h3 class="result-title">
-                                    <a
-                                        href={result.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        >{result.title}</a
-                                    >
-                                </h3>
-                                <p class="result-description">
-                                    {@html result.description ||
-                                        "Açıklama yok."}
-                                </p>
+                                {/each}
                             </div>
-                        {/each}
-                    </div>
-                {:else if searchQuery}
-                    <!-- Fallback if all results are blocked -->
-                    <div class="no-results">
-                        <p>
-                            "<strong>{searchQuery}</strong>" için sonuç
-                            bulunamadı (bazı sonuçlar engellenmiş olabilir).
-                        </p>
-                    </div>
-                {:else}
-                    <div class="no-results">
-                        <p>
-                            "<strong>{searchQuery}</strong>" için web sonucu
-                            bulunamadı.
-                        </p>
-                    </div>
-                {/if}
-
-                <!-- === IMAGE RESULTS === -->
-            {:else if activeSearchType === "images"}
-                {#if $searchResults.length > 0}
-                    <div class="results-grid image-results">
-                        {#each $searchResults as result, i (result.thumbnail + i)}
-                            <div class="image-result-item">
-                                <div class="image-wrapper">
-                                    <img
-                                        src={result.thumbnail}
-                                        alt={result.title || "Görsel"}
-                                        loading="lazy"
-                                        on:error={(e) => {
-                                            e.target.style.display = "none";
-                                            e.target.parentElement.classList.add(
-                                                "no-image",
-                                            );
-                                        }}
-                                    />
-                                    <div class="image-overlay">
-                                        <a
-                                            href={result.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="overlay-btn"
-                                            title="Siteye Git"
-                                        >
-                                            <i class="fas fa-external-link-alt"
-                                            ></i>
-                                        </a>
-                                        <a
-                                            href={result.thumbnail}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="overlay-btn"
-                                            title="Tam Boyut"
-                                        >
-                                            <i class="fas fa-expand"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                                <a
-                                    href={result.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="image-info"
-                                >
-                                    <span class="image-title"
-                                        >{result.title}</span
-                                    >
-                                    <span class="image-source">
-                                        {#if result.sourceIcon}<img
-                                                src={result.sourceIcon}
-                                                alt=""
-                                                class="source-icon"
-                                            />{/if}
-                                        {getDomain(result.source)}
-                                    </span>
-                                </a>
+                        {:else if searchQuery}
+                            <div class="no-results">
+                                <p>'{searchQuery}' için haber bulunamadı.</p>
                             </div>
-                        {/each}
-                    </div>
-                {:else if searchQuery}
-                    <div class="no-results">
-                        <p>'{searchQuery}' için görsel sonucu bulunamadı.</p>
-                    </div>
-                {/if}
+                        {/if}
 
-                <!-- === VIDEO RESULTS === -->
-            {:else if activeSearchType === "videos"}
-                {#if $searchResults.length > 0}
-                    <div class="results-grid video-results-grid">
-                        {#each $searchResults as result (result.url)}
-                            <div class="result-item-card video-card-modern">
-                                <div class="video-thumbnail-container">
-                                    <a
-                                        href={result.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        aria-label={result.title}
-                                    >
-                                        <img
-                                            src={result.thumbnail}
-                                            alt=""
-                                            class="video-thumbnail"
-                                            loading="lazy"
-                                            on:error={(e) => {
-                                                e.target.style.visibility =
-                                                    "hidden";
-                                            }}
-                                        />
-                                        <div class="play-overlay">
-                                            <i class="fas fa-play"></i>
-                                        </div>
-                                        {#if result.duration}
-                                            <span class="video-duration"
-                                                >{formatDuration(
-                                                    result.duration,
-                                                )}</span
-                                            >
-                                        {/if}
-                                    </a>
-                                </div>
-                                <div class="video-details">
-                                    <h3 class="result-title video-title">
-                                        <a
-                                            href={result.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            >{result.title}</a
-                                        >
-                                    </h3>
-                                    <div class="video-meta-row">
-                                        <span class="video-publisher"
-                                            >{result.publisher ||
-                                                getDomain(result.url)}</span
-                                        >
-                                        {#if result.age}<span class="separator"
-                                                >•</span
-                                            >
-                                            <span class="video-age"
-                                                >{formatAge(result.age)}</span
-                                            >{/if}
-                                    </div>
-                                    <p
-                                        class="result-description video-description"
-                                    >
-                                        {result.description || ""}
-                                    </p>
-                                </div>
-                            </div>
-                        {/each}
-                    </div>
-                {:else if searchQuery}
-                    <div class="no-results">
-                        <p>'{searchQuery}' için video sonucu bulunamadı.</p>
-                    </div>
-                {/if}
-
-                <!-- === NEWS RESULTS === -->
-            {:else if activeSearchType === "news"}
-                {#if $searchResults.length > 0}
-                    <div class="results-list news-results">
-                        {#each $searchResults as result (result.url)}
-                            <div class="result-item-card news-item-modern">
-                                <div class="news-content">
-                                    <div class="news-header-meta">
-                                        {#if result.icon}<img
-                                                src={result.icon}
-                                                alt=""
-                                                class="news-source-icon"
-                                            />{/if}
-                                        <span class="news-source"
-                                            >{result.source ||
-                                                getDomain(result.url)}</span
-                                        >
-                                        {#if result.age}<span class="separator"
-                                                >•</span
-                                            >
-                                            <span class="news-age"
-                                                >{result.age}</span
-                                            >{/if}
-                                    </div>
-                                    <h3 class="result-title news-title">
-                                        <a
-                                            href={result.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            >{result.title}</a
-                                        >
-                                    </h3>
-                                    {#if result.description}
-                                        <p class="result-description news-desc">
-                                            {result.description}
-                                        </p>
-                                    {/if}
-                                </div>
-                                {#if result.thumbnail}
-                                    <div class="news-thumbnail-wrapper">
-                                        <img
-                                            src={result.thumbnail}
-                                            alt=""
-                                            class="news-thumbnail"
-                                            loading="lazy"
-                                            on:error={(e) => {
-                                                e.target.style.display = "none";
-                                            }}
-                                        />
-                                    </div>
-                                {/if}
-                            </div>
-                        {/each}
-                    </div>
-                {:else if searchQuery}
-                    <div class="no-results">
-                        <p>'{searchQuery}' için haber bulunamadı.</p>
-                    </div>
-                {/if}
-
-                <!-- Fallback for other types or initial state -->
-            {:else if !isLoading && !$error && !searchQuery}
-                <div class="no-results">
-                    <p>Arama yapmak için yukarıdaki kutuyu kullanın.</p>
+                        <!-- Fallback for other types or initial state -->
+                    {:else if !isLoading && !$error && !searchQuery}
+                        <div class="no-results">
+                            <p>Arama yapmak için yukarıdaki kutuyu kullanın.</p>
+                        </div>
+                    {:else if !isLoading && !$error}
+                        <div class="no-results">
+                            <p>
+                                '{searchQuery}' için ({activeSearchType}) sonucu
+                                bulunamadı veya bu tür desteklenmiyor.
+                            </p>
+                            <button
+                                class="refresh-btn"
+                                onclick={() =>
+                                    fetchSearchResults(
+                                        searchQuery,
+                                        activeSearchType,
+                                    )}
+                                disabled={isLoading}
+                            >
+                                <i class="fas fa-sync-alt" aria-hidden="true"
+                                ></i>
+                                Yenile
+                            </button>
+                        </div>
+                    {/if}
                 </div>
-            {:else if !isLoading && !$error}
-                <div class="no-results">
-                    <p>
-                        '{searchQuery}' için ({activeSearchType}) sonucu
-                        bulunamadı veya bu tür desteklenmiyor.
-                    </p>
-                    <button 
-                        class="refresh-btn" 
-                        on:click={() => fetchSearchResults(searchQuery, activeSearchType)}
-                        disabled={isLoading}
-                    >
-                        <i class="fas fa-sync-alt" aria-hidden="true"></i>
-                        Yenile
-                    </button>
-                </div>
-            {/if}
 
-            <!-- Pagination Controls -->
-            {#if $searchResults.length > 0 && !isLoading}
-                <div class="pagination-container">
-                    <!-- Prev Button -->
-                    <button
-                        class="pagination-btn nav-btn"
-                        disabled={currentPage <= 1 || isLoading}
-                        on:click={() => goToPage(currentPage - 1)}
-                    >
-                        <i
-                            class="fas fa-chevron-left"
-                            style="margin-right: 5px;"
-                        ></i> Önceki
-                    </button>
-
-                    <!-- Page Numbers -->
-                    {#each paginationPages as page}
+                <!-- Pagination Controls -->
+                {#if $searchResults.length > 0 && !isLoading}
+                    <div class="pagination-container">
+                        <!-- Prev Button -->
                         <button
-                            class="pagination-btn"
-                            class:active={page === currentPage}
-                            on:click={() => goToPage(page)}
-                            disabled={isLoading}
+                            class="pagination-btn nav-btn"
+                            disabled={currentPage <= 1 || isLoading}
+                            onclick={() => goToPage(currentPage - 1)}
+                            aria-label="Önceki sayfa"
                         >
-                            {page}
+                            <i
+                                class="fas fa-chevron-left"
+                                style="margin-right: 5px;"
+                            ></i> Önceki
                         </button>
-                    {/each}
 
-                    <!-- Next Button -->
-                    <button
-                        class="pagination-btn nav-btn"
-                        disabled={!$hasMoreResults || isLoading}
-                        on:click={() => goToPage(currentPage + 1)}
-                    >
-                        Sonraki <i
-                            class="fas fa-chevron-right"
-                            style="margin-left: 5px;"
-                        ></i>
-                    </button>
-                </div>
+                        <!-- Page Numbers -->
+                        {#each paginationPages.slice(0, 12) as page}
+                            <button
+                                class="pagination-btn"
+                                class:active={page === currentPage}
+                                onclick={() => goToPage(page)}
+                                disabled={isLoading}
+                            >
+                                {page}
+                            </button>
+                        {/each}
+
+                        <!-- Next Button -->
+                        <button
+                            class="pagination-btn nav-btn"
+                            disabled={!$hasMoreResults ||
+                                isLoading ||
+                                currentPage >= 12}
+                            onclick={() => goToPage(currentPage + 1)}
+                            aria-label="Sonraki sayfa"
+                        >
+                            Sonraki <i
+                                class="fas fa-chevron-right"
+                                style="margin-left: 5px;"
+                            ></i>
+                        </button>
+                    </div>
+                {/if}
             {/if}
         </main>
 
@@ -1125,7 +1366,7 @@
                                 alt={$infoBoxResult.wikipediaInfo.title || ""}
                                 class="infobox-image"
                                 loading="lazy"
-                                on:error={(e) => {
+                                onerror={(e) => {
                                     e.target.style.display = "none";
                                 }}
                             />
@@ -1168,7 +1409,7 @@
                                     alt={$infoBoxResult.data.name || ""}
                                     class="infobox-image"
                                     loading="lazy"
-                                    on:error={(e) => {
+                                    onerror={(e) => {
                                         e.target.style.display = "none";
                                     }}
                                 />
@@ -1201,7 +1442,7 @@
                                     alt={$infoBoxResult.title || "Logo"}
                                     class="infobox-image"
                                     loading="lazy"
-                                    on:error={(e) => {
+                                    onerror={(e) => {
                                         console.warn(
                                             "Infobox image failed to load:",
                                             e.target.src,
@@ -1251,7 +1492,7 @@
                                     alt="Info"
                                     class="infobox-image"
                                     style="max-width: 100px; display: block; margin-top: 10px;"
-                                    on:error={(e) =>
+                                    onerror={(e) =>
                                         (e.target.style.display = "none")}
                                 />
                             {/if}
@@ -1552,54 +1793,62 @@
         position: sticky;
         top: 61px;
         z-index: 999;
-        /* Ensure full width, no padding/max-width here */
         padding: 0;
         max-width: none;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
 
-    /* Inner container for alignment and scrolling */
     .search-type-nav-inner {
         display: flex;
-        justify-content: flex-start; /* Ensure left alignment */
-        gap: 1.5rem;
-        max-width: 1100px; /* Align with main content max-width */
+        justify-content: flex-start;
+        gap: 0.5rem;
+        max-width: 1100px;
         width: 100%;
-        padding: 0 1.5rem; /* Keep horizontal padding */
-        /* Horizontal scroll styles */
+        padding: 0 1.5rem;
         overflow-x: auto;
         white-space: nowrap;
-        -ms-overflow-style: none;
         scrollbar-width: none;
+        -ms-overflow-style: none;
     }
+
     .search-type-nav-inner::-webkit-scrollbar {
         display: none;
     }
 
-    /* Button styles */
     .search-type-nav button {
-        background: none;
+        background: transparent;
         border: none;
         color: var(--text-color-secondary);
         cursor: pointer;
-        padding: 0.8rem 0.2rem; /* Keep vertical padding */
-        font-size: 0.95rem;
-        border-bottom: 3px solid transparent; /* Thicker transparent border for spacing */
-        transition:
-            color 0.2s,
-            border-color 0.2s;
+        padding: 0.9rem 1.2rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
+        gap: 0.6rem;
         flex-shrink: 0;
-        margin-bottom: -1px; /* Overlap the main border slightly */
+        margin-bottom: -1px;
+        opacity: 0.8;
     }
+
+    .search-type-nav button i {
+        font-size: 0.85rem;
+    }
+
     .search-type-nav button:hover {
         color: var(--text-color);
+        opacity: 1;
+        background-color: var(--hover-background);
     }
+
     .search-type-nav button.active {
         color: var(--primary-color);
         border-bottom-color: var(--primary-color);
         font-weight: 600;
+        opacity: 1;
     }
 
     /* Main Content Area Layout */
@@ -1703,6 +1952,26 @@
     .result-menu-container {
         position: relative;
         margin-left: auto;
+        display: flex;
+        align-items: center;
+    }
+
+    .menu-dot-btn {
+        background: none;
+        border: none;
+        color: var(--text-color-secondary);
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+    }
+
+    .menu-dot-btn:hover {
+        background-color: var(--hover-background);
+        color: var(--primary-color);
     }
 
     .dropdown-menu {
@@ -2165,30 +2434,38 @@
             padding: 0;
             max-width: none;
             margin: 0;
+            width: 100vw;
+            overflow-x: hidden;
         }
         .results-container {
             max-width: 100%;
             order: 1;
+            padding: 0 12px;
+            width: 100%;
+            box-sizing: border-box;
         }
         .infobox-container {
             display: none;
         }
         .search-header {
-            position: relative;
-            left: -12px;
-            width: calc(100% + 24px);
-            padding: 0.5rem 12px;
+            position: sticky;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 0.8rem 12px;
+            margin: 0;
             box-sizing: border-box;
-            gap: 0.5rem; /* Reduce gap */
-            /* Hide logo on very small screens? Example: */
-            /* @media (max-width: 480px) { & .logo-link { display: none; } } */
+            gap: 0.8rem;
+            background: var(--background-color);
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 0;
         }
         .search-input {
-            font-size: 0.95rem; /* Slightly smaller font */
+            font-size: 1rem;
         }
         .search-button-header,
         .clear-button-header {
-            font-size: 1rem; /* Adjust icon size */
+            font-size: 1.1rem;
         }
         .settings-button-header {
             font-size: 1.2rem; /* Adjust icon size */
@@ -2367,7 +2644,7 @@
     .no-results p:last-child {
         margin-bottom: 0;
     }
-    
+
     .refresh-btn {
         margin-top: 1rem;
         padding: 0.5rem 1rem;
@@ -2382,18 +2659,18 @@
         gap: 0.5rem;
         transition: all 0.2s ease;
     }
-    
+
     .refresh-btn:hover:not(:disabled) {
         background-color: var(--primary-color-hover);
         transform: translateY(-1px);
     }
-    
+
     .refresh-btn:disabled {
         opacity: 0.6;
         cursor: not-allowed;
         transform: none;
     }
-    
+
     .refresh-btn i {
         font-size: 0.8rem;
     }
@@ -2939,6 +3216,104 @@
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
         border-color: var(--primary-color-light);
+    }
+
+    /* --- Did You Mean Styles (Reverted to Blue Banner) --- */
+    .did-you-mean-banner {
+        background: rgba(26, 115, 232, 0.05);
+        border: 1px solid rgba(26, 115, 232, 0.1);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.1rem;
+        color: var(--text-color);
+    }
+
+    .did-you-mean-banner i {
+        color: #1a73e8;
+        font-size: 1.2rem;
+    }
+
+    .did-you-mean-link {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        color: #1a73e8;
+        font-size: inherit;
+        font-family: inherit;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .did-you-mean-link:hover {
+        text-decoration: underline;
+    }
+
+    .did-you-mean-link strong {
+        font-weight: 600;
+        font-style: italic;
+    }
+
+    .original-search-link {
+        background: none;
+        border: none;
+        padding: 0;
+        margin-left: 8px;
+        color: var(--text-color-secondary);
+        font-size: 0.85rem;
+        cursor: pointer;
+        opacity: 0.8;
+    }
+
+    .original-search-link:hover {
+        text-decoration: underline;
+        opacity: 1;
+    }
+
+    .original-link {
+        color: inherit;
+        text-decoration: underline;
+        opacity: 0.9;
+    }
+
+    .original-link:hover {
+        opacity: 1;
+    }
+
+    /* Suggestion Dropdown did-you-mean row */
+    .did-you-mean-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 14px;
+        background: rgba(26, 115, 232, 0.08);
+        border: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        text-align: left;
+        color: var(--text-color);
+        cursor: pointer;
+        font-size: 0.88rem;
+        margin-bottom: 6px;
+        transition: background 0.2s ease;
+    }
+
+    .did-you-mean-row:hover {
+        background: rgba(26, 115, 232, 0.18);
+    }
+
+    .did-you-mean-row i {
+        color: #1a73e8;
+        font-size: 0.9rem;
+    }
+
+    .did-you-mean-row strong {
+        color: #1a73e8;
     }
     /* --- Search Results Mobile Design --- */
     @media (max-width: 768px) {

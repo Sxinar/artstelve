@@ -1,6 +1,6 @@
 (function () {
     console.log("[Plugin] Advanced Translate initialized");
-    
+
     // Plugin aktif mi kontrolü
     function isPluginEnabled() {
         try {
@@ -11,13 +11,13 @@
             return true; // Hata durumunda aktif kabul et
         }
     }
-    
+
     // Plugin aktif değilse çalışma
     if (!isPluginEnabled()) {
         console.log("[Plugin] Translate plugin is disabled in settings");
         return;
     }
-    
+
     // Desteklenen diller
     const supportedLanguages = {
         'en': { name: 'English', flag: '🇬🇧', code: 'en' },
@@ -33,14 +33,14 @@
         'ja': { name: '日本語', flag: '🇯🇵', code: 'ja' },
         'ko': { name: '한국어', flag: '🇰🇷', code: 'ko' }
     };
-    
+
     // Çeviri API'si - MyMemory (ücretsiz)
     const translateText = async (text, from = 'en', to = 'tr') => {
         try {
             // MyMemory Free API (5000 karakter/gün limit)
             const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`);
             const data = await response.json();
-            
+
             if (data.responseStatus === 200 && data.responseData.translatedText) {
                 return data.responseData.translatedText;
             } else {
@@ -51,11 +51,11 @@
             return null;
         }
     };
-    
+
     // Cache sistemi
     const translationCache = new Map();
     const cacheKey = (text, from, to) => `${from}-${to}-${text}`;
-    
+
     // Dil seçimi arayüzü
     function showLanguageSelector(query, originalText) {
         const languageOptions = Object.entries(supportedLanguages)
@@ -76,7 +76,7 @@
                     <span style="margin-left: auto; opacity: 0.5; font-size: 0.8rem;">!${code} ${originalText}</span>
                 </div>
             `).join('');
-        
+
         return `
             <div style="padding: 1rem;">
                 <div style="margin-bottom: 1rem; text-align: center;">
@@ -98,10 +98,10 @@
             </div>
         `;
     }
-    
-    window.addEventListener('artstelve_search', async (e) => {
+
+    window.addEventListener('artado_search', async (e) => {
         const query = (e.detail.query || "").trim();
-        
+
         // !tr komutu kontrolü (dil seçimi modu)
         if (query === '!tr' || query === '!tr ') {
             const lastSearch = localStorage.getItem('lastSearchQuery') || '';
@@ -151,12 +151,12 @@
             }
             return;
         }
-        
+
         // Genel dil komutları (!tr, !en, !de, !fr, vb.)
         const langMatch = query.match(/^!(\w{2})\s+(.+)$/);
         if (langMatch) {
             const [, targetLang, textToTranslate] = langMatch;
-            
+
             if (!supportedLanguages[targetLang]) {
                 // Desteklenmeyen dil
                 e.detail.addSpecialResult({
@@ -177,22 +177,22 @@
                 });
                 return;
             }
-            
+
             if (!textToTranslate) return;
-            
+
             // Son aramayı kaydet
             localStorage.setItem('lastSearchQuery', textToTranslate);
-            
+
             // Kaynak dili otomatik tespit (basit)
             const sourceLang = targetLang === 'tr' ? 'en' : 'tr';
-            
+
             // Cache kontrolü
             const cached = translationCache.get(cacheKey(textToTranslate, sourceLang, targetLang));
             if (cached) {
                 showTranslationResult(e, textToTranslate, cached, true, sourceLang, targetLang);
                 return;
             }
-            
+
             // Loading göster
             e.detail.addSpecialResult({
                 id: 'translate_loading',
@@ -221,19 +221,19 @@
                 icon: 'fas fa-language',
                 plugin: 'Advanced Translate'
             });
-            
+
             // API'den çeviri al
             const translation = await translateText(textToTranslate, sourceLang, targetLang);
-            
+
             // Cache'e kaydet
             translationCache.set(cacheKey(textToTranslate, sourceLang, targetLang), translation);
-            
+
             // Sonucu göster
             setTimeout(() => {
                 showTranslationResult(e, textToTranslate, translation || `${textToTranslate} (çeviri başarısız)`, !!translation, sourceLang, targetLang);
             }, 800);
         }
-        
+
         // Eski trigger'ları da destekle (geriye uyumluluk)
         else if (query.includes(' çevir') || query.includes(' translate ')) {
             const word = query.replace(' çevir', '').replace('translate', '').trim();
@@ -257,14 +257,14 @@
             });
         }
     });
-    
+
     // Çeviri sonucunu gösteren fonksiyon
     function showTranslationResult(e, original, translation, success, from = 'en', to = 'tr') {
         const fromLang = supportedLanguages[from];
         const toLang = supportedLanguages[to];
-        
+
         if (!fromLang || !toLang) return;
-        
+
         // Önceki çeviri sonuçlarını temizle
         const existingResults = document.querySelectorAll('[id^="translate_result"], [id="translate_loading"], [id="language_selector"], [id="translate_help"], [id="unsupported_lang"], [id="translate_result_old"]');
         existingResults.forEach(el => {
@@ -272,10 +272,10 @@
                 el.parentNode.removeChild(el);
             }
         });
-        
+
         // Unique ID oluştur
         const uniqueId = `translate_result_${from}_${to}_${Date.now()}`;
-        
+
         e.detail.addSpecialResult({
             id: uniqueId,
             type: 'plugin_result',
@@ -316,10 +316,10 @@
                         <div style="font-size: 1.4rem; font-weight: 700; color: var(--primary-color); line-height: 1.4;">
                             "${translation}"
                         </div>
-                        ${success ? 
-                            `<div style="position: absolute; top: 0.5rem; right: 0.5rem; background: var(--success-color); color: white; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">✅ BAŞARILI</div>` : 
-                            `<div style="position: absolute; top: 0.5rem; right: 0.5rem; background: var(--danger-color); color: white; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">❌ HATALI</div>`
-                        }
+                        ${success ?
+                    `<div style="position: absolute; top: 0.5rem; right: 0.5rem; background: var(--success-color); color: white; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">✅ BAŞARILI</div>` :
+                    `<div style="position: absolute; top: 0.5rem; right: 0.5rem; background: var(--danger-color); color: white; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">❌ HATALI</div>`
+                }
                     </div>
                     
                     <div style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center;">
@@ -357,7 +357,7 @@
             icon: 'fas fa-language',
             plugin: 'Advanced Translate'
         });
-        
+
         // Auto-suggestion'a ekle
         if (success) {
             e.detail.addSuggestion({
@@ -367,12 +367,12 @@
             });
         }
     }
-    
+
     // Klavye kısayolları
     document.addEventListener('keydown', (e) => {
         const searchInput = document.querySelector('.search-input, .search-input-header');
         if (!searchInput) return;
-        
+
         // Ctrl+Shift+T ile Türkçe çeviri
         if (e.ctrlKey && e.shiftKey && e.key === 'T') {
             const currentValue = searchInput.value.trim();
@@ -380,7 +380,7 @@
             searchInput.focus();
             searchInput.dispatchEvent(new Event('input'));
         }
-        
+
         // Ctrl+Shift+E ile İngilizce çeviri
         if (e.ctrlKey && e.shiftKey && e.key === 'E') {
             const currentValue = searchInput.value.trim();

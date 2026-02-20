@@ -532,26 +532,44 @@
 
 		<section class="sidebar-section">
 			<h3 class="section-title">
-				<i class="fas fa-cogs icon" aria-hidden="true"></i>
-				{$t("searchEngine")}
+				<i class="fas fa-search-plus icon" aria-hidden="true"></i>
+				Arama Ayarları
 			</h3>
+			<p class="section-desc">Varsayılan arama motorunu değiştirin:</p>
 			<div class="select-wrapper">
 				<select
 					bind:value={$selectedEngine}
 					aria-label="Arama Motoru Seçimi"
 				>
-					<option value="Hybrid Proxy">Hybrid Proxy Sonuçları</option>
-					<option value="Brave">Brave Search</option>
-					<option value="DuckDuckGo">DuckDuckGo</option>
-					<option value="Google">Google</option>
-					<option value="Bing">Bing</option>
-					<option value="Yahoo">Yahoo</option>
-					<option value="Yandex">Yandex</option>
+					<option value="Hybrid Proxy">Artado Proxy (Önerilen)</option
+					>
 				</select>
-				<i class="fas fa-chevron-down dropdown-icon" aria-hidden="true"
+				<i class="fas fa-shield-alt dropdown-icon" aria-hidden="true"
 				></i>
 			</div>
+			{#if $selectedEngine === "Hybrid Proxy"}
+				<p class="engine-tip">
+					<i class="fas fa-shield-alt"></i> Gizlilik için optimize edildi.
+				</p>
+			{/if}
 		</section>
+
+		<style>
+			.section-desc {
+				font-size: 0.8rem;
+				color: var(--text-color-secondary);
+				margin: 0 0 0.5rem 0;
+				opacity: 0.8;
+			}
+			.engine-tip {
+				font-size: 0.75rem;
+				color: var(--primary-color);
+				margin-top: 0.5rem;
+				display: flex;
+				align-items: center;
+				gap: 5px;
+			}
+		</style>
 
 		<hr class="divider" />
 

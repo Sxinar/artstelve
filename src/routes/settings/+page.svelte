@@ -1,4 +1,5 @@
 <script lang="js">
+    import { page } from "$app/stores";
     import { getContext, onMount } from "svelte";
     import { writable } from "svelte/store";
     import { goto } from "$app/navigation";
@@ -132,6 +133,22 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 .result-item-card { border-radius: 20px; border: 3px solid #ffb7b2; background: #fff0f5; }
 .search-box { border: 3px solid #ff9aa2; }
 .sidebar { background: #ffdac1; }`,
+            midnightOled: `
+/* Midnight OLED */
+:root { --background-color: #000000; --card-background: #0a0a0a; --text-color: #ffffff; --border-color: #222; }
+body { background: #000 !important; }
+.result-item-card { border: 1px solid #333; box-shadow: none; }`,
+            matrix: `
+/* Matrix Green */
+:root { --primary-color: #00ff41; --text-color: #00ff41; --background-color: #000; --card-background: #050505; }
+* { font-family: 'Courier New', monospace !important; }
+.result-item-card { border: 1px solid #00ff41; box-shadow: 0 0 5px #00ff41; }
+a { color: #00ff41 !important; }`,
+            lavenderMist: `
+/* Lavender Mist */
+:root { --primary-color: #9d50bb; --background-color: #f8f9ff; --card-background: #ffffff; --text-color: #2d3436; }
+.result-item-card { border: none; border-radius: 24px; box-shadow: 0 10px 30px rgba(157, 80, 187, 0.05); }
+.search-box { border-radius: 30px; background: #fff; border: 1px solid #eee; }`,
         };
         if (presets[preset]) applyCustomCss(presets[preset]);
     }
@@ -188,7 +205,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `artstelve_settings_${new Date().toISOString().slice(0, 10)}.json`;
+        a.download = `artado_search_settings_${new Date().toISOString().slice(0, 10)}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -248,6 +265,10 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                     searchHomeDesign.set(settings.searchHomeDesign);
                 if (settings.showNavbarSubCategory !== undefined)
                     showNavbarSubCategory.set(settings.showNavbarSubCategory);
+                if (settings.showNavbarSearch !== undefined)
+                    showNavbarSearch.set(settings.showNavbarSearch);
+                if (settings.searchHomeCustomTheme)
+                    searchHomeCustomTheme.set(settings.searchHomeCustomTheme);
 
                 alert("Ayarlar başarıyla geri yüklendi!");
                 location.reload(); // Reload to ensure full application
@@ -490,7 +511,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 </script>
 
 <svelte:head>
-    <title>{$t("settings")} - Stelve</title>
+    <title>{$t("settings")} - Artado Search</title>
 </svelte:head>
 
 <div class="settings-page" transition:fade={{ duration: 300 }}>
@@ -507,7 +528,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             Plugins: {$plugins.length}<br />
             Browser: {browser}<br />
             <button
-                on:click={() =>
+                onclick={() =>
                     console.log("Debug Data:", {
                         activeTab,
                         themes: $themes,
@@ -539,31 +560,13 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <li>
                             <button
                                 class:active={activeTab === tab.id}
-                                on:click={() => (activeTab = tab.id)}
+                                onclick={() => (activeTab = tab.id)}
                             >
                                 <i class={tab.icon}></i>
                                 <span>{$t(tab.label)}</span>
                             </button>
                         </li>
                     {/each}
-                    <li>
-                        <button
-                            on:click={() =>
-                                (window.location.href = "/settings/themes")}
-                        >
-                            <i class="fas fa-paint-brush"></i>
-                            <span>Temalar</span>
-                        </button>
-                    </li>
-                    <li>
-                        <button
-                            on:click={() =>
-                                (window.location.href = "/settings/plugins")}
-                        >
-                            <i class="fas fa-plug"></i>
-                            <span>Eklentiler</span>
-                        </button>
-                    </li>
                 </ul>
             </nav>
         </aside>
@@ -589,25 +592,25 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
                         <div class="divider"></div>
 
-                        <div class="setting-row">
+                        <div class="setting-group">
                             <div class="setting-info">
-                                <h3>{$t("searchEngine")}</h3>
-                                <p>Varsayılan arama motorunuzu belirleyin.</p>
+                                <label for="engine-select">Arama Kaynağı</label>
+                                <p>Sonuçların getirileceği güvenli katman.</p>
                             </div>
-                            <div class="select-wrapper">
-                                <select bind:value={$selectedEngine}>
-                                    <option value="Hybrid Proxy"
-                                        >Hybrid Proxy Sonuçları</option
+                            <div class="setting-control">
+                                <div class="enhanced-select">
+                                    <select
+                                        id="engine-select"
+                                        bind:value={$selectedEngine}
                                     >
-                                    <option value="Brave">Brave Search</option>
-                                    <option value="DuckDuckGo"
-                                        >DuckDuckGo</option
-                                    >
-                                    <option disabled>Google (Yakında)</option>
-                                </select>
+                                        <option value="Hybrid Proxy"
+                                            >Artado Proxy (Önerilen)</option
+                                        >
+                                    </select>
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
                             </div>
                         </div>
-
                         <div class="divider"></div>
 
                         <div class="setting-row">
@@ -628,16 +631,30 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>Güvenli Arama</h3>
-                                <p>Uygunsuz içerikleri filtreleyin.</p>
+                                <h3>Varsayılan Arama Motoru Yap</h3>
+                                <p>
+                                    Artado'yu tarayıcınızın varsayılan arama
+                                    motoru olarak ayarlayın.
+                                </p>
                             </div>
-                            <label class="switch">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={$safeSearch}
-                                />
-                                <span class="slider"></span>
-                            </label>
+                            <div class="setting-actions">
+                                <button
+                                    class="btn btn-outline"
+                                    onclick={() => {
+                                        alert(
+                                            "1. Tarayıcı ayarlarını açın.\n2. 'Arama Motoru' bölümüne gidin.\n3. 'Artado Search'ü bulun ve 'Varsayılan Yap' seçeneğine tıklayın.",
+                                        );
+                                    }}
+                                >
+                                    <i class="fas fa-info-circle"></i> Yardım
+                                </button>
+                                <a
+                                    href="/opensearch.xml"
+                                    class="btn btn-outline"
+                                >
+                                    <i class="fas fa-plus-circle"></i> Ekle
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -689,29 +706,111 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
 
                         <div class="divider"></div>
 
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>Temalar ve Eklentiler</h3>
-                                <p>
-                                    Workshop'tan temaları ve eklentileri
-                                    yönetin.
-                                </p>
-                            </div>
-                            <div class="setting-actions">
-                                <a
-                                    href="/settings/themes"
-                                    class="btn btn-outline"
-                                >
-                                    <i class="fas fa-paint-brush"></i>
-                                    Temalar
-                                </a>
-                                <a
-                                    href="/settings/plugins"
-                                    class="btn btn-outline"
-                                >
-                                    <i class="fas fa-puzzle-piece"></i>
-                                    Eklentiler
-                                </a>
+                        <div class="workshop-integration">
+                            <h3>
+                                <i class="fas fa-store"></i> Workshop (Temalar &
+                                Eklentiler)
+                            </h3>
+                            <p
+                                style="margin-bottom: 1.5rem; color: var(--text-color-secondary); font-size: 0.9rem;"
+                            >
+                                Görünümü ve özellikleri özelleştirmek için
+                                topluluk tarafından oluşturulan içerikleri
+                                keşfedin.
+                            </p>
+
+                            <div class="workshop-tabs">
+                                {#if $isLoadingWorkshop}
+                                    <p>Yükleniyor...</p>
+                                {:else if $workshopError}
+                                    <div class="error-msg">
+                                        <i class="fas fa-exclamation-circle"
+                                        ></i>
+                                        {$workshopError}
+                                    </div>
+                                {:else}
+                                    <div class="workshop-sections">
+                                        <div class="workshop-section">
+                                            <h4>
+                                                <i class="fas fa-palette"></i> Popüler
+                                                Temalar
+                                            </h4>
+                                            <div class="workshop-mini-grid">
+                                                {#each $themes.slice(0, 4) as theme}
+                                                    <div class="mini-item">
+                                                        <img
+                                                            src={theme.image_url ||
+                                                                "/placeholder.png"}
+                                                            alt={theme.name}
+                                                        />
+                                                        <div class="mini-info">
+                                                            <span
+                                                                >{theme.name}</span
+                                                            >
+                                                            <button
+                                                                onclick={() =>
+                                                                    applyWorkshopItem(
+                                                                        theme,
+                                                                        "theme",
+                                                                    )}
+                                                                >Uygula</button
+                                                            >
+                                                        </div>
+                                                    </div>
+                                                {/each}
+                                            </div>
+                                            <a
+                                                href="/settings/themes"
+                                                class="view-all"
+                                                >Tüm Temaları Gör <i
+                                                    class="fas fa-arrow-right"
+                                                ></i></a
+                                            >
+                                        </div>
+
+                                        <div class="divider"></div>
+
+                                        <div class="workshop-section">
+                                            <h4>
+                                                <i class="fas fa-puzzle-piece"
+                                                ></i> Öne Çıkan Eklentiler
+                                            </h4>
+                                            <div class="workshop-mini-grid">
+                                                {#each $plugins.slice(0, 4) as plugin}
+                                                    <div class="mini-item">
+                                                        <div
+                                                            class="plugin-icon"
+                                                        >
+                                                            <i
+                                                                class="fas fa-plug"
+                                                            ></i>
+                                                        </div>
+                                                        <div class="mini-info">
+                                                            <span
+                                                                >{plugin.name}</span
+                                                            >
+                                                            <button
+                                                                onclick={() =>
+                                                                    applyWorkshopItem(
+                                                                        plugin,
+                                                                        "plugin",
+                                                                    )}
+                                                                >Aktif Et</button
+                                                            >
+                                                        </div>
+                                                    </div>
+                                                {/each}
+                                            </div>
+                                            <a
+                                                href="/settings/plugins"
+                                                class="view-all"
+                                                >Tüm Eklentileri Gör <i
+                                                    class="fas fa-arrow-right"
+                                                ></i></a
+                                            >
+                                        </div>
+                                    </div>
+                                {/if}
                             </div>
                         </div>
                     </div>
@@ -759,8 +858,9 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 <h3>Proxy Base URL</h3>
                                 <p>
                                     Varsayılan:
-                                    https://artstelve-proxy.vercel.app/ — self
-                                    host ederek kendi sunucunuzu
+                                    https://artstelve-proxy.vercel.app/ — kendi
+                                    proxy sunucunuzu kullanıyorsanız burayı
+                                    güncelleyin. host ederek kendi sunucunuzu
                                     kullanabilirsiniz.
                                 </p>
                             </div>
@@ -862,7 +962,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 </div>
                                 <button
                                     class="button"
-                                    on:click={pingProxy}
+                                    onclick={pingProxy}
                                     disabled={isTestingProxy}
                                 >
                                     <i
@@ -963,7 +1063,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 <button
                                     class="theme-button"
                                     class:active={$selectedTheme === theme}
-                                    on:click={() => selectedTheme.set(theme)}
+                                    onclick={() => selectedTheme.set(theme)}
                                 >
                                     <div
                                         class="theme-preview-box {theme}"
@@ -979,7 +1079,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                             class="theme-button"
                                             class:active={$selectedTheme ===
                                                 itheme.id}
-                                            on:click={() =>
+                                            onclick={() =>
                                                 selectedTheme.set(itheme.id)}
                                         >
                                             <div
@@ -994,11 +1094,13 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                         </button>
                                         <button
                                             class="delete-theme-btn"
-                                            on:click|stopPropagation={() =>
+                                            onclick={(e) => {
+                                                e.stopPropagation();
                                                 uninstallItem(
                                                     itheme.id,
                                                     "theme",
-                                                )}
+                                                );
+                                            }}
                                             title="Temayı Sil"
                                         >
                                             <i class="fas fa-trash"></i>
@@ -1012,7 +1114,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <div class="themes-grid small">
                             <button
                                 class="theme-button"
-                                on:click={() => applySidebarTheme("default")}
+                                onclick={() => applySidebarTheme("default")}
                             >
                                 <div
                                     class="theme-preview-box small sidebar-default"
@@ -1021,7 +1123,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                             </button>
                             <button
                                 class="theme-button"
-                                on:click={() => applySidebarTheme("gradient")}
+                                onclick={() => applySidebarTheme("gradient")}
                             >
                                 <div
                                     class="theme-preview-box small sidebar-gradient"
@@ -1030,7 +1132,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                             </button>
                             <button
                                 class="theme-button"
-                                on:click={() => applySidebarTheme("glass")}
+                                onclick={() => applySidebarTheme("glass")}
                             >
                                 <div
                                     class="theme-preview-box small sidebar-glass"
@@ -1046,20 +1148,32 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                     <div class="setting-card">
                         <p>Hızlı başlangıç için hazır CSS şablonları:</p>
                         <div class="preset-buttons">
-                            <button on:click={() => applyPresetCSS("minimal")}
+                            <button onclick={() => applyPresetCSS("minimal")}
                                 >Minimal</button
                             >
                             <button
-                                on:click={() => applyPresetCSS("glassmorphism")}
+                                onclick={() => applyPresetCSS("glassmorphism")}
                                 >Glassmorphism</button
                             >
-                            <button on:click={() => applyPresetCSS("neon")}
-                                >Neon</button
+                            <button
+                                onclick={() => applyPresetCSS("midnightOled")}
+                                aria-label="Midnight OLED Tema Uygula"
+                                >Midnight OLED</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("matrix")}
+                                aria-label="Matrix Green Tema Uygula"
+                                >Matrix</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("lavenderMist")}
+                                aria-label="Lavender Mist Tema Uygula"
+                                >Lavender</button
                             >
                         </div>
                         <textarea
                             bind:value={$customCssStore}
-                            on:input={(e) => applyCustomCss(e.target.value)}
+                            oninput={(e) => applyCustomCss(e.target.value)}
                             rows="12"
                             placeholder="/* CSS kodunuzu buraya yazın... */"
                             class="css-editor"
@@ -1067,7 +1181,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <button
                             class="button danger"
                             style="margin-top: 1rem;"
-                            on:click={() => applyCustomCss("")}>Temizle</button
+                            onclick={() => applyCustomCss("")}>Temizle</button
                         >
                     </div>
                 </section>
@@ -1084,7 +1198,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                         <div class="action-buttons">
                             <button
                                 class="button primary"
-                                on:click={backupSettings}
+                                onclick={backupSettings}
                             >
                                 <i class="fas fa-download"></i> Ayarları Yedekle
                                 (İndir)
@@ -1095,7 +1209,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                 <input
                                     type="file"
                                     accept=".json"
-                                    on:change={restoreSettings}
+                                    onchange={restoreSettings}
                                     style="display: none;"
                                 />
                             </label>
@@ -1114,7 +1228,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                     <li>
                                         <span>{site}</span>
                                         <button
-                                            on:click={() =>
+                                            onclick={() =>
                                                 removeBlockedSite(site)}
                                             title="Engeli Kaldır"
                                         >
@@ -1141,8 +1255,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                             <p>{$workshopError}</p>
                             <button
                                 class="button secondary small"
-                                on:click={fetchWorkshopItems}
-                                >Tekrar Dene</button
+                                onclick={fetchWorkshopItems}>Tekrar Dene</button
                             >
                         </div>
                     {:else}
@@ -1176,7 +1289,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                     <button
                                                         class="button primary small"
                                                         style="background-color: var(--error-color, #dc3545); color: white;"
-                                                        on:click={() =>
+                                                        onclick={() =>
                                                             uninstallItem(
                                                                 theme.id ||
                                                                     theme.name
@@ -1193,7 +1306,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                 {:else}
                                                     <button
                                                         class="button primary small"
-                                                        on:click={() =>
+                                                        onclick={() =>
                                                             installItem(
                                                                 theme,
                                                                 "theme",
@@ -1209,7 +1322,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                     <button
                                                         class="button secondary small"
                                                         style="background: var(--accent-color); border: none;"
-                                                        on:click={() =>
+                                                        onclick={() =>
                                                             applyRemoteItem(
                                                                 theme,
                                                                 "theme",
@@ -1261,7 +1374,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                     <button
                                                         class="button secondary small"
                                                         style="background-color: var(--error-color, #dc3545); color: white;"
-                                                        on:click={() =>
+                                                        onclick={() =>
                                                             uninstallItem(
                                                                 plugin.id ||
                                                                     plugin.name
@@ -1278,7 +1391,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
                                                 {:else}
                                                     <button
                                                         class="button secondary small"
-                                                        on:click={() =>
+                                                        onclick={() =>
                                                             installItem(
                                                                 plugin,
                                                                 "plugin",
@@ -1345,6 +1458,7 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
             var(--primary-color),
             var(--accent-color)
         );
+        background-clip: text;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
@@ -2162,6 +2276,90 @@ h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
         margin: 0;
         font-size: 0.85rem;
         opacity: 0.8;
+    }
+
+    /* Workshop Integration Styles */
+    .workshop-integration {
+        padding: 1rem 0;
+    }
+    .workshop-mini-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .mini-item {
+        background: var(--input-background);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s;
+    }
+    .mini-item:hover {
+        transform: translateY(-2px);
+        border-color: var(--primary-color);
+    }
+    .mini-item img {
+        width: 100%;
+        height: 100px;
+        object-fit: cover;
+    }
+    .mini-info {
+        padding: 0.8rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .mini-info span {
+        font-size: 0.85rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .mini-info button {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.4rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+    }
+    .plugin-icon {
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--hover-background);
+        font-size: 2rem;
+        color: var(--primary-color);
+    }
+    .view-all {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .view-all:hover {
+        text-decoration: underline;
+    }
+    .workshop-section h4 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-color);
+    }
+    .error-msg {
+        color: #ff4757;
+        font-size: 0.9rem;
+        padding: 1rem;
+        background: rgba(255, 71, 87, 0.1);
+        border-radius: 8px;
     }
 
     .report-btn {
