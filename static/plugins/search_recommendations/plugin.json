@@ -1,7 +1,0 @@
-{
-    "name": "Search Recommendations",
-    "author": "Artstelve Team",
-    "version": "1.0.0",
-    "description": "Intelligent search recommendations based on query analysis, history, and popular searches",
-    "main": "search_recommendations.js"
-}
