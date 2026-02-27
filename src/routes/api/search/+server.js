@@ -3,22 +3,6 @@ import { json } from '@sveltejs/kit';
 
 const PROXY_SEARCH_BASE_URL = process.env.PROXY_SEARCH_BASE_URL || 'https://artadoproxy.vercel.app';
 
-function mapEngineToProxyEngines(engine) {
-    if (!engine) return undefined;
-    const normalized = String(engine).trim().toLowerCase();
-    if (normalized === 'brave') return 'brave';
-    if (normalized === 'duckduckgo' || normalized === 'duck') return 'duckduckgo';
-    if (normalized === 'startpage') return 'startpage';
-    if (normalized === 'qwant') return 'qwant';
-    if (normalized === 'ecosia') return 'ecosia';
-    if (normalized === 'mojeek') return 'mojeek';
-    if (normalized === 'yahoo') return 'yahoo';
-    if (normalized === 'ask') return 'ask';
-    if (normalized === 'aol') return 'aol';
-    if (normalized === 'yandex') return 'yandex';
-    return undefined;
-}
-
 // Bang komutları için yönlendirme URL'leri
 const BANG_COMMANDS = {
     '!g': 'https://www.google.com/search?q=',
