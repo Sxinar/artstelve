@@ -42,7 +42,7 @@ function createPersistentStore(key, startValue) {
 // --- Global Stores ---
 
 // Theme Store (persisted)
-export const selectedTheme = createPersistentStore('selectedTheme', 'midnight_glow'); // Default theme is midnight_glow (lowercase, kebab-case)
+export const selectedTheme = createPersistentStore('selectedTheme', 'midnight_glow'); 
 
 // Custom Logo Store (persisted)
 export const customLogo = createPersistentStore('customLogo', '/logo.png');
@@ -64,10 +64,10 @@ export const selectedLanguage = createPersistentStore('selectedLanguage', 'tr');
 // Search Engine Store (persisted)
 export const selectedEngine = createPersistentStore('selectedEngine', 'Hybrid Proxy'); // Default Hybrid Proxy 
 
-export const hybridProxyBaseUrl = createPersistentStore('hybridProxyBaseUrl', 'https://artstelve-proxy.vercel.app'); // Gelecekte artado-proxy olarak güncellenebilir
-export const hybridProxyEngines = createPersistentStore('hybridProxyEngines', 'duckduckgo,google,bing,yandex,yahoo,brave,startpage,qwant,ecosia,mojeek,ask,aol');
+export const hybridProxyBaseUrl = createPersistentStore('hybridProxyBaseUrl', 'https://artadoproxy.vercel.app');
+export const hybridProxyEngines = createPersistentStore('hybridProxyEngines', 'duckduckgo,brave,startpage,qwant,mojeek,ask,marginalia');
 export const hybridProxyLimitPerEngine = createPersistentStore('hybridProxyLimitPerEngine', 5);
-export const hybridProxyLimitTotal = createPersistentStore('hybridProxyLimitTotal', 20);
+export const hybridProxyLimitTotal = createPersistentStore('hybridProxyLimitTotal', 35);
 export const hybridProxyTimeoutMs = createPersistentStore('hybridProxyTimeoutMs', 20000);
 export const hybridProxyCache = createPersistentStore('hybridProxyCache', true);
 

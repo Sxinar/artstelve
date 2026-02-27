@@ -93,9 +93,10 @@
         {
             id: "Çeviri",
             icon: "fas fa-language",
-            label: "translate",
+            label: "Translate",
             show: true,
         },
+        { id: "Bangs", icon: "fas fa-bolt", label: "Bangs" },
         { id: "Gelişmiş", icon: "fas fa-tools", label: "advanced" },
         { id: "Özel CSS", icon: "fas fa-code", label: "customCSS" },
     ];
@@ -296,64 +297,48 @@ a { color: #00ff41 !important; }`,
         debugLog("fetchWorkshopItems started");
         isLoadingWorkshop.set(true);
         try {
-            const response = await fetch("/api/workshop/items");
-            debugLog("Workshop API response", {
-                status: response.status,
-                ok: response.ok,
+            // Fetch themes (which now contains logos only)
+            const themesResponse = await fetch("/api/workshop/themes");
+            debugLog("Workshop Themes API response", {
+                status: themesResponse.status,
+                ok: themesResponse.ok,
             });
-            if (response.ok) {
-                const data = await response.json();
+            
+            // Fetch items (which returns empty since disabled)
+            const itemsResponse = await fetch("/api/workshop/items");
+            debugLog("Workshop Items API response", {
+                status: itemsResponse.status,
+                ok: itemsResponse.ok,
+            });
+            
+            if (themesResponse.ok && itemsResponse.ok) {
+                const themesData = await themesResponse.json();
+                const itemsData = await itemsResponse.json();
+                
                 debugLog("Workshop data received", {
-                    success: data.success,
-                    themesCount: data.themes?.length,
-                    pluginsCount: data.plugins?.length,
+                    themesCount: themesData.themes?.length,
+                    itemsSuccess: itemsData.success,
                 });
-                if (data.success) {
-                    themes.set(data.themes || []);
-
-                    // Separate plugins and logos
-                    const allPlugins = data.plugins || [];
-                    const _plugins = [];
-                    const _logos = [];
-                    const _homeThemes = [];
-
-                    allPlugins.forEach((p) => {
-                        const type = (p.category || "").toLowerCase();
-                        const u = (p.download_url || "").toLowerCase();
-                        if (type === "ana-sayfa" || type === "home") {
-                            _homeThemes.push(p);
-                        } else if (
-                            u.endsWith(".png") ||
-                            u.endsWith(".jpg") ||
-                            u.endsWith(".jpeg") ||
-                            u.endsWith(".gif") ||
-                            u.endsWith(".svg") ||
-                            u.endsWith(".webp")
-                        ) {
-                            _logos.push(p);
-                        } else {
-                            _plugins.push(p);
-                        }
-                    });
-
-                    plugins.set(_plugins);
-                    logos.set(_logos);
-                    homeThemes.set(_homeThemes);
-                    workshopError.set(null);
-                    debugLog("Workshop items processed", {
-                        themes: _plugins.length,
-                        logos: _logos.length,
-                        homeThemes: _homeThemes.length,
-                    });
-                } else {
-                    workshopError.set(
-                        data.error || "Bilinmeyen bir API hatası oluştu.",
-                    );
-                    debugLog("Workshop API error", data.error);
-                }
+                
+                // Set themes (empty since we disabled themes)
+                themes.set([]);
+                
+                // Set logos from themes API
+                logos.set(themesData.themes || []);
+                
+                // Set plugins and home themes (empty since disabled)
+                plugins.set([]);
+                homeThemes.set([]);
+                
+                workshopError.set(null);
+                debugLog("Workshop items processed", {
+                    logos: themesData.themes?.length,
+                });
             } else {
-                workshopError.set(`Sunucu hatası: ${response.status}`);
-                debugLog("Workshop server error", response.status);
+                workshopError.set(
+                    data.error || "Workshop devre dışı bırakıldı.",
+                );
+                debugLog("Workshop API error", data.error);
             }
         } catch (err) {
             console.error(err);
@@ -396,6 +381,10 @@ a { color: #00ff41 !important; }`,
             alert(
                 "Eklenti buluttan uygulandı! Bir sonraki aramanızda etkinleşecek.",
             );
+        } else if (type === "logo") {
+            // Apply logo to customLogo store
+            customLogo.set(item.download_url);
+            alert("Logo anında uygulandı!");
         }
     }
 
@@ -508,6 +497,30 @@ a { color: #00ff41 !important; }`,
             .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
             .join(" ");
     }
+
+    function saveDefaultEngine() {
+        // The selectedEngine store is already persistent, so it's automatically saved
+        alert("Varsayılan arama motoru kaydedildi!\n\nSeçiminiz: " + $selectedEngine);
+    }
+
+    function installAsDefaultSearch() {
+        // Create OpenSearch description and trigger browser installation
+        if (browser && window.external && 'AddSearchProvider' in window.external) {
+            // For Internet Explorer/Edge
+            window.external.AddSearchProvider('/opensearch.xml');
+        } else {
+            // For modern browsers - show instructions
+            alert(
+                "Tarayıcınızda varsayılan arama motoru olarak ayarlamak için:\n\n" +
+                "1. Adres çubuğuna tıklayın\n" +
+                "2. Arama motoru simgesine tıklayın\n" +
+                "3. 'Arama motorlarını yönet' seçeneğini seçin\n" +
+                "4. 'Artado Search'ü bulun ve varsayılan yapın\n\n" +
+                "Veya doğrudan OpenSearch'i ekleyin:"
+            );
+            window.open('/opensearch.xml', '_blank');
+        }
+    }
 </script>
 
 <svelte:head>
@@ -606,8 +619,8 @@ a { color: #00ff41 !important; }`,
                                         <option value="Hybrid Proxy"
                                             >Artado Proxy (Önerilen)</option
                                         >
+
                                     </select>
-                                    <i class="fas fa-shield-alt"></i>
                                 </div>
                             </div>
                         </div>
@@ -631,29 +644,32 @@ a { color: #00ff41 !important; }`,
 
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>Varsayılan Arama Motoru Yap</h3>
+                                <h3>Tarayıcı Varsayılan Arama Motoru</h3>
                                 <p>
-                                    Artado'yu tarayıcınızın varsayılan arama
-                                    motoru olarak ayarlayın.
+                                    Artado Search'ü tarayıcınızın varsayılan arama motoru olarak ayarlayın.
                                 </p>
                             </div>
                             <div class="setting-actions">
                                 <button
+                                    class="btn btn-primary"
+                                    onclick={installAsDefaultSearch}
+                                >
+                                    <i class="fas fa-plus-circle"></i> Tarayıcıya Ekle
+                                </button>
+                                <button
                                     class="btn btn-outline"
                                     onclick={() => {
                                         alert(
-                                            "1. Tarayıcı ayarlarını açın.\n2. 'Arama Motoru' bölümüne gidin.\n3. 'Artado Search'ü bulun ve 'Varsayılan Yap' seçeneğine tıklayın.",
+                                            "Tarayıcınızda varsayılan arama motoru olarak ayarlamak için:\n\n" +
+                                            "1. Adres çubuğuna tıklayın\n" +
+                                            "2. Arama motoru simgesine tıklayın\n" +
+                                            "3. 'Arama motorlarını yönet' seçeneğini seçin\n" +
+                                            "4. 'Artado Search'ü bulun ve varsayılan yapın"
                                         );
                                     }}
                                 >
                                     <i class="fas fa-info-circle"></i> Yardım
                                 </button>
-                                <a
-                                    href="/opensearch.xml"
-                                    class="btn btn-outline"
-                                >
-                                    <i class="fas fa-plus-circle"></i> Ekle
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -708,15 +724,11 @@ a { color: #00ff41 !important; }`,
 
                         <div class="workshop-integration">
                             <h3>
-                                <i class="fas fa-store"></i> Workshop (Temalar &
-                                Eklentiler)
+                                <i class="fas fa-store"></i> Workshop (Logolar)
                             </h3>
-                            <p
-                                style="margin-bottom: 1.5rem; color: var(--text-color-secondary); font-size: 0.9rem;"
-                            >
-                                Görünümü ve özellikleri özelleştirmek için
-                                topluluk tarafından oluşturulan içerikleri
-                                keşfedin.
+                            <p>
+                                Workshop'tan özel logo tasarımlarını keşfedin. Seçtiğiniz
+                                logo anında uygulanır.
                             </p>
 
                             <div class="workshop-tabs">
@@ -731,80 +743,32 @@ a { color: #00ff41 !important; }`,
                                 {:else}
                                     <div class="workshop-sections">
                                         <div class="workshop-section">
-                                            <h4>
-                                                <i class="fas fa-palette"></i> Popüler
-                                                Temalar
-                                            </h4>
+
                                             <div class="workshop-mini-grid">
-                                                {#each $themes.slice(0, 4) as theme}
+                                                {#each $logos.slice(0, 4) as logo}
                                                     <div class="mini-item">
                                                         <img
-                                                            src={theme.image_url ||
-                                                                "/placeholder.png"}
-                                                            alt={theme.name}
+                                                            src={logo.download_url || "/placeholder.png"}
+                                                            alt={logo.name}
+                                                            style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
                                                         />
                                                         <div class="mini-info">
-                                                            <span
-                                                                >{theme.name}</span
-                                                            >
+                                                            <span>{logo.name}</span>
                                                             <button
                                                                 onclick={() =>
                                                                     applyWorkshopItem(
-                                                                        theme,
-                                                                        "theme",
+                                                                        logo,
+                                                                        "logo",
                                                                     )}
-                                                                >Uygula</button
-                                                            >
+                                                            >Seç</button>
                                                         </div>
                                                     </div>
                                                 {/each}
                                             </div>
                                             <a
-                                                href="/settings/themes"
+                                                href="/settings/logos"
                                                 class="view-all"
-                                                >Tüm Temaları Gör <i
-                                                    class="fas fa-arrow-right"
-                                                ></i></a
-                                            >
-                                        </div>
-
-                                        <div class="divider"></div>
-
-                                        <div class="workshop-section">
-                                            <h4>
-                                                <i class="fas fa-puzzle-piece"
-                                                ></i> Öne Çıkan Eklentiler
-                                            </h4>
-                                            <div class="workshop-mini-grid">
-                                                {#each $plugins.slice(0, 4) as plugin}
-                                                    <div class="mini-item">
-                                                        <div
-                                                            class="plugin-icon"
-                                                        >
-                                                            <i
-                                                                class="fas fa-plug"
-                                                            ></i>
-                                                        </div>
-                                                        <div class="mini-info">
-                                                            <span
-                                                                >{plugin.name}</span
-                                                            >
-                                                            <button
-                                                                onclick={() =>
-                                                                    applyWorkshopItem(
-                                                                        plugin,
-                                                                        "plugin",
-                                                                    )}
-                                                                >Aktif Et</button
-                                                            >
-                                                        </div>
-                                                    </div>
-                                                {/each}
-                                            </div>
-                                            <a
-                                                href="/settings/plugins"
-                                                class="view-all"
-                                                >Tüm Eklentileri Gör <i
+                                                >Tüm Logoları Gör <i
                                                     class="fas fa-arrow-right"
                                                 ></i></a
                                             >
@@ -1054,6 +1018,58 @@ a { color: #00ff41 !important; }`,
                         {/if}
                     </div>
                 </section>
+            {:else if activeTab === "Bangs"}
+                <section in:slide={{ duration: 300 }}>
+                    <h2 class="section-heading">Bang Komutları</h2>
+                    <div class="setting-card">
+                        <div class="setting-info">
+                            <h3>Bang Komutları Hakkında</h3>
+                            <p>
+                                Artado Search'te bang komutlarını kullanarak hızlı arama yapabilirsiniz.
+                                Örneğin: <code>!g test</code> Google'da, <code>!w türkiye</code> Wikipedia'da arama yapar.
+                            </p>
+                        </div>
+      
+                        <div class="divider"></div>
+                        <div class="bangs-preview">
+                            <h4>Bang Komutları</h4>
+                            <div class="bangs-quick-list">
+                                <div class="bang-item">
+                                    <code>!g</code>
+                                    <span>Google</span>
+                                </div>
+                                <div class="bang-item">
+                                    <code>!ddg</code>
+                                    <span>DuckDuckGo</span>
+                                </div>
+                                <div class="bang-item">
+                                    <code>!yt</code>
+                                    <span>YouTube</span>
+                                </div>
+                                <div class="bang-item">
+                                    <code>!w</code>
+                                    <span>Wikipedia</span>
+                                </div>
+                                <div class="bang-item">
+                                    <code>!gh</code>
+                                    <span>GitHub</span>
+                                </div>
+                                <div class="bang-item">
+                                    <code>!tw</code>
+                                    <span>Twitter</span>
+                                </div>
+                                <div class="bang-item">
+                                    <code>!fb</code>
+                                    <span>Facebook</span>
+                                </div>
+                                <div class="bang-item">
+                                    <code>!rd</code>
+                                    <span>Reddit</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             {:else if activeTab === "Temalar"}
                 <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">{$t("themes")}</h2>
@@ -1102,8 +1118,9 @@ a { color: #00ff41 !important; }`,
                                                 );
                                             }}
                                             title="Temayı Sil"
+                                            aria-label="Temayı Sil"
                                         >
-                                            <i class="fas fa-trash"></i>
+                                            <i class="fas fa-trash" aria-hidden="true"></i>
                                         </button>
                                     </div>
                                 {/each}
@@ -1231,8 +1248,9 @@ a { color: #00ff41 !important; }`,
                                             onclick={() =>
                                                 removeBlockedSite(site)}
                                             title="Engeli Kaldır"
+                                            aria-label="Engeli Kaldır"
                                         >
-                                            <i class="fas fa-times"></i>
+                                            <i class="fas fa-times" aria-hidden="true"></i>
                                         </button>
                                     </li>
                                 {/each}
@@ -1385,6 +1403,7 @@ a { color: #00ff41 !important; }`,
                                                                         .toLowerCase(),
                                                                 "plugin",
                                                             )}
+                                                        aria-label="Kaldır"
                                                     >
                                                         Kaldır
                                                     </button>
@@ -2074,6 +2093,7 @@ a { color: #00ff41 !important; }`,
         color: var(--text-color-secondary);
         display: -webkit-box;
         -webkit-line-clamp: 2;
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         margin: 0;
@@ -2559,6 +2579,65 @@ a { color: #00ff41 !important; }`,
     .btn-outline:hover {
         background: var(--primary-color);
         color: white;
+    }
+
+    /* Bangs Preview Section */
+    .bangs-preview {
+        margin-top: 1.5rem;
+    }
+
+    .bangs-preview h4 {
+        font-size: 1rem;
+        margin: 0 0 1rem 0;
+        color: var(--text-color);
+        font-weight: 600;
+    }
+
+    .bangs-quick-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .bang-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background-color: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .bang-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .bang-item code {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .bang-item span {
+        color: var(--text-color);
+        font-size: 0.9rem;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-color-hover);
     }
 
     @media (max-width: 768px) {

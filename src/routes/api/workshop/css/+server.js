@@ -10,7 +10,7 @@ export async function GET({ url }) {
     // Validate URL to prevent SSRF attacks
     try {
         const urlObj = new URL(cssUrl);
-        // Only allow URLs from devs.artado.xyz domain
+        // Only allow URLs from devs.artado.xyz domain (for logos and themes)
         if (!urlObj.hostname.includes('devs.artado.xyz')) {
             return json({ error: 'Invalid URL domain' }, { status: 400 });
         }
@@ -18,7 +18,7 @@ export async function GET({ url }) {
         return json({ error: 'Invalid URL format' }, { status: 400 });
     }
     
-    console.log("[API CSS] Fetching CSS from:", cssUrl);
+    console.log("[API CSS] Fetching CSS/Logo from:", cssUrl);
     
     try {
         // Node.js environment fetch with additional options
@@ -45,9 +45,9 @@ export async function GET({ url }) {
         });
         
     } catch (error) {
-        console.error("[API CSS] Error fetching CSS:", error);
+        console.error("[API CSS] Error fetching CSS/Logo:", error);
         return json({ 
-            error: `Failed to fetch CSS: ${error.message}` 
+            error: `Failed to fetch CSS/Logo: ${error.message}` 
         }, { status: 500 });
     }
 }

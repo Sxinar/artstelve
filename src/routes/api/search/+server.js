@@ -1,11 +1,7 @@
 import { json } from '@sveltejs/kit';
 
-// WARNING: Storing API keys directly in code is insecure, even on the backend.
-// Use environment variables for production.
-const BRAVE_API_KEY = 'BSAuFJ0CRuCgoNsyYopbiFg6hItXpsL';
-// GEMINI_API_KEY Removed
 
-const PROXY_SEARCH_BASE_URL = process.env.PROXY_SEARCH_BASE_URL || 'https://artstelve-proxy.vercel.app'; // Proxy sunucusu henüz rename edilmediyse bu kalabilir
+const PROXY_SEARCH_BASE_URL = process.env.PROXY_SEARCH_BASE_URL || 'https://artadoproxy.vercel.app';
 
 function mapEngineToProxyEngines(engine) {
     if (!engine) return undefined;
@@ -28,59 +24,41 @@ const BANG_COMMANDS = {
     '!g': 'https://www.google.com/search?q=',
     '!ddg': 'https://duckduckgo.com/?q=',
     '!yt': 'https://www.youtube.com/results?search_query=',
-    '!w': 'https://tr.wikipedia.org/wiki/',
+    '!w': 'https://tr.wikipedia.org/w/index.php?title=Özel:Ara&search=',
     '!e': 'https://www.ekşisözlük.com/search/?q=',
     '!gh': 'https://github.com/search?q=',
-    '!a': 'https://artado.xyz/search?i=' // Artado için bang komutu
+    '!a': 'https://artadosearch.com/search?i=', // Artado için bang komutu
+    '!tw': 'https://twitter.com/search?q=',
+    '!fb': 'https://www.facebook.com/search/top?q=',
+    '!li': 'https://www.linkedin.com/search/results/all/?keywords=',
+    '!in': 'https://www.instagram.com/explore/tags/',
+    '!rd': 'https://www.reddit.com/search/?q=',
+    '!so': 'https://stackoverflow.com/search?q=',
+    '!wp': 'https://wordpress.org/search/',
+    '!mdn': 'https://developer.mozilla.org/en-US/search?q=',
+    '!w3': 'https://www.w3schools.com/search/default.asp?q=',
+    '!cs': 'https://css-tricks.com/search/',
+    '!py': 'https://docs.python.org/3/search.html?q=',
+    '!node': 'https://nodejs.org/api/',
+    '!react': 'https://react.dev/search?q=',
+    '!vue': 'https://vuejs.org/guide/search.html?q=',
+    '!svelte': 'https://svelte.dev/search?q=',
+    '!npm': 'https://www.npmjs.com/search?q=',
+    '!pypi': 'https://pypi.org/search/?q=',
+    '!docker': 'https://hub.docker.com/search?q=',
+    '!aws': 'https://aws.amazon.com/search?q=',
+    '!azure': 'https://azure.microsoft.com/en-us/search/',
+    '!gcp': 'https://cloud.google.com/search?q=',
+    '!news': 'https://news.google.com/search?q=',
+    '!maps': 'https://www.google.com/maps/search/',
+    '!translate': 'https://translate.google.com/?sl=tr&tl=en&text=',
+    '!dict': 'https://www.google.com/search?q=define+',
+    '!weather': 'https://www.google.com/search?q=weather+',
+    '!time': 'https://www.google.com/search?q=time+',
 };
 
-// Google API için anahtar (entegrasyon tamamlandığında kullanılacak)
-const GOOGLE_API_KEY = 'AIzaSyBK1ZR62nmEawWswvcBCsECYm0dyuExXew'; // Örnek anahtar, gerçek anahtarla değiştirilmeli
-const GOOGLE_CX = '017576662512468239146:omuauf_lfve'; // Örnek CX, gerçek değerle değiştirilmeli
-const BING_API_KEY = ''; // Bing Search API Key goes here
-
-// Helper to get domain - simplified for backend
-function getDomain(url) {
-    if (!url) return '';
-    try {
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            if (url.includes('.')) {
-                return url.replace(/^www\./, '');
-            }
-            return url;
-        }
-        return new URL(url).hostname.replace(/^www\./, '');
-    } catch (e) {
-        console.warn(`[API] Failed to parse domain from URL: ${url}`);
-        return url;
-    }
-}
-
-// Helper to format duration
-function formatDuration(duration) {
-    if (!duration || !duration.startsWith('PT')) return '';
-    try {
-        let time = duration.substring(2);
-        let hours = '';
-        let minutes = '0';
-        let seconds = '0';
-        if (time.includes('H')) [hours, time] = time.split('H');
-        if (time.includes('M')) [minutes, time] = time.split('M');
-        if (time.includes('S')) seconds = time.split('S')[0];
-        seconds = seconds.padStart(2, '0');
-        minutes = minutes.padStart(2, '0');
-        return hours ? `${hours}:${minutes}:${seconds}` : `${minutes}:${seconds}`;
-    } catch (e) { return ''; }
-}
-
-// Helper to format age
-function formatAge(ageString) {
-    return ageString || '';
-}
-
-// Bang komutlarını işleme fonksiyonu
+// Bang komutlarını işle
 function processBangCommand(query) {
-    // Bang komutunu ve arama terimini ayır
     const bangMatch = query.match(/^(![a-z]+)\s+(.+)$/i);
     if (!bangMatch) return null;
 
@@ -88,14 +66,39 @@ function processBangCommand(query) {
     const redirectUrl = BANG_COMMANDS[bangCommand.toLowerCase()];
 
     if (redirectUrl) {
-        // Wikipedia için özel işleme (boşlukları _ ile değiştir)
         if (bangCommand.toLowerCase() === '!w') {
-            return redirectUrl + searchTerm.replace(/\s+/g, '_');
+            return redirectUrl + encodeURIComponent(searchTerm);
         }
         return redirectUrl + encodeURIComponent(searchTerm);
     }
-
     return null;
+}
+
+// Get domain from URL
+function getDomain(url) {
+    if (!url) return '';
+    try {
+        const urlObj = new URL(url);
+        return urlObj.hostname;
+    } catch (e) {
+        return '';
+    }
+}
+
+function mapEngineToProxyEngines(engine) {
+    if (!engine) return undefined;
+    const normalized = String(engine).trim().toLowerCase();
+    if (normalized === 'brave') return 'brave';
+    if (normalized === 'duckduckgo' || normalized === 'duck') return 'duckduckgo';
+    if (normalized === 'startpage') return 'startpage';
+    if (normalized === 'qwant') return 'qwant';
+    if (normalized === 'ecosia') return 'ecosia';
+    if (normalized === 'mojeek') return 'mojeek';
+    if (normalized === 'yahoo') return 'yahoo';
+    if (normalized === 'ask') return 'ask';
+    if (normalized === 'aol') return 'aol';
+    if (normalized === 'yandex') return 'yandex';
+    return undefined;
 }
 
 // DuckDuckGo Instant Answer API integration
@@ -286,9 +289,9 @@ export async function GET({ url, setHeaders }) {
         }
     }
 
-    // === USE PROXY FOR IMAGES, VIDEOS, NEWS, SCHOLAR ===
+    // === USE PROXY FOR IMAGES, VIDEOS, NEWS ===
     // For these search types, use Artado proxy service instead of Brave API
-    if (['images', 'videos', 'news', 'scholar'].includes(searchType)) {
+    if (['images', 'videos', 'news'].includes(searchType)) {
         try {
             // Pagination logic: Fetch enough results to cover the offset
             const neededLimit = internalOffset + count;
@@ -307,8 +310,7 @@ export async function GET({ url, setHeaders }) {
             if (safe) proxyParams.set('safe', safe);
 
             const timeoutMs = Math.max(3000, Math.min(30000, 15000)); // Increased slightly
-            const proxyEndpoint = searchType === 'scholar' ? 'web' : searchType; // Map scholar to web on proxy if needed or direct endpoint
-            if (searchType === 'scholar') proxyParams.set('engines', 'google_scholar,bing_academic');
+            const proxyEndpoint = searchType;
             const proxyUrl = `${proxyBaseUrl}/search/${proxyEndpoint}?${proxyParams.toString()}`;
 
             console.log(`[API] Fetching ${searchType} results from proxy: ${proxyUrl} (Offset: ${offsetParam}, Limit: ${count})`);
@@ -405,246 +407,151 @@ export async function GET({ url, setHeaders }) {
         }
     }
 
-    // === CONTINUE WITH BRAVE API FOR WEB SEARCH ===
-    // Seçilen arama motoruna göre API URL'sini belirle
-    let apiUrl;
-    let useGoogleApi = false;
-
-    if (engine === 'Google') {
-        useGoogleApi = true;
-        console.log(`[API] Using Google search engine for: ${query}`);
-    } else if (engine === 'Bing') {
-        // Bing logic will be handled in main block
-        console.log(`[API] Using Bing search engine for: ${query}`);
-    } else {
-        const params = new URLSearchParams();
-        params.set('q', query);
-        if (!Number.isNaN(internalOffset) && internalOffset > 0) params.set('offset', String(internalOffset));
-        if (!Number.isNaN(count) && count > 0) params.set('count', String(count));
-        if (safe === 'on') params.set('safesearch', 'strict');
-        if (region && region !== 'all') params.set('country', region); // Map region to country for Brave
-
-        // Request detailed snippets
-        params.set('extra_snippets', 'true');
-
-        // Image specific filters (Brave supports some via query params)
-        if (searchType === 'images') {
-            if (size) params.set('size', size);
-            if (color) params.set('color', color);
-            if (aspect) params.set('aspect', aspect);
-            if (imgType) params.set('type', imgType);
-            if (palette) params.set('palette', palette);
-        }
-        apiUrl = `https://api.search.brave.com/res/v1/${searchType}/search?${params.toString()}`;
-        console.log(`[API] Fetching ${searchType} results for: ${query} from Brave (Region: ${region})`);
-    }
-
+    // === USE PROXY FOR ALL SEARCH TYPES ===
+    // All search types use Artado proxy service
     try {
-        let response;
-        let data;
-        let searchResults = [];
-        let infoBoxResult = null;
-        let wikipediaInfo = null;
+        // Pagination logic: Fetch enough results to cover the offset
+        const neededLimit = internalOffset + count;
+        // Cap at reasonable limit (e.g. 200) to prevent abuse/timeouts
+        const limitTotal = Math.min(200, neededLimit);
 
-        if (useGoogleApi) {
-            return json({ error: 'Google API integration incomplete' }, { status: 501 });
+        const proxyParams = new URLSearchParams();
+        proxyParams.set('q', query);
+        proxyParams.set('limitTotal', String(count));
+        proxyParams.set('p', String(offsetParam + 1));
+        proxyParams.set('offset', String(internalOffset));
+        proxyParams.set('cache', '1');
 
-        } else if (engine === 'DuckDuckGo') {
-            // DuckDuckGo API kullanarak sonuçları getir
-            const ddgResults = await fetchDuckDuckGoResults(query, searchType);
-            if (ddgResults === null) {
-                return json({ error: 'DuckDuckGo API hatası' }, { status: 500 });
-            }
-            searchResults = ddgResults;
-        } else if (engine === 'Bing') {
-            if (!BING_API_KEY) {
-                return json({ error: 'Bing API key not configured' }, { status: 501 });
-            }
-            return json({ error: 'Bing integration pending' }, { status: 501 });
+        // Pass region and safe search to proxy for better relevance
+        if (region && region !== 'all') proxyParams.set('region', region);
+        if (safe) proxyParams.set('safe', safe);
 
-        } else if (['Yahoo', 'Yandex', 'Qwant', 'StartPage'].includes(engine)) {
+        // Add engines if specified
+        if (proxyEngines) proxyParams.set('engines', proxyEngines);
+
+        const timeoutMs = Math.max(3000, Math.min(30000, Number(proxyTimeoutMsRaw ?? 20000)));
+        const proxyEndpoint = searchType;
+        const proxyUrl = `${proxyBaseUrl}/search/${proxyEndpoint}?${proxyParams.toString()}`;
+
+        console.log(`[API] Fetching ${searchType} results from proxy: ${proxyUrl} (Offset: ${offsetParam}, Limit: ${count})`);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        const proxyResponse = await fetch(proxyUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!proxyResponse.ok) {
+            let errorDetails = `Proxy request failed with status ${proxyResponse.status}`;
+            try { errorDetails = await proxyResponse.text(); } catch (e) { }
+            console.error(`[API] Proxy Error for ${searchType}:`, errorDetails);
             return json({
-                warning: `${engine} Search API desteği henüz eklenmedi.`,
-                searchResults: [
-                    {
-                        title: `${engine} Arama API Henüz Hazır Değil`,
-                        description: `Bu arama motoru (${engine}) için API entegrasyonu geliştirme aşamasındadır. Şimdilik Brave veya DuckDuckGo kullanmanızı öneririz.`,
-                        url: '#',
-                        source: 'System'
+                ok: false,
+                error: `Proxy arama hatası: ${proxyResponse.status}`,
+                details: errorDetails
+            }, { status: proxyResponse.status });
+        }
+
+        const proxyData = await proxyResponse.json();
+        const slicedResults = proxyData.results || [];
+        console.log(`[API] Proxy returned ${slicedResults.length} ${searchType} results`);
+
+        let searchResults = [];
+
+    // Map proxy results to frontend-expected format
+        if (searchType === 'images') {
+            searchResults = slicedResults.map(item => ({
+            title: item.title || 'Görsel',
+            thumbnail: item.thumbnail || item.url,
+            url: item.url,
+            source: item.source || getDomain(item.url),
+            width: item.width,
+            height: item.height
+        }));
+        } else if (searchType === 'videos') {
+            searchResults = slicedResults.map(item => ({
+            title: item.title || 'Video',
+            description: item.snippet || '',
+            url: item.url,
+            thumbnail: item.thumbnail,
+            duration: item.duration || '',
+            publisher: item.channel || '',
+            age: item.uploadDate || '',
+            views: item.views || ''
+        }));
+        } else if (searchType === 'news') {
+            searchResults = slicedResults.map(item => ({
+            title: item.title || 'Haber',
+            url: item.url,
+            source: item.source || getDomain(item.url),
+            age: item.publishDate || '',
+            thumbnail: item.imageUrl,
+            description: item.snippet || ''
+        }));
+
+            // Apply news source filter if provided
+            if (newsSource) {
+                const sourceLc = newsSource.toLowerCase();
+                searchResults = searchResults.filter(r =>
+                    (r.source && String(r.source).toLowerCase().includes(sourceLc)) ||
+                    (r.url && getDomain(r.url).toLowerCase().includes(sourceLc))
+                );
+            }
+        } else { // web search
+            searchResults = slicedResults.map(item => ({
+            title: item.title || 'Başlık Yok',
+            url: item.url || '#',
+            description: item.snippet || '',
+            icon: `https://icons.duckduckgo.com/ip3/${getDomain(item.url)}.ico`,
+            sources: Array.isArray(item.sources) && item.sources.length ? item.sources : (item.engine ? [item.engine] : []),
+            age: ''
+        }));
+        }
+
+        // Check Wikipedia for infobox (web search only)
+        let wikipediaInfo = null;
+        if (searchType === 'web') {
+            try {
+                const wikipediaApiUrl = `https://tr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+                const wikiResponse = await fetch(wikipediaApiUrl);
+
+                if (wikiResponse.ok) {
+                    const wikiData = await wikiResponse.json();
+                    if (wikiData.extract) {
+                        wikipediaInfo = {
+                            title: wikiData.title || query,
+                            extract: wikiData.extract,
+                            thumbnail: wikiData.thumbnail?.source,
+                            url: wikiData.content_urls?.desktop?.page || `https://tr.wikipedia.org/wiki/${encodeURIComponent(query)}`
+                        };
                     }
-                ],
-                type: searchType
-            });
-        } else {
-            // Brave API kullanarak sonuçları getir
-            response = await fetch(apiUrl, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Accept-Encoding': 'gzip',
-                    'X-Subscription-Token': BRAVE_API_KEY
                 }
-            });
-
-            if (!response.ok) {
-                let errorBody = `API request failed with status ${response.status}`;
-                try { errorBody = await response.text(); } catch (e) { }
-                console.error(`[API] Brave API Error: ${errorBody}`);
-                return json({ error: `Brave API hatası: ${response.status}`, details: errorBody }, { status: response.status });
-            }
-
-            data = await response.json();
-
-            // Wikipedia logic... (omitted to save tokens if unchanged, but I must replace contiguous block)
-            // Wait, I am replacing a huge block to add `extra_snippets` param.
-
-            // Re-inserting Wikipedia logic to match target block size?
-            // Actually, I can just target the block where I set params.
-            // Better to split this replacement.
-
-            // I'll just Replace the params block.
-
-
-            // Wikipedia özeti için arama yap (web aramaları için)
-            if (searchType === 'web') {
-                try {
-                    const wikipediaApiUrl = `https://tr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
-                    const wikiResponse = await fetch(wikipediaApiUrl);
-
-                    if (wikiResponse.ok) {
-                        const wikiData = await wikiResponse.json();
-                        if (wikiData.extract) {
-                            wikipediaInfo = {
-                                title: wikiData.title || query,
-                                extract: wikiData.extract,
-                                thumbnail: wikiData.thumbnail?.source,
-                                url: wikiData.content_urls?.desktop?.page || `https://tr.wikipedia.org/wiki/${encodeURIComponent(query)}`
-                            };
-                        }
-                    }
-                } catch (wikiErr) {
-                    // Ignore
-                }
-            }
-
-            // --- Process results ---
-            // Web Results
-            if (searchType === 'web' && data.web && data.web.results) {
-                searchResults = data.web.results.map(item => {
-                    // Combine description and extra snippets for detailed view
-                    let desc = item.description || '';
-                    if (item.extra_snippets && Array.isArray(item.extra_snippets)) {
-                        desc += ' ' + item.extra_snippets.join(' ');
-                    }
-                    return {
-                        title: item.title || 'Başlık Yok',
-                        url: item.url || '#',
-                        description: item.description || 'Açıklama yok.',
-                        icon: item.profile?.img || `https://icons.duckduckgo.com/ip3/${getDomain(item.url)}.ico`,
-                        age: formatAge(item.page_age)
-                    };
-                });
-            }
-            // Image Results
-            else if (searchType === 'images') {
-                if (data.results) {
-                    searchResults = data.results.map(item => ({
-                        title: item.title || 'Görsel',
-                        thumbnail: item.thumbnail?.src || item.url,
-                        url: item.properties?.url || item.url,
-                        source: item.source || getDomain(item.url)
-                    }));
-                } else if (data.images && data.images.results) {
-                    searchResults = data.images.results.map(item => ({
-                        title: item.title || 'Görsel',
-                        thumbnail: item.thumbnail?.src || item.url,
-                        url: item.properties?.url || item.url,
-                        source: item.source || getDomain(item.url)
-                    }));
-                }
-            }
-            // Video Results
-            else if (searchType === 'videos') {
-                const vidResults = data.results || (data.videos ? data.videos.results : []);
-                if (vidResults) {
-                    searchResults = vidResults.map(item => ({
-                        title: item.title || 'Video',
-                        description: item.description,
-                        url: item.url,
-                        thumbnail: item.thumbnail?.src,
-                        duration: formatDuration(item.duration),
-                        publisher: item.publisher?.name,
-                        age: formatAge(item.page_age)
-                    }));
-                }
-            }
-            // News Results
-            else if (searchType === 'news') {
-                const newsResults = data.results || (data.news ? data.news.results : []);
-                if (newsResults) {
-                    searchResults = newsResults.map(item => ({
-                        title: item.title || 'Haber',
-                        url: item.url,
-                        source: item.publisher?.name || getDomain(item.url),
-                        age: formatAge(item.date || item.age),
-                        thumbnail: item.thumbnail?.src,
-                        description: item.description
-                    }));
-                }
-                if (newsSource) {
-                    const sourceLc = newsSource.toLowerCase();
-                    searchResults = searchResults.filter(r =>
-                        (r.source && String(r.source).toLowerCase().includes(sourceLc)) ||
-                        (r.url && getDomain(r.url).toLowerCase().includes(sourceLc))
-                    );
-                }
-            }
-
-            // --- Check for Infobox ---
-            if (data.infobox && data.infobox.results && data.infobox.results.length > 0) {
-                const infoData = data.infobox.results[0];
-                if (!infoData.type) infoData.type = 'generic_infobox';
-                infoBoxResult = infoData;
-            } else if (data.locations && data.locations.results && data.locations.results.length > 0) {
-                infoBoxResult = { type: 'location', data: data.locations.results[0] };
-            } else if (data.calculator && data.calculator.result) {
-                infoBoxResult = { type: 'calculator', query: data.query?.original || query, result: data.calculator.result };
-            }
-
-            // Fallback: If no Wikipedia info and no specific infobox, use the first search result for a generic "Site Info" box
-            if (!wikipediaInfo && !infoBoxResult && searchResults.length > 0) {
-                const firstResult = searchResults[0];
-
-                // Ensure we have a valid icon URL
-                let iconUrl = firstResult.icon;
-                if (!iconUrl && firstResult.url) {
-                    iconUrl = `https://www.google.com/s2/favicons?domain=${getDomain(firstResult.url)}&sz=128`;
-                }
-
-                infoBoxResult = {
-                    type: 'generic_infobox',
-                    title: firstResult.title,
-                    description: firstResult.description,
-                    url: firstResult.url,
-                    profile: {
-                        img: iconUrl
-                    },
-                    fallback: true
-                };
-            }
+            } catch (wikiErr) { /* Ignore */ }
         }
 
         return json({
             ok: true,
             type: searchType,
             searchResults,
-            infoBoxResult: {
-                ...infoBoxResult,
-                wikipediaInfo: wikipediaInfo
-            }
+            infoBoxResult: wikipediaInfo ? { wikipediaInfo } : null
         });
 
     } catch (err) {
-        console.error('[API] Error fetching search results:', err);
-        return json({ ok: false, error: 'Sunucu hatası', details: err.message }, { status: 500 });
+        console.error(`[API] Error fetching ${searchType} from proxy:`, err);
+
+        // If it's an abort error (timeout), provide specific message
+        if (err.name === 'AbortError') {
+            return json({
+                ok: false,
+                error: 'Proxy arama zaman aşımına uğradı',
+                details: 'Lütfen tekrar deneyin'
+            }, { status: 504 });
+        }
+
+        return json({
+            ok: false,
+            error: 'Proxy sunucu hatası',
+            details: err.message
+        }, { status: 500 });
     }
 }

@@ -4,7 +4,6 @@
     import { onMount, getContext } from "svelte";
     import { get, writable } from "svelte/store";
 
-    // Güvenli metin vurgulama - XSS güvenli (@html kullanmaz)
     function highlightParts(text, query) {
         if (!query || query.length < 2) return [{ text, bold: false }];
         const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -163,6 +162,14 @@
             // Data is already processed by the backend
             const data = await response.json();
             console.log("[Frontend] API Response:", data);
+            
+            // Handle bang command redirects
+            if (data.redirect) {
+                console.log("[Frontend] Redirecting to:", data.redirect);
+                window.open(data.redirect, '_blank');
+                return;
+            }
+            
             if (data && data.ok === false) {
                 throw new Error(data.error || `API isteği başarısız`);
             }
@@ -585,61 +592,6 @@
         }
     }
 
-    // New Plugins Logic (Matrix & Scholar Linker)
-    $effect(() => {
-        if (!browser) return;
-
-        // Matrix Effect Plugin
-        if (searchQuery.toLowerCase().includes("matrix")) {
-            const hasMatrix = get(specialResults).some(
-                (r) => r.id === "matrix-effect",
-            );
-            if (!hasMatrix) {
-                specialResults.update((prev) => [
-                    {
-                        id: "matrix-effect",
-                        type: "custom",
-                        title: "System Failure...",
-                        content: "Wake up, Artado user. The Matrix has you.",
-                        style: "background: #000; color: #0f0; font-family: monospace; padding: 10px; border: 1px solid #0f0; margin-bottom: 15px; border-radius: 4px;",
-                    },
-                    ...prev,
-                ]);
-            }
-        }
-
-        // Scholar Linker Plugin
-        if (activeSearchType === "scholar") {
-            const hasScholar = get(specialResults).some(
-                (r) => r.id === "scholar-links",
-            );
-            if (!hasScholar) {
-                specialResults.update((prev) => [
-                    {
-                        id: "scholar-links",
-                        type: "links",
-                        title: "Akademik Kaynaklar",
-                        links: [
-                            {
-                                name: "Google Akademik",
-                                url: `https://scholar.google.com/scholar?q=${encodeURIComponent(searchQuery)}`,
-                            },
-                            {
-                                name: "ResearchGate",
-                                url: `https://www.researchgate.net/search?q=${encodeURIComponent(searchQuery)}`,
-                            },
-                            {
-                                name: "ArXiv",
-                                url: `https://arxiv.org/search/?query=${encodeURIComponent(searchQuery)}`,
-                            },
-                        ],
-                        style: "background: var(--card-bg); padding: 10px; margin-bottom: 15px; border-left: 4px solid var(--accent-color); border-radius: 4px;",
-                    },
-                    ...prev,
-                ]);
-            }
-        }
-    });
 </script>
 
 <div
@@ -794,12 +746,6 @@
             >
                 <i class="fas fa-newspaper"></i> Haberler
             </button>
-            <button
-                class:active={activeSearchType === "scholar"}
-                onclick={() => changeSearchType("scholar")}
-            >
-                <i class="fas fa-graduation-cap"></i> Akademik
-            </button>
         </div>
     </nav>
 
@@ -890,7 +836,7 @@
                     {/if}
 
                     <!-- === WEB & SCHOLAR RESULTS === -->
-                    {#if activeSearchType === "web" || activeSearchType === "scholar"}
+                    {#if activeSearchType === "web"}
                         {#if filteredResults.length > 0}
                             <div class="results-list web-results">
                                 <!-- Spell Correction Banner -->
@@ -1077,9 +1023,11 @@
                                                     rel="noopener noreferrer"
                                                     class="overlay-btn"
                                                     title="Siteye Git"
+                                                    aria-label="Siteye Git"
                                                 >
                                                     <i
                                                         class="fas fa-external-link-alt"
+                                                        aria-hidden="true"
                                                     ></i>
                                                 </a>
                                                 <a
@@ -1088,8 +1036,10 @@
                                                     rel="noopener noreferrer"
                                                     class="overlay-btn"
                                                     title="Tam Boyut"
+                                                    aria-label="Tam Boyut"
                                                 >
                                                     <i class="fas fa-expand"
+                                                        aria-hidden="true"
                                                     ></i>
                                                 </a>
                                             </div>
@@ -1781,9 +1731,6 @@
         font-size: 1.3rem; /* Make slightly larger */
         padding: 0.6rem; /* Adjust padding */
     }
-    .settings-button-header:hover {
-        /* Inherits hover */
-    }
 
     /* Search Type Navigation */
     .search-type-nav {
@@ -2227,6 +2174,7 @@
         color: var(--text-color);
         display: -webkit-box;
         -webkit-line-clamp: 2;
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         text-decoration: none;
@@ -2255,6 +2203,7 @@
         color: var(--text-color-secondary);
         display: -webkit-box;
         -webkit-line-clamp: 2;
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         margin-top: 0.4rem;
@@ -2534,55 +2483,12 @@
         flex-wrap: wrap;
         padding: 0.5rem 1.5rem;
         margin-bottom: 1rem;
-        background-color: var(
-            --background-color-secondary
-        ); /* Or a slight contrast */
-    }
-
-    .select-wrapper {
-        position: relative;
-        display: inline-block;
-    }
-
-    .select-wrapper select {
-        appearance: none;
-        -webkit-appearance: none;
-        background-color: var(--card-background);
+        background-color: var(--background-color-secondary);
         border: 1px solid var(--border-color);
         border-radius: 20px;
-        padding: 0.5rem 2rem 0.5rem 1rem;
-        font-size: 0.9rem;
-        color: var(--text-color);
-        cursor: pointer;
-        transition:
-            border-color 0.2s,
-            background-color 0.2s;
     }
-
-    .select-wrapper select:hover {
-        background-color: var(--hover-background);
-    }
-
-    .select-wrapper select:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
-    }
-
-    .dropdown-icon {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        pointer-events: none;
-        font-size: 0.8rem;
-        color: var(--text-color-secondary);
-    }
-
+    .image-filter-input,
     .news-filter-input {
-        background-color: var(--card-background);
-        border: 1px solid var(--border-color);
-        border-radius: 20px;
         padding: 0.5rem 1rem;
         font-size: 0.9rem;
         color: var(--text-color);
@@ -2617,6 +2523,38 @@
     }
 
     /* Loading, Error, No Results States */
+    .loading-container {
+        text-align: center;
+        margin-top: 3rem;
+        padding: 2rem;
+        color: var(--text-color-secondary);
+        border-radius: 12px;
+        background-color: var(--card-background);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--border-color);
+        border-top: 3px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .loading-container p {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
     .loading-indicator,
     .error-message,
     .no-results {
@@ -2627,10 +2565,6 @@
         border-radius: 8px;
         background-color: var(--card-background);
         border: 1px solid var(--border-color);
-    }
-    .loading-indicator i,
-    .error-message i {
-        margin-right: 0.5rem;
     }
     .error-message {
         color: #e57373;
@@ -2723,19 +2657,6 @@
         grid-template-columns: 1fr 120px;
         gap: 0.8rem;
         align-items: start;
-    }
-    .news-item-card .news-thumbnail {
-        width: 120px;
-        height: 80px;
-        object-fit: cover;
-        border-radius: 6px;
-        background-color: var(--border-color);
-    }
-    .news-item-card .result-title {
-        margin-bottom: 0.4rem;
-    }
-    .news-item-card .result-description {
-        margin-top: 0.3rem;
     }
     .news-meta {
         display: flex;
@@ -2834,28 +2755,6 @@
         background-color: transparent; /* Optional: make background transparent */
         box-shadow: none; /* Optional: remove shadow */
     }
-    .ai-query-summary-box .ai-summary,
-    .ai-query-summary-box .ai-error {
-        border-radius: 6px; /* Add back border-radius */
-        border-width: 1px; /* Use 1px border */
-        border-style: solid;
-    }
-    .ai-query-summary-box .ai-summary {
-        border-color: rgba(
-            var(--primary-color-rgb),
-            0.3
-        ); /* Border color for summary */
-    }
-    .ai-query-summary-box .ai-error {
-        border-color: rgba(
-            var(--danger-color-rgb, 220, 53, 69),
-            0.3
-        ); /* Border color for error */
-    }
-    .ai-query-summary-box .ai-icon {
-        margin-top: 0.1em;
-    } /* Slightly adjust icon */
-
     /* --- Enhanced AI Query Summary Box Styles --- */
     .ai-query-summary-box.enhanced-ai-box {
         margin-bottom: 1.5rem;
@@ -2883,32 +2782,10 @@
         color: var(--text-secondary-color);
     }
 
-    .ai-box-header .ai-icon {
-        margin-right: 0.5rem;
-        font-size: 1.1em;
-        color: rgba(var(--primary-color-rgb), 0.7);
-    }
-    .error-ai-box .ai-box-header .ai-icon {
-        color: rgba(var(--danger-color-rgb, 220, 53, 69), 0.7);
-    }
-
     .ai-box-title {
         font-weight: 600;
         font-size: 0.9rem;
         color: var(--text-primary-color);
-    }
-
-    .ai-query-summary-box .ai-summary,
-    .ai-query-summary-box .ai-error {
-        margin: 0; /* Remove default paragraph margin */
-        padding: 0; /* Remove padding */
-        border: none; /* Remove previous border */
-        font-size: 0.95rem;
-        line-height: 1.6;
-        color: var(--text-primary-color);
-    }
-    .ai-query-summary-box .ai-error {
-        color: var(--danger-color, #dc3545);
     }
 
     /* Enhanced Results Count */
@@ -3027,22 +2904,17 @@
         font-size: 0.85rem;
         color: var(--text-color-secondary);
     }
-    .video-publisher {
-        /* Styles inherited from .video-meta */
-    }
     .video-description {
         font-size: 0.85rem;
         /* Limit lines shown */
         display: -webkit-box;
-        -webkit-line-clamp: 3; /* Show 3 lines for video */
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
 
     /* === Infobox Styles === */
-    .infobox-container {
-        /* Container styles defined above (width, position) */
-    }
     .infobox-card {
         background-color: var(--card-background);
         border: 1px solid var(--border-color);
@@ -3104,11 +2976,6 @@
         font-size: 0.9rem;
         color: var(--text-color-secondary);
         margin-top: 0.5rem;
-    }
-
-    /* Generic/Fallback Infobox */
-    .infobox-card strong {
-        color: var(--text-color);
     }
 
     /* Skeleton Loading & Animation Enhancements */

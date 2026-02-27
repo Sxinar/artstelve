@@ -1,25 +1,31 @@
 # 🔍 Artado Search
 
-Artado Search, gizlilik odaklı, yüksek performanslı ve modern bir hibrit arama motorudur. SvelteKit ve Svelte 5 altyapısı ile geliştirilen bu proje, kullanıcıların verilerini takip etmeden birden fazla kaynaktan gelen sonuçları en hızlı şekilde sunmayı hedefler.
+Artado Search, gizlilik odaklı, yüksek performanslı ve modern bir arama motorudur. SvelteKit ve Svelte 5 altyapısı ile geliştirilen bu proje, kullanıcıların verilerini takip etmeden birden fazla kaynaktan gelen sonuçları en hızlı şekilde sunmayı hedefler.
 
 ## ✨ Temel Özellikler
 
 ### 🛡️ Gizlilik ve Güvenlik
-- **Sıfır Takip**: Kullanıcı sorguları, IP adresleri veya davranışsal veriler asla kaydedilmez.
-- **Güvenli Render**: Tüm arama sonuçları XSS saldırılarına karşı sanitize edilerek sunulur.
-- **Proxy Katmanı**: Sonuçlar, kaynak sitelerden Artado Proxy aracılığıyla anonimleştirilerek çekilir.
+- **Sıfır Takip**: Kullanıcı sorguları, IP adresleri veya davranışsal veriler asla kaydedilmez
+- **Güvenli Render**: Tüm arama sonuçları XSS saldırılarına karşı sanitize edilerek sunulur
+- **Proxy Katmanı**: Sonuçlar, kaynak sitelerden Artado Proxy aracılığıyla anonimleştirilerek çekilir
 
 ### 🚀 Performans
-- **Svelte 5 & Vite**: En yeni web teknolojileri ile ışık hızında sayfa geçişleri.
-- **Hibrit Arama**: Brave, DuckDuckGo, Google, Bing ve daha birçok motorun gücünü tek bir noktada birleştirir.
-- **Akıllı Önbellekleme**: Sık yapılan aramalar hem sunucu hem de CDN seviyesinde önbelleğe alınır.
+- **Svelte 5 & Vite**: En yeni web teknolojileri ile ışık hızında sayfa geçişleri
+- **Hibrit Arama**: DuckDuckGo, Brave, Startpage, Qwant, Mojeek, Ask ve Marginalia gibi birden fazla motorun gücünü tek bir noktada birleştirir
+- **Akıllı Önbellekleme**: Sık yapılan aramalar hem sunucu hem de CDN seviyesinde önbelleğe alınır
 
 ### 🎨 Kullanıcı Deneyimi (UX)
-- **Akıllı Otomatik Tamamlama**: Yazmaya başladığınız anda Türkçe karakter uyumlu öneriler.
-- **Yazım Denetimi**: "Bunu mu demek istediniz?" özelliği ile hatalı sorgular için anında düzeltme önerisi.
-- **Premium Tasarım**: Karanlık mod desteği, animasyonlar ve özelleştirilebilir vurgu renkleri ve kullanıcılar tarafından oluşturulan Devs tema ve eklentileri.
-- **Modern Bilgi Kartları**: Wikipedia ve diğer kaynaklardan gelen zengin infobox'lar.
+- **Akıllı Otomatik Tamamlama**: Yazmaya başladığınız anda Türkçe karakter uyumlu öneriler
+- **Yazım Denetimi**: "Bunu mu demek istediniz?" özelliği ile hatalı sorgular için anında düzeltme önerisi
+- **Özelleştirilebilir Tasarım**: Karanlık mod desteği, animasyonlar ve özelleştirilebilir vurgu renkleri
+- **Workshop Logoları**: Kullanıcılar tarafından oluşturulan özel logo tasarımları
+- **Modern Bilgi Kartları**: Wikipedia kaynaklarından gelen infobox'lar
 
+### ⚡ Bang Komutları
+- **Hızlı Arama**: Bang komutları ile farklı platformlarda hızlı arama yapın
+- **Yeni Sekmede Açılır**: Bang komutları yeni sekmede açılır, mevcut sekme korunur
+- **27+ Komut**: Google, DuckDuckGo, YouTube, Wikipedia, GitHub, Twitter, Facebook, Reddit, Stack Overflow, NPM, PyPI, Docker Hub, AWS, Azure, Google Cloud ve daha fazlası
+- **Kategori Bazlı**: Arama motorları, sosyal medya, geliştirme, referans, bulut hizmetleri, haberler, haritalar ve araçlar
 
 ## 🛠️ Teknik Mimari
 
@@ -30,9 +36,10 @@ Artado Search, gizlilik odaklı, yüksek performanslı ve modern bir hibrit aram
 - **İkonlar**: FontAwesome 5
 
 ### Backend (API Katmanı)
-- **Search API**: Birden fazla motoru yöneten ve sonuçları normalize eden yapı.
-- **Suggest API**: Google Suggest API'sini `windows-1254` kodlaması ile Türkiye lokasyonuna özel işleyen servis.
-- **Workshop API**: Bulut tabanlı tema ,eklenti ve proje yönetim ve yayınlama sistemi.
+- **Search API**: Birden fazla motoru yöneten ve sonuçları normalize eden yapı
+- **Suggest API**: Google Suggest API'sini `windows-1254` kodlaması ile Türkiye lokasyonuna özel işleyen servis
+- **Workshop API**: Bulut tabanlı logo yönetim ve yayınlama sistemi
+- **Proxy Entegrasyonu**: Artado Proxy (`https://artadoproxy.vercel.app`) üzerinden tüm arama sonuçları
 
 ## ⚙️ Kurulum Rehberi
 
@@ -58,11 +65,21 @@ Artado Search, gizlilik odaklı, yüksek performanslı ve modern bir hibrit aram
 
 ## 🌍 Tarayıcıya Ekleme (Varsayılan Arama Motoru)
 
-Artado Search'ü tarayıcınızın varsayılan arama motoru yapmak için:
+Artado Search'ü tarayıcınızın varsayılan arama motoru olarak ayarlamak için:
 
-1. **Chrome / Edge**: beta.artadosearch.com adresini bir kez ziyaret edin. Tarayıcı ayarlarında (Arama Motorlarını Yönet) Artado Search otomatik olarak görünecektir. Görünmüyorsa manuel ekle diyerek şu sorgu URL'sini kullanın: `https://beta.artadosearch.com/search?i=%s`
-2. **Firefox**: Adres çubuğundaki üç noktaya (veya logo yanındaki büyütece) tıklayıp "Artado Search Ekle" seçeneğini kullanın.
-3. **OpenSearch**: Proje içerisinde `static/opensearch.xml` dosyası ile tarayıcılarla tam uyumluluk sağlanmaktadır.
+### Chrome / Edge
+1. Tarayıcınızın adres çubuğuna `http://localhost:5173` adresini girin
+2. Tarayıcı ayarlarında (Arama Motorlarını Yönet) Artado Search'ü varsayılan olarak ayarlayın
+3. Alternatif olarak, manuel ekleme seçeneğini kullanarak şu sorgu URL'sini girin: `http://localhost:5173/search?i=%s`
+
+### Firefox
+1. Adres çubuğundaki üç noktaya (veya logo yanındaki büyütece) tıklayın
+2. "Arama Motorlarını Yönet" seçeneğine gidin
+3. "Artado Search Ekle" seçeneğini kullanın
+4. Veya OpenSearch XML dosyasını doğrudan tarayıcıya yükleyin
+
+### OpenSearch Entegrasyonu
+Proje, tarayıcılarla tam uyumluluk sağlayan `static/opensearch.xml` dosyası içerir. Bu dosya, Artado Search'ü tarayıcınıza varsayılan arama motoru olarak eklemenizi kolaylaştırır.
 
 ## 📦 Proje Yapısı
 
@@ -70,12 +87,45 @@ Artado Search'ü tarayıcınızın varsayılan arama motoru yapmak için:
 /src
   /lib          # Paylaşılan yardımcı fonksiyonlar ve store'lar
   /routes       # SvelteKit sayfaları ve API uç noktaları
-    /api/search # Arama motoru mantığı
-    /api/suggest# Öneri ve yazım denetimi
+    /api/search # Arama motoru mantığı (proxy entegrasyonu)
+    /api/suggest # Öneri ve yazım denetimi
+    /workshop    # Workshop API (logolar)
     /settings   # Ayarlar sayfası
     /search     # Sonuç sayfası
-/static         # Logo, favicon ve opensearch.xml
+    /logos      # Logolar sayfası
+  /static         # Logo, favicon ve opensearch.xml
 ```
+
+## 🎯 Kullanım Kılavuzu
+
+### Bang Komutları
+Bang komutları, farklı platformlarda hızlı arama yapmanızı sağlayan kısayollardır. Kullanımı:
+
+```
+!g test         → Google'da ara
+!ddg search      → DuckDuckGo'da ara
+!yt music       → YouTube'da ara
+!w türkiye     → Wikipedia'da ara
+!gh react       → GitHub'ta ara
+!tw news        → Twitter'da ara
+!fb search      → Facebook'ta ara
+!rd programming → Reddit'te ara
+!so javascript  → Stack Overflow'da ara
+!npm express    → NPM'de ara
+!pypi requests  → PyPI'de ara
+!docker nginx    → Docker Hub'ta ara
+!aws lambda      → AWS'te ara
+!translate merhaba → Çeviri yap
+!weather istanbul → Hava durumunu göster
+!time london    → Saat göster
+```
+
+### Ayarlar
+- **Temel Ayarlar**: Otomatik tamamlama, güvenli arama, bölge ayarları
+- **Görünüm**: Tema modu, köşe yuvarlaklığı, vurgu rengi
+- **Hybrid Proxy**: Proxy URL, motorlar, limitler, önbellekleme
+- **Bangs**: Bang komutları listesi ve açıklamalar
+- **Workshop**: Özel logo tasarımları
 
 ## 📄 Lisans
 
