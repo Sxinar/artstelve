@@ -1,366 +1,260 @@
 <script>
-    import { getContext, onMount } from "svelte";
-    import { writable } from "svelte/store";
-    import { fade, slide, fly } from "svelte/transition";
+    import { getContext } from "svelte";
+    import { fade, fly } from "svelte/transition";
     import { customLogo } from "$lib/stores.js";
 
-    // Get sidebar store from context
+    export let data;
     const isSidebarOpen = getContext("sidebar");
 
-    let logos = writable([]);
-    let workshopError = writable(null);
-    let isLoading = writable(true);
+    const applyLogo = (logo) => {
+        const url = logo.image_url || logo.download_url;
+        if (url) {
+            customLogo.set(url);
+            localStorage.setItem("custom_logo", url);
 
-    async function fetchLogos() {
-        isLoading.set(true);
-        try {
-            const response = await fetch("/api/workshop/themes");
-            if (response.ok) {
-                const data = await response.json();
-                logos.set(data.themes || []);
-                workshopError.set(null);
-            } else {
-                workshopError.set("Logolar yüklenemedi");
-            }
-        } catch (err) {
-            console.error("Logolar yüklenirken hata:", err);
-            workshopError.set("Bağlantı hatası: " + err.message);
-        } finally {
-            isLoading.set(false);
+            const toast = document.createElement("div");
+            toast.className = "toast";
+            toast.innerText = `✨ ${logo.name} uygulandı`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
         }
-    }
-
-    function applyLogo(logo) {
-        if (!logo.download_url) return;
-        customLogo.set(logo.download_url);
-        alert("Logo anında uygulandı!");
-    }
-
-    function toggleSidebar() {
-        isSidebarOpen.update((open) => !open);
-    }
-
-    onMount(() => {
-        fetchLogos();
-    });
+    };
 </script>
 
-<svelte:head>
-    <title>Workshop Logoları - Artado Search Ayarları</title>
-</svelte:head>
+<div class="page">
+    <header class="header">
+        <div class="header-left">
+            <a href="/" class="back-btn" title="Ana Sayfaya Dön">
+                <i class="fas fa-chevron-left"></i>
+            </a>
 
-<div class="settings-page">
-    <header class="settings-header">
-        <button class="menu-button" on:click={toggleSidebar} aria-label="Menüyü aç">
-            <i class="fas fa-sliders-h"></i>
+            <div class="header-titles">
+                <div class="main-title">
+                    <i class="fas fa-home-config"></i>
+                    <h1>Workshop Logoları</h1>
+                </div>
+                <p>{data.logos.length} tasarım hazır</p>
+            </div>
+        </div>
+
+        <button
+            class="nav-btn"
+            onclick={() => isSidebarOpen.update((v) => !v)}
+            title="Menü"
+        >
+            <i class="fas fa-ellipsis-v"></i>
         </button>
-        <h1>Workshop Logoları</h1>
-        <p>Workshop'tan yüklenen logoları seçip uygulayın</p>
     </header>
 
-    <main class="settings-main">
-        <section class="settings-section">
-            <div class="section-header">
-                <h2>
-                    <i class="fas fa-image"></i>
-                    Workshop Logoları
-                </h2>
-                <p>Workshop'tan yüklenen logoları seçin ve anında uygulayın</p>
+    <main class="container">
+        {#if data.logos.length === 0}
+            <div class="empty" in:fade>
+                <i class="fas fa-circle-notch fa-spin"></i>
+                <p>Logolar yükleniyor veya bulunamadı...</p>
             </div>
-
-            {#if $isLoading}
-                <div class="loading-state">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Logolar yükleniyor...</p>
-                </div>
-            {:else if $workshopError}
-                <div class="error-state">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <p>{$workshopError}</p>
-                    <button on:click={fetchLogos} class="retry-btn">
-                        <i class="fas fa-redo"></i> Tekrar Dene
-                    </button>
-                </div>
-            {:else if $logos.length === 0}
-                <div class="empty-state">
-                    <i class="fas fa-images"></i>
-                    <p>Henüz logo yüklenmemiş</p>
-                </div>
-            {:else}
-                <div class="logos-grid">
-                    {#each $logos as logo (logo.id)}
-                        <div class="logo-card" in:fade={{ duration: 300 }}>
-                            <div class="logo-preview">
-                                <img
-                                    src={logo.download_url || "/placeholder.png"}
-                                    alt={logo.name}
-                                    on:error={(e) => (e.target.src = "/placeholder.png")}
-                                />
-                            </div>
-                            <div class="logo-info">
-                                <h3>{logo.name}</h3>
-                                <p class="logo-author">
-                                    <i class="fas fa-user"></i>
-                                    {logo.author || 'Workshop'}
-                                </p>
-                                <p class="logo-description">
-                                    {logo.description || 'Özel logo tasarımı'}
-                                </p>
-                                <div class="logo-actions">
-                                    <button 
-                                        class="apply-btn"
-                                        on:click={() => applyLogo(logo)}
-                                    >
-                                        <i class="fas fa-check"></i>
-                                        Seç
-                                    </button>
-                                </div>
+        {:else}
+            <div class="grid">
+                {#each data.logos as logo, i (logo.id)}
+                    <div
+                        class="card"
+                        in:fly={{ y: 20, delay: i * 40, duration: 400 }}
+                    >
+                        <div class="preview">
+                            <img
+                                src={logo.image_url}
+                                alt={logo.name}
+                                loading="lazy"
+                            />
+                            <div class="overlay">
+                                <button
+                                    class="apply-btn"
+                                    onclick={() => applyLogo(logo)}
+                                >
+                                    Kullan
+                                </button>
                             </div>
                         </div>
-                    {/each}
-                </div>
-            {/if}
-        </section>
-
-       
+                        <div class="footer">
+                            <div class="meta">
+                                <h3>{logo.name}</h3>
+                                <span>{logo.author || "Artado"}</span>
+                            </div>
+                        </div>
+                    </div>
+                {/each}
+            </div>
+        {/if}
     </main>
 </div>
 
 <style>
-    .settings-page {
-        display: flex;
-        flex-direction: column;
+    .page {
         min-height: 100vh;
         background-color: var(--background-color);
         color: var(--text-color);
-        padding: 0;
     }
 
-    .settings-header {
+    .header {
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        padding: 1.5rem 2rem;
+        align-items: center;
+        padding: 1rem 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(var(--card-background-rgb), 0.85);
+        backdrop-filter: blur(15px);
         border-bottom: 1px solid var(--border-color);
-        background-color: var(--card-background);
     }
 
-    .settings-header h1 {
-        font-size: 1.8rem;
-        margin: 0;
-        color: var(--text-color);
-        font-weight: 600;
-    }
-
-    .settings-header p {
-        margin: 0;
-        color: var(--text-color-secondary);
-        font-size: 0.9rem;
-    }
-
-    .menu-button {
-        background: none;
-        border: none;
-        color: var(--text-color-secondary);
-        cursor: pointer;
-        font-size: 1.2rem;
-        padding: 0.5rem;
-        border-radius: 50%;
-        transition: background-color 0.2s;
-    }
-
-    .menu-button:hover {
-        color: var(--text-color);
-        background-color: var(--hover-background);
-    }
-
-    .settings-main {
-        flex: 1;
-        padding: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .settings-section {
-        margin-bottom: 2rem;
-        background-color: var(--card-background);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    }
-
-    .section-header {
-        margin-bottom: 1.5rem;
-    }
-
-    .section-header h2 {
-        font-size: 1.3rem;
-        margin: 0 0 0.5rem 0;
-        color: var(--text-color);
-        font-weight: 600;
+    .header-left {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-    }
-
-    .section-header p {
-        margin: 0;
-        color: var(--text-color-secondary);
-        font-size: 0.9rem;
-    }
-
-    .loading-state,
-    .error-state,
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: var(--text-color-secondary);
-    }
-
-    .loading-state i,
-    .error-state i,
-    .empty-state i {
-        font-size: 2rem;
-        margin-bottom: 1rem;
-        display: block;
-    }
-
-    .error-state {
-        color: #e57373;
-    }
-
-    .retry-btn {
-        margin-top: 1rem;
-        padding: 0.5rem 1rem;
-        background-color: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        transition: background-color 0.2s;
-    }
-
-    .retry-btn:hover {
-        background-color: var(--primary-color-hover);
-    }
-
-    .logos-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 1.5rem;
     }
 
-    .logo-card {
-        background-color: var(--background-color);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        overflow: hidden;
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .logo-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .logo-preview {
-        width: 100%;
-        height: 200px;
-        background-color: var(--background-color-secondary);
+    /* Geri Butonu Tasarımı */
+    .back-btn {
         display: flex;
         align-items: center;
         justify-content: center;
-        overflow: hidden;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        color: var(--text-color);
+        background: var(--hover-background);
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+    }
+    .back-btn:hover {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+        transform: translateX(-3px);
     }
 
-    .logo-preview img {
+    .main-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .header-titles h1 {
+        font-size: 1.15rem;
+        margin: 0;
+        font-weight: 700;
+    }
+    .header-titles p {
+        font-size: 0.75rem;
+        opacity: 0.5;
+        margin: 0;
+    }
+
+    /* Sağdaki Üç Nokta */
+    .nav-btn {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        font-size: 1.1rem;
+    }
+    .nav-btn:hover {
+        opacity: 1;
+        color: var(--primary-color);
+    }
+
+    /* Grid & Kartlar */
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .card {
+        background: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary-color);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .preview {
+        position: relative;
+        height: 160px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+    }
+    .preview img {
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
-        transition: transform 0.2s;
     }
 
-    .logo-card:hover .logo-preview img {
-        transform: scale(1.05);
-    }
-
-    .logo-info {
-        padding: 1rem;
-    }
-
-    .logo-info h3 {
-        font-size: 1.1rem;
-        margin: 0 0 0.5rem 0;
-        color: var(--text-color);
-        font-weight: 600;
-    }
-
-    .logo-author,
-    .logo-description {
-        font-size: 0.85rem;
-        color: var(--text-color-secondary);
-        margin: 0.25rem 0;
+    .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: center;
+        opacity: 0;
+        transition: 0.3s;
+        backdrop-filter: blur(2px);
     }
-
-    .logo-actions {
-        margin-top: 1rem;
-        display: flex;
-        justify-content: flex-end;
+    .card:hover .overlay {
+        opacity: 1;
     }
 
     .apply-btn {
-        background-color: var(--primary-color);
+        background: var(--primary-color);
         color: white;
         border: none;
-        padding: 0.5rem 1rem;
+        padding: 0.6rem 1.2rem;
         border-radius: 6px;
+        font-weight: 600;
         cursor: pointer;
+    }
+
+    .footer {
+        padding: 1rem;
+    }
+    .meta h3 {
         font-size: 0.9rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        transition: background-color 0.2s;
+        margin: 0;
+        font-weight: 600;
+    }
+    .meta span {
+        font-size: 0.7rem;
+        opacity: 0.5;
     }
 
-    .apply-btn:hover {
-        background-color: var(--primary-color-hover);
-    }
-
-    @media (max-width: 768px) {
-        .settings-header {
-            padding: 1rem;
-        }
-
-        .settings-header h1 {
-            font-size: 1.5rem;
-        }
-
-        .settings-main {
-            padding: 1rem;
-        }
-
-        .settings-section {
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .logos-grid {
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-
-        .logo-preview {
-            height: 150px;
-        }
+    :global(.toast) {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 50px;
+        z-index: 1000;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     }
 </style>

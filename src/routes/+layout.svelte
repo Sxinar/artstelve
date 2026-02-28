@@ -459,7 +459,7 @@
 		</div>
 		<button
 			class="close-sidebar"
-			on:click={toggleSidebar}
+			onclick={toggleSidebar}
 			aria-label={$t("closeMenu")}
 		>
 			<i class="fas fa-times" aria-hidden="true"></i>
@@ -581,7 +581,7 @@
 				<nav class="sidebar-links" style="margin-top: 0;">
 					<a
 						href="/settings#arayuz"
-						on:click={() => {
+						onclick={() => {
 							if ($page.url.pathname === "/settings")
 								document
 									.getElementById("arayuz")
@@ -600,7 +600,7 @@
 				><i class="fas fa-sliders icon" aria-hidden="true"></i>
 				{$t("settings")}</a
 			>
-			<a href="/workshop"
+			<a href="https://devs.artado.xyz"
 				><i class="fas fa-flask icon" aria-hidden="true"></i> Workshop</a
 			>
 			<a href="https://forum.artado.xyz"
@@ -622,10 +622,10 @@
 				><i class="fab fa-github icon" aria-hidden="true"></i> Github</a
 			>
 			<a
-				href="https://matrix.to/#/#artadoproject:matrix.org"
+				href="https://rvlt.gg/02F6ZTXy"
 				target="_blank"
 				rel="noopener noreferrer"
-				><i class="fab fa-discord icon" aria-hidden="true"></i> Matrix</a
+				><i class="fab fa-discord icon" aria-hidden="true"></i> Revolt (Stoat)</a
 			>
 		</nav>
 	</div>
@@ -635,8 +635,8 @@
 {#if $isSidebarOpen}
 	<div
 		class="overlay"
-		on:click={toggleSidebar}
-		on:keydown={(e) => e.key === "Escape" && toggleSidebar()}
+		onclick={toggleSidebar}
+		onkeydown={(e) => e.key === "Escape" && toggleSidebar()}
 		role="button"
 		tabindex="0"
 		aria-label="Menüyü kapatmak için tıklayın"

@@ -42,7 +42,7 @@ function createPersistentStore(key, startValue) {
 // --- Global Stores ---
 
 // Theme Store (persisted)
-export const selectedTheme = createPersistentStore('selectedTheme', 'midnight_glow'); 
+export const selectedTheme = createPersistentStore('selectedTheme', 'midnight_glow');
 
 // Custom Logo Store (persisted)
 export const customLogo = createPersistentStore('customLogo', '/logo.png');
@@ -110,6 +110,9 @@ export const showNavbarSubCategory = createPersistentStore('showNavbarSubCategor
 
 // Custom Homepage Theme (from workshop)
 export const searchHomeCustomTheme = createPersistentStore('searchHomeCustomTheme', '');
+
+// Bangs Preferences
+export const bangsOpenNewTab = createPersistentStore('bangsOpenNewTab', false); // Default false
 
 // --- Translation Stores (Devs only, no local persistence for data) ---
 export const translateInput = writable('');

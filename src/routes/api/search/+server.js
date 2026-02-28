@@ -1,45 +1,7 @@
 import { json } from '@sveltejs/kit';
-
+import { BANG_COMMANDS } from '$lib/bangs.js';
 
 const PROXY_SEARCH_BASE_URL = process.env.PROXY_SEARCH_BASE_URL || 'https://artadoproxy.vercel.app';
-
-// Bang komutları için yönlendirme URL'leri
-const BANG_COMMANDS = {
-    '!g': 'https://www.google.com/search?q=',
-    '!ddg': 'https://duckduckgo.com/?q=',
-    '!yt': 'https://www.youtube.com/results?search_query=',
-    '!w': 'https://tr.wikipedia.org/w/index.php?title=Özel:Ara&search=',
-    '!e': 'https://www.ekşisözlük.com/search/?q=',
-    '!gh': 'https://github.com/search?q=',
-    '!a': 'https://artadosearch.com/search?i=', // Artado için bang komutu
-    '!tw': 'https://twitter.com/search?q=',
-    '!fb': 'https://www.facebook.com/search/top?q=',
-    '!li': 'https://www.linkedin.com/search/results/all/?keywords=',
-    '!in': 'https://www.instagram.com/explore/tags/',
-    '!rd': 'https://www.reddit.com/search/?q=',
-    '!so': 'https://stackoverflow.com/search?q=',
-    '!wp': 'https://wordpress.org/search/',
-    '!mdn': 'https://developer.mozilla.org/en-US/search?q=',
-    '!w3': 'https://www.w3schools.com/search/default.asp?q=',
-    '!cs': 'https://css-tricks.com/search/',
-    '!py': 'https://docs.python.org/3/search.html?q=',
-    '!node': 'https://nodejs.org/api/',
-    '!react': 'https://react.dev/search?q=',
-    '!vue': 'https://vuejs.org/guide/search.html?q=',
-    '!svelte': 'https://svelte.dev/search?q=',
-    '!npm': 'https://www.npmjs.com/search?q=',
-    '!pypi': 'https://pypi.org/search/?q=',
-    '!docker': 'https://hub.docker.com/search?q=',
-    '!aws': 'https://aws.amazon.com/search?q=',
-    '!azure': 'https://azure.microsoft.com/en-us/search/',
-    '!gcp': 'https://cloud.google.com/search?q=',
-    '!news': 'https://news.google.com/search?q=',
-    '!maps': 'https://www.google.com/maps/search/',
-    '!translate': 'https://translate.google.com/?sl=tr&tl=en&text=',
-    '!dict': 'https://www.google.com/search?q=define+',
-    '!weather': 'https://www.google.com/search?q=weather+',
-    '!time': 'https://www.google.com/search?q=time+',
-};
 
 // Bang komutlarını işle
 function processBangCommand(query) {
@@ -47,13 +9,10 @@ function processBangCommand(query) {
     if (!bangMatch) return null;
 
     const [, bangCommand, searchTerm] = bangMatch;
-    const redirectUrl = BANG_COMMANDS[bangCommand.toLowerCase()];
+    const bangEntry = BANG_COMMANDS[bangCommand.toLowerCase()];
 
-    if (redirectUrl) {
-        if (bangCommand.toLowerCase() === '!w') {
-            return redirectUrl + encodeURIComponent(searchTerm);
-        }
-        return redirectUrl + encodeURIComponent(searchTerm);
+    if (bangEntry) {
+        return bangEntry.url + encodeURIComponent(searchTerm);
     }
     return null;
 }
@@ -442,36 +401,36 @@ export async function GET({ url, setHeaders }) {
 
         let searchResults = [];
 
-    // Map proxy results to frontend-expected format
+        // Map proxy results to frontend-expected format
         if (searchType === 'images') {
             searchResults = slicedResults.map(item => ({
-            title: item.title || 'Görsel',
-            thumbnail: item.thumbnail || item.url,
-            url: item.url,
-            source: item.source || getDomain(item.url),
-            width: item.width,
-            height: item.height
-        }));
+                title: item.title || 'Görsel',
+                thumbnail: item.thumbnail || item.url,
+                url: item.url,
+                source: item.source || getDomain(item.url),
+                width: item.width,
+                height: item.height
+            }));
         } else if (searchType === 'videos') {
             searchResults = slicedResults.map(item => ({
-            title: item.title || 'Video',
-            description: item.snippet || '',
-            url: item.url,
-            thumbnail: item.thumbnail,
-            duration: item.duration || '',
-            publisher: item.channel || '',
-            age: item.uploadDate || '',
-            views: item.views || ''
-        }));
+                title: item.title || 'Video',
+                description: item.snippet || '',
+                url: item.url,
+                thumbnail: item.thumbnail,
+                duration: item.duration || '',
+                publisher: item.channel || '',
+                age: item.uploadDate || '',
+                views: item.views || ''
+            }));
         } else if (searchType === 'news') {
             searchResults = slicedResults.map(item => ({
-            title: item.title || 'Haber',
-            url: item.url,
-            source: item.source || getDomain(item.url),
-            age: item.publishDate || '',
-            thumbnail: item.imageUrl,
-            description: item.snippet || ''
-        }));
+                title: item.title || 'Haber',
+                url: item.url,
+                source: item.source || getDomain(item.url),
+                age: item.publishDate || '',
+                thumbnail: item.imageUrl,
+                description: item.snippet || ''
+            }));
 
             // Apply news source filter if provided
             if (newsSource) {
@@ -483,13 +442,13 @@ export async function GET({ url, setHeaders }) {
             }
         } else { // web search
             searchResults = slicedResults.map(item => ({
-            title: item.title || 'Başlık Yok',
-            url: item.url || '#',
-            description: item.snippet || '',
-            icon: `https://icons.duckduckgo.com/ip3/${getDomain(item.url)}.ico`,
-            sources: Array.isArray(item.sources) && item.sources.length ? item.sources : (item.engine ? [item.engine] : []),
-            age: ''
-        }));
+                title: item.title || 'Başlık Yok',
+                url: item.url || '#',
+                description: item.snippet || '',
+                icon: `https://icons.duckduckgo.com/ip3/${getDomain(item.url)}.ico`,
+                sources: Array.isArray(item.sources) && item.sources.length ? item.sources : (item.engine ? [item.engine] : []),
+                age: ''
+            }));
         }
 
         // Check Wikipedia for infobox (web search only)

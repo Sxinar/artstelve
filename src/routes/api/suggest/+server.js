@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { BANG_COMMANDS } from '$lib/bangs.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, setHeaders }) {
@@ -10,11 +11,28 @@ export async function GET({ url, setHeaders }) {
         'Cache-Control': 'public, max-age=1800, s-maxage=3600'
     });
 
-    if (!query || query.trim().length < 2) {
+    if (!query || query.trim().length < 1) {
         return json({ suggestions: [], spellCorrection: null });
     }
 
     const q = query.trim();
+
+    // Bang komutları kontrolü
+    if (q.startsWith('!')) {
+        const bangSuggestions = Object.keys(BANG_COMMANDS)
+            .filter(bang => bang.startsWith(q.toLowerCase()))
+            .map(bang => ({
+                text: bang,
+                description: BANG_COMMANDS[bang].name,
+                isBang: true
+            }));
+
+        return json({ suggestions: bangSuggestions, spellCorrection: null });
+    }
+
+    if (q.length < 2) {
+        return json({ suggestions: [], spellCorrection: null });
+    }
 
     try {
         // Paralel olarak hem öneri hem yazım düzeltme al
@@ -23,7 +41,7 @@ export async function GET({ url, setHeaders }) {
             withSpelling ? fetchSpellCorrection(q) : Promise.resolve(null)
         ]);
 
-        return json({ suggestions, spellCorrection });
+        return json({ suggestions: suggestions.map(s => ({ text: s })), spellCorrection });
     } catch (e) {
         console.error('[Suggest API] Error:', e);
         return json({ suggestions: [], spellCorrection: null });

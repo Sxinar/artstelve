@@ -42,6 +42,7 @@
         searchHomeDesign,
         blockedSites,
         showNavbarSubCategory,
+        bangsOpenNewTab,
     } from "$lib/stores.js";
 
     let notifications = false;
@@ -199,6 +200,7 @@ a { color: #00ff41 !important; }`,
             blockedSites: $blockedSites,
             searchHomeDesign: $searchHomeDesign,
             showNavbarSubCategory: $showNavbarSubCategory,
+            bangsOpenNewTab: $bangsOpenNewTab,
         };
         const blob = new Blob([JSON.stringify(settings, null, 2)], {
             type: "application/json",
@@ -270,6 +272,8 @@ a { color: #00ff41 !important; }`,
                     showNavbarSearch.set(settings.showNavbarSearch);
                 if (settings.searchHomeCustomTheme)
                     searchHomeCustomTheme.set(settings.searchHomeCustomTheme);
+                if (settings.bangsOpenNewTab !== undefined)
+                    bangsOpenNewTab.set(settings.bangsOpenNewTab);
 
                 alert("Ayarlar başarıyla geri yüklendi!");
                 location.reload(); // Reload to ensure full application
@@ -303,33 +307,33 @@ a { color: #00ff41 !important; }`,
                 status: themesResponse.status,
                 ok: themesResponse.ok,
             });
-            
+
             // Fetch items (which returns empty since disabled)
             const itemsResponse = await fetch("/api/workshop/items");
             debugLog("Workshop Items API response", {
                 status: itemsResponse.status,
                 ok: itemsResponse.ok,
             });
-            
+
             if (themesResponse.ok && itemsResponse.ok) {
                 const themesData = await themesResponse.json();
                 const itemsData = await itemsResponse.json();
-                
+
                 debugLog("Workshop data received", {
                     themesCount: themesData.themes?.length,
                     itemsSuccess: itemsData.success,
                 });
-                
+
                 // Set themes (empty since we disabled themes)
                 themes.set([]);
-                
+
                 // Set logos from themes API
                 logos.set(themesData.themes || []);
-                
+
                 // Set plugins and home themes (empty since disabled)
                 plugins.set([]);
                 homeThemes.set([]);
-                
+
                 workshopError.set(null);
                 debugLog("Workshop items processed", {
                     logos: themesData.themes?.length,
@@ -500,25 +504,32 @@ a { color: #00ff41 !important; }`,
 
     function saveDefaultEngine() {
         // The selectedEngine store is already persistent, so it's automatically saved
-        alert("Varsayılan arama motoru kaydedildi!\n\nSeçiminiz: " + $selectedEngine);
+        alert(
+            "Varsayılan arama motoru kaydedildi!\n\nSeçiminiz: " +
+                $selectedEngine,
+        );
     }
 
     function installAsDefaultSearch() {
         // Create OpenSearch description and trigger browser installation
-        if (browser && window.external && 'AddSearchProvider' in window.external) {
+        if (
+            browser &&
+            window.external &&
+            "AddSearchProvider" in window.external
+        ) {
             // For Internet Explorer/Edge
-            window.external.AddSearchProvider('/opensearch.xml');
+            window.external.AddSearchProvider("/opensearch.xml");
         } else {
             // For modern browsers - show instructions
             alert(
                 "Tarayıcınızda varsayılan arama motoru olarak ayarlamak için:\n\n" +
-                "1. Adres çubuğuna tıklayın\n" +
-                "2. Arama motoru simgesine tıklayın\n" +
-                "3. 'Arama motorlarını yönet' seçeneğini seçin\n" +
-                "4. 'Artado Search'ü bulun ve varsayılan yapın\n\n" +
-                "Veya doğrudan OpenSearch'i ekleyin:"
+                    "1. Adres çubuğuna tıklayın\n" +
+                    "2. Arama motoru simgesine tıklayın\n" +
+                    "3. 'Arama motorlarını yönet' seçeneğini seçin\n" +
+                    "4. 'Artado Search'ü bulun ve varsayılan yapın\n\n" +
+                    "Veya doğrudan OpenSearch'i ekleyin:",
             );
-            window.open('/opensearch.xml', '_blank');
+            window.open("/opensearch.xml", "_blank");
         }
     }
 </script>
@@ -619,7 +630,6 @@ a { color: #00ff41 !important; }`,
                                         <option value="Hybrid Proxy"
                                             >Artado Proxy (Önerilen)</option
                                         >
-
                                     </select>
                                 </div>
                             </div>
@@ -646,7 +656,8 @@ a { color: #00ff41 !important; }`,
                             <div class="setting-info">
                                 <h3>Tarayıcı Varsayılan Arama Motoru</h3>
                                 <p>
-                                    Artado Search'ü tarayıcınızın varsayılan arama motoru olarak ayarlayın.
+                                    Artado Search'ü tarayıcınızın varsayılan
+                                    arama motoru olarak ayarlayın.
                                 </p>
                             </div>
                             <div class="setting-actions">
@@ -654,17 +665,18 @@ a { color: #00ff41 !important; }`,
                                     class="btn btn-primary"
                                     onclick={installAsDefaultSearch}
                                 >
-                                    <i class="fas fa-plus-circle"></i> Tarayıcıya Ekle
+                                    <i class="fas fa-plus-circle"></i> Tarayıcıya
+                                    Ekle
                                 </button>
                                 <button
                                     class="btn btn-outline"
                                     onclick={() => {
                                         alert(
                                             "Tarayıcınızda varsayılan arama motoru olarak ayarlamak için:\n\n" +
-                                            "1. Adres çubuğuna tıklayın\n" +
-                                            "2. Arama motoru simgesine tıklayın\n" +
-                                            "3. 'Arama motorlarını yönet' seçeneğini seçin\n" +
-                                            "4. 'Artado Search'ü bulun ve varsayılan yapın"
+                                                "1. Adres çubuğuna tıklayın\n" +
+                                                "2. Arama motoru simgesine tıklayın\n" +
+                                                "3. 'Arama motorlarını yönet' seçeneğini seçin\n" +
+                                                "4. 'Artado Search'ü bulun ve varsayılan yapın",
                                         );
                                     }}
                                 >
@@ -727,8 +739,8 @@ a { color: #00ff41 !important; }`,
                                 <i class="fas fa-store"></i> Workshop (Logolar)
                             </h3>
                             <p>
-                                Workshop'tan özel logo tasarımlarını keşfedin. Seçtiğiniz
-                                logo anında uygulanır.
+                                Workshop'tan özel logo tasarımlarını keşfedin.
+                                Seçtiğiniz logo anında uygulanır.
                             </p>
 
                             <div class="workshop-tabs">
@@ -743,24 +755,27 @@ a { color: #00ff41 !important; }`,
                                 {:else}
                                     <div class="workshop-sections">
                                         <div class="workshop-section">
-
                                             <div class="workshop-mini-grid">
                                                 {#each $logos.slice(0, 4) as logo}
                                                     <div class="mini-item">
                                                         <img
-                                                            src={logo.download_url || "/placeholder.png"}
+                                                            src={logo.download_url ||
+                                                                "/placeholder.png"}
                                                             alt={logo.name}
                                                             style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
                                                         />
                                                         <div class="mini-info">
-                                                            <span>{logo.name}</span>
+                                                            <span
+                                                                >{logo.name}</span
+                                                            >
                                                             <button
                                                                 onclick={() =>
                                                                     applyWorkshopItem(
                                                                         logo,
                                                                         "logo",
                                                                     )}
-                                                            >Seç</button>
+                                                                >Seç</button
+                                                            >
                                                         </div>
                                                     </div>
                                                 {/each}
@@ -1025,11 +1040,32 @@ a { color: #00ff41 !important; }`,
                         <div class="setting-info">
                             <h3>Bang Komutları Hakkında</h3>
                             <p>
-                                Artado Search'te bang komutlarını kullanarak hızlı arama yapabilirsiniz.
-                                Örneğin: <code>!g test</code> Google'da, <code>!w türkiye</code> Wikipedia'da arama yapar.
+                                Artado Search'te bang komutlarını kullanarak
+                                hızlı arama yapabilirsiniz. Örneğin: <code
+                                    >!g test</code
+                                >
+                                Google'da, <code>!w türkiye</code> Wikipedia'da arama
+                                yapar.
                             </p>
                         </div>
-      
+
+                        <div class="divider"></div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>{$t("openBangsInNewTab")}</h3>
+                                <p>
+                                    Bang komutlarını her zaman yeni bir sekmede
+                                    açar.
+                                </p>
+                            </div>
+                            <label class="switch">
+                                <input
+                                    type="checkbox"
+                                    bind:checked={$bangsOpenNewTab}
+                                />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
                         <div class="divider"></div>
                         <div class="bangs-preview">
                             <h4>Bang Komutları</h4>
@@ -1120,7 +1156,10 @@ a { color: #00ff41 !important; }`,
                                             title="Temayı Sil"
                                             aria-label="Temayı Sil"
                                         >
-                                            <i class="fas fa-trash" aria-hidden="true"></i>
+                                            <i
+                                                class="fas fa-trash"
+                                                aria-hidden="true"
+                                            ></i>
                                         </button>
                                     </div>
                                 {/each}
@@ -1250,7 +1289,10 @@ a { color: #00ff41 !important; }`,
                                             title="Engeli Kaldır"
                                             aria-label="Engeli Kaldır"
                                         >
-                                            <i class="fas fa-times" aria-hidden="true"></i>
+                                            <i
+                                                class="fas fa-times"
+                                                aria-hidden="true"
+                                            ></i>
                                         </button>
                                     </li>
                                 {/each}
@@ -2607,7 +2649,9 @@ a { color: #00ff41 !important; }`,
         background-color: var(--card-background);
         border: 1px solid var(--border-color);
         border-radius: 8px;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition:
+            transform 0.2s,
+            box-shadow 0.2s;
     }
 
     .bang-item:hover {
@@ -2620,7 +2664,7 @@ a { color: #00ff41 !important; }`,
         color: white;
         padding: 0.25rem 0.5rem;
         border-radius: 4px;
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
         font-size: 0.85rem;
         font-weight: 600;
     }

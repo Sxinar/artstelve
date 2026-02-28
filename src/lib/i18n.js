@@ -48,6 +48,7 @@ const translations = {
         advanced: "Gelişmiş",
         plugins: "Eklentiler",
         hybridProxy: "Hybrid Proxy",
+        openBangsInNewTab: "Bang komutlarını yeni sekmede aç",
         // Add more translations as needed
     },
     en: {
@@ -95,6 +96,7 @@ const translations = {
         advanced: "Advanced",
         plugins: "Plugins",
         hybridProxy: "Hybrid Proxy",
+        openBangsInNewTab: "Open bang commands in new tab",
         // Add more translations as needed
     },
     fr: {

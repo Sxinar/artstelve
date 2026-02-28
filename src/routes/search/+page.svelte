@@ -36,11 +36,13 @@
         searchRegion,
         customLogo,
         enableSuggestions,
+        bangsOpenNewTab,
     } from "$lib/stores.js"; // Import AI summary setting
     import { safeSearch, blockedSites } from "$lib/stores.js";
     import { t } from "$lib/i18n.js";
     import { fade, slide, fly } from "svelte/transition";
     import { browser } from "$app/environment";
+    import { BANG_COMMANDS } from "$lib/bangs.js";
 
     // Get sidebar store from context
     const isSidebarOpen = getContext("sidebar");
@@ -71,6 +73,20 @@
 
     function performSearch(query, skipSpelling = false) {
         if (!query) return;
+
+        const parts = query.trim().split(/\s+/);
+        const bang = parts[0].toLowerCase();
+        if (bang.startsWith("!") && BANG_COMMANDS[bang]) {
+            const searchQ = parts.slice(1).join(" ");
+            const url = BANG_COMMANDS[bang].url + encodeURIComponent(searchQ);
+            if ($bangsOpenNewTab) {
+                window.open(url, "_blank");
+            } else {
+                window.location.href = url;
+            }
+            return;
+        }
+
         const url = new URL(window.location.href);
         url.searchParams.set("i", query);
         url.searchParams.set("p", "1");
@@ -162,14 +178,18 @@
             // Data is already processed by the backend
             const data = await response.json();
             console.log("[Frontend] API Response:", data);
-            
-            // Handle bang command redirects
+
+            // Handle bang command redirects (fallback if client logic missed it)
             if (data.redirect) {
                 console.log("[Frontend] Redirecting to:", data.redirect);
-                window.open(data.redirect, '_blank');
+                if ($bangsOpenNewTab) {
+                    window.open(data.redirect, "_blank");
+                } else {
+                    window.location.href = data.redirect;
+                }
                 return;
             }
-            
+
             if (data && data.ok === false) {
                 throw new Error(data.error || `API isteği başarısız`);
             }
@@ -280,6 +300,13 @@
 
     onMount(() => {
         loadPlugins();
+
+        if (browser) {
+            window.addEventListener("click", clickOutsideSuggestions);
+            return () => {
+                window.removeEventListener("click", clickOutsideSuggestions);
+            };
+        }
     });
 
     // Pagination State
@@ -531,7 +558,23 @@
         inputQuery = val;
         focusedSuggestionIndex = -1; // Reset focus on input
         clearTimeout(suggestTimeout);
-        if (val.trim().length > 1) {
+
+        const isBang = val.trim().startsWith("!");
+        if (isBang) {
+            // Instant client-side bang suggestions
+            const qLower = val.trim().toLowerCase();
+            suggestions = Object.keys(BANG_COMMANDS)
+                .filter((bang) => bang.startsWith(qLower))
+                .map((bang) => ({
+                    text: bang,
+                    description: BANG_COMMANDS[bang].name,
+                    isBang: true,
+                }));
+            showSuggestions = suggestions.length > 0;
+            return;
+        }
+
+        if (val.trim().length >= 2) {
             console.log("⏰ [SEARCH] Setting timeout for suggestions...");
             suggestTimeout = setTimeout(() => {
                 fetchSuggestions(val);
@@ -581,27 +624,17 @@
     }
 
     function selectSuggestion(s) {
-        inputQuery = s;
+        inputQuery = s.text;
         showSuggestions = false;
         handleSearchSubmit();
     }
 
-    function clickOutsideSuggestions(event) {
-        if (!event.target.closest(".search-bar-container")) {
-            showSuggestions = false;
-        }
+    function clickOutsideSuggestions() {
+        showSuggestions = false;
     }
-
 </script>
 
-<div
-    class="search-results-overlay"
-    onclick={() => {
-        handleOutsideClick();
-        clickOutsideSuggestions();
-    }}
-    aria-hidden="true"
-></div>
+<svelte:window onclick={clickOutsideSuggestions} />
 
 <svelte:head>
     <title
@@ -621,7 +654,7 @@
                 onerror={(e) => (e.target.style.display = "none")}
             />
         </a>
-        <div class="search-bar-container">
+        <div class="search-bar-container" onclick={(e) => e.stopPropagation()}>
             <div
                 class="input-wrapper"
                 style="flex:1; position: relative; display: flex;"
@@ -631,7 +664,6 @@
                     value={inputQuery}
                     oninput={handleInput}
                     onkeydown={handleKeyDown}
-                    onblur={handleBlur}
                     onfocus={() => {
                         if (inputQuery.length > 1 && suggestions.length > 0)
                             showSuggestions = true;
@@ -671,13 +703,31 @@
                                     onclick={() => selectSuggestion(s)}
                                 >
                                     <div class="suggestion-icon-wrapper">
-                                        <i class="fas fa-search"></i>
+                                        {#if s.isBang}
+                                            <i
+                                                class="fas fa-bolt"
+                                                style="color: var(--primary-color);"
+                                            ></i>
+                                        {:else}
+                                            <i class="fas fa-search"></i>
+                                        {/if}
                                     </div>
-                                    <span
-                                        >{#each highlightParts(s, inputQuery) as part}{#if part.bold}<b
-                                                    >{part.text}</b
-                                                >{:else}{part.text}{/if}{/each}</span
+                                    <div
+                                        class="suggestion-text-content"
+                                        style="display: flex; flex-direction: column;"
                                     >
+                                        <span
+                                            >{#each highlightParts(s.text, inputQuery) as part}{#if part.bold}<b
+                                                        >{part.text}</b
+                                                    >{:else}{part.text}{/if}{/each}</span
+                                        >
+                                        {#if s.description}
+                                            <span
+                                                style="font-size: 0.75rem; opacity: 0.6;"
+                                                >{s.description}</span
+                                            >
+                                        {/if}
+                                    </div>
                                     <i class="fas fa-arrow-up suggestion-arrow"
                                     ></i>
                                 </button>
@@ -1038,7 +1088,8 @@
                                                     title="Tam Boyut"
                                                     aria-label="Tam Boyut"
                                                 >
-                                                    <i class="fas fa-expand"
+                                                    <i
+                                                        class="fas fa-expand"
                                                         aria-hidden="true"
                                                     ></i>
                                                 </a>
@@ -2545,8 +2596,12 @@
     }
 
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
     .loading-container p {

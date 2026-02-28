@@ -2,6 +2,7 @@
   import { getContext, onMount, onDestroy } from "svelte";
   import { writable } from "svelte/store"; // For local state if needed
   import { goto } from "$app/navigation"; // Import goto for navigation
+  import { BANG_COMMANDS } from "$lib/bangs.js";
 
   // Güvenli metin vurgulama - XSS güvenli (innerHTML kullanmaz)
   function highlightParts(text, query) {
@@ -32,6 +33,7 @@
     enableSuggestions,
     customLogo,
     isSidebarOpen,
+    bangsOpenNewTab,
   } from "$lib/stores.js";
   import { browser } from "$app/environment";
 
@@ -45,25 +47,14 @@
     isSidebarOpen.set(!$isSidebarOpen);
   }
 
-  // Add touch event handling for mobile
-  function handleTouchStart(event) {
-    // Prevent default touch behavior to ensure click events work
-    if (event.target.classList.contains("menu-button")) {
-      event.preventDefault();
-    }
-  }
-
-  // Add touch event listeners on mount
+  // Initialize on mount if API exists
   onMount(() => {
-    if (browser) {
-      document.addEventListener("touchstart", handleTouchStart, {
-        passive: false,
-      });
-      return () => {
-        document.removeEventListener("touchstart", handleTouchStart);
-      };
-    }
+    recognition = setupSpeechRecognition();
   });
+
+  function clickOutsideSuggestions() {
+    showSuggestions = false;
+  }
 
   let customHomeThemeElement;
   function applyHomeTheme(theme) {
@@ -124,6 +115,20 @@
 
   function performSearchNavigation() {
     if (!searchQuery.trim()) return;
+
+    const parts = searchQuery.trim().split(/\s+/);
+    const bang = parts[0].toLowerCase();
+    if (bang.startsWith("!") && BANG_COMMANDS[bang]) {
+      const query = parts.slice(1).join(" ");
+      const url = BANG_COMMANDS[bang].url + encodeURIComponent(query);
+      if ($bangsOpenNewTab) {
+        window.open(url, "_blank");
+      } else {
+        window.location.href = url;
+      }
+      return;
+    }
+
     // Navigate to the search page with the query
     goto(`/search?i=${encodeURIComponent(searchQuery.trim())}`);
   }
@@ -210,7 +215,22 @@
     focusedSuggestionIndex = -1; // Reset focus on input
     clearTimeout(suggestTimeout);
 
-    if (val.trim().length > 1) {
+    const isBang = val.trim().startsWith("!");
+    if (isBang) {
+      // Instant client-side bang suggestions
+      const qLower = val.trim().toLowerCase();
+      suggestions = Object.keys(BANG_COMMANDS)
+        .filter((bang) => bang.startsWith(qLower))
+        .map((bang) => ({
+          text: bang,
+          description: BANG_COMMANDS[bang].name,
+          isBang: true,
+        }));
+      showSuggestions = suggestions.length > 0;
+      return;
+    }
+
+    if (val.trim().length >= 2) {
       console.log("⏰ Setting timeout for suggestions...");
       suggestTimeout = setTimeout(() => {
         fetchSuggestions(val);
@@ -252,22 +272,9 @@
   }
 
   function selectSuggestion(s) {
-    searchQuery = s;
+    searchQuery = s.text;
     showSuggestions = false;
     performSearchNavigation();
-  }
-
-  function handleBlur() {
-    // Small timeout to allow click to fire
-    setTimeout(() => {
-      showSuggestions = false;
-    }, 200);
-  }
-
-  function clickOutsideSuggestions(event) {
-    if (!event.target.closest(".search-box")) {
-      showSuggestions = false;
-    }
   }
 
   // --- Web Speech API Logic ---
@@ -366,7 +373,7 @@
   <title>Artado Search</title>
 </svelte:head>
 
-<svelte:window on:click={clickOutsideSuggestions} />
+<svelte:window onclick={clickOutsideSuggestions} />
 
 <div
   class="home-container"
@@ -375,7 +382,7 @@
   in:fade={{ duration: 400 }}
 >
   <div class="home-header">
-    <button class="menu-button" on:click={toggleSidebar} aria-label="Menüyü aç">
+    <button class="menu-button" onclick={toggleSidebar} aria-label="Menüyü aç">
       <i class="fas fa-sliders"></i>
     </button>
   </div>
@@ -386,16 +393,15 @@
   </div>
 
   <div class="search-container">
-    <div class="search-box">
+    <div class="search-box" onclick={(e) => e.stopPropagation()}>
       <i class="fas fa-search search-icon"></i>
       <div class="input-wrapper" style="flex:1; width:100%; display: flex;">
         <input
           type="text"
           value={searchQuery}
-          on:input={handleInput}
-          on:keydown={handleKeyDown}
-          on:blur={handleBlur}
-          on:focus={() => {
+          oninput={handleInput}
+          onkeydown={handleKeyDown}
+          onfocus={() => {
             if (searchQuery.length > 1 && suggestions.length > 0)
               showSuggestions = true;
           }}
@@ -412,7 +418,7 @@
             {#if spellCorrection}
               <button
                 class="did-you-mean-row"
-                on:click={() => selectSuggestion(spellCorrection.corrected)}
+                onclick={() => selectSuggestion(spellCorrection.corrected)}
               >
                 <i class="fas fa-spell-check"></i>
                 <span
@@ -424,22 +430,52 @@
             {/if}
             {#if suggestions.length > 0}
               <div class="suggestions-header">
-                <i class="fas fa-magic"></i> Öneriler
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <i class="fas fa-magic"></i> Öneriler
+                </div>
+                <button
+                  class="close-suggestions-btn"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    showSuggestions = false;
+                  }}
+                  title="Kapat"
+                  aria-label="Önerileri Kapat"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
               </div>
               {#each suggestions.slice(0, 7) as s, i}
                 <button
                   class="suggestion-item"
                   class:focused={i === focusedSuggestionIndex}
-                  on:click={() => selectSuggestion(s)}
+                  onclick={() => selectSuggestion(s)}
                 >
                   <div class="suggestion-icon-wrapper">
-                    <i class="fas fa-search"></i>
+                    {#if s.isBang}
+                      <i
+                        class="fas fa-bolt"
+                        style="color: var(--primary-color);"
+                      ></i>
+                    {:else}
+                      <i class="fas fa-search"></i>
+                    {/if}
                   </div>
-                  <span
-                    >{#each highlightParts(s, searchQuery) as part}{#if part.bold}<b
-                          >{part.text}</b
-                        >{:else}{part.text}{/if}{/each}</span
+                  <div
+                    class="suggestion-text-content"
+                    style="display: flex; flex-direction: column;"
                   >
+                    <span
+                      >{#each highlightParts(s.text, searchQuery) as part}{#if part.bold}<b
+                            >{part.text}</b
+                          >{:else}{part.text}{/if}{/each}</span
+                    >
+                    {#if s.description}
+                      <span style="font-size: 0.75rem; opacity: 0.6;"
+                        >{s.description}</span
+                      >
+                    {/if}
+                  </div>
                   <i class="fas fa-arrow-up suggestion-arrow"></i>
                 </button>
               {/each}
@@ -450,7 +486,7 @@
       {#if searchQuery}
         <button
           class="clear-button"
-          on:click={clearSearch}
+          onclick={clearSearch}
           aria-label="Aramayı temizle"
         >
           <i class="fas fa-times"></i>
@@ -459,7 +495,7 @@
       <button
         class="mic-button"
         class:listening={isListening}
-        on:click={isListening ? stopListening : startListening}
+        onclick={isListening ? stopListening : startListening}
         aria-label={isListening ? "Dinlemeyi Durdur" : "Sesli Arama"}
       >
         {#if isListening}
@@ -470,7 +506,7 @@
       </button>
       <button
         class="search-action-button"
-        on:click={handleSearch}
+        onclick={handleSearch}
         disabled={isLoading}
         aria-label="Ara"
       >
@@ -495,7 +531,7 @@
         <h2>Arama Sonuçları</h2>
         <button
           class="menu-button"
-          on:click={toggleSidebar}
+          onclick={toggleSidebar}
           aria-label="Menüyü aç"
         >
           <i class="fas fa-sliders"></i>
@@ -747,8 +783,29 @@
     letter-spacing: 1.2px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: space-between;
     margin-bottom: 4px;
+  }
+
+  .close-suggestions-btn {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+  }
+
+  .close-suggestions-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--primary-color);
   }
 
   .did-you-mean-row {

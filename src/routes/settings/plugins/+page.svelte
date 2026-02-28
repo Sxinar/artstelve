@@ -57,9 +57,9 @@
 
                     allPlugins.forEach((p) => {
                         const category = (p.category || "").toLowerCase();
-                        
+
                         // Only include artado_eklenti category
-                        if (category === 'artado_eklenti') {
+                        if (category === "artado_eklenti") {
                             _plugins.push(p);
                         }
                     });
@@ -87,15 +87,20 @@
 
         if (type === "plugin") {
             // Store active workshop plugins in localStorage
-            const activePlugins = JSON.parse(localStorage.getItem('activeWorkshopPlugins') || '[]');
-            if (!activePlugins.find(p => p.id === item.id)) {
+            const activePlugins = JSON.parse(
+                localStorage.getItem("activeWorkshopPlugins") || "[]",
+            );
+            if (!activePlugins.find((p) => p.id === item.id)) {
                 activePlugins.push({
                     id: item.id,
                     name: item.name,
                     url: item.download_url,
-                    category: item.category
+                    category: item.category,
                 });
-                localStorage.setItem('activeWorkshopPlugins', JSON.stringify(activePlugins));
+                localStorage.setItem(
+                    "activeWorkshopPlugins",
+                    JSON.stringify(activePlugins),
+                );
             }
             alert(
                 "Eklenti buluttan uygulandı! Bir sonraki aramanızda etkinleşecek.",
@@ -149,11 +154,18 @@
         try {
             if (type === "plugin") {
                 // Remove from active workshop plugins
-                const activePlugins = JSON.parse(localStorage.getItem('activeWorkshopPlugins') || '[]');
-                const filteredPlugins = activePlugins.filter(p => p.id !== id);
-                localStorage.setItem('activeWorkshopPlugins', JSON.stringify(filteredPlugins));
+                const activePlugins = JSON.parse(
+                    localStorage.getItem("activeWorkshopPlugins") || "[]",
+                );
+                const filteredPlugins = activePlugins.filter(
+                    (p) => p.id !== id,
+                );
+                localStorage.setItem(
+                    "activeWorkshopPlugins",
+                    JSON.stringify(filteredPlugins),
+                );
             }
-            
+
             alert("Başarıyla devre dışı bırakıldı.");
         } catch (e) {
             alert("Hata: " + e.message);
@@ -192,7 +204,7 @@
                     <li>
                         <button
                             class:active={activeTab === "Eklentiler"}
-                            on:click={() => (activeTab = "Eklentiler")}
+                            onclick={() => (activeTab = "Eklentiler")}
                         >
                             <i class="fas fa-puzzle-piece"></i>
                             <span>Workshop Eklentileri</span>
@@ -201,16 +213,14 @@
                     <li>
                         <button
                             class:active={activeTab === "Yüklü"}
-                            on:click={() => (activeTab = "Yüklü")}
+                            onclick={() => (activeTab = "Yüklü")}
                         >
                             <i class="fas fa-download"></i>
                             <span>Yüklü Eklentiler</span>
                         </button>
                     </li>
                     <li>
-                        <button
-                            on:click={() => goto('/settings/themes')}
-                        >
+                        <button onclick={() => goto("/settings/themes")}>
                             <i class="fas fa-paint-brush"></i>
                             <span>Temalar</span>
                         </button>
@@ -223,7 +233,7 @@
             {#if activeTab === "Eklentiler"}
                 <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">Workshop Eklentileri</h2>
-                    
+
                     {#if $isLoadingWorkshop}
                         <div class="setting-card">
                             <div style="text-align: center; padding: 2rem;">
@@ -242,10 +252,15 @@
                                 <div class="setting-card workshop-item-card">
                                     <div class="item-header">
                                         <h3>{plugin.name}</h3>
-                                        <span class="item-category">{plugin.category || "Genel"}</span>
+                                        <span class="item-category"
+                                            >{plugin.category || "Genel"}</span
+                                        >
                                     </div>
                                     <div class="item-content">
-                                        <p>{plugin.description || "Açıklama yok"}</p>
+                                        <p>
+                                            {plugin.description ||
+                                                "Açıklama yok"}
+                                        </p>
                                         <div class="item-meta">
                                             <span class="item-author">
                                                 <i class="fas fa-user"></i>
@@ -262,11 +277,15 @@
                                     <div class="item-actions">
                                         <button
                                             class="btn btn-primary"
-                                            on:click={() => installItem(plugin, "plugin")}
-                                            disabled={installingId === plugin.id}
+                                            onclick={() =>
+                                                installItem(plugin, "plugin")}
+                                            disabled={installingId ===
+                                                plugin.id}
                                         >
                                             {#if installingId === plugin.id}
-                                                <i class="fas fa-spinner fa-spin"></i>
+                                                <i
+                                                    class="fas fa-spinner fa-spin"
+                                                ></i>
                                                 Kuruluyor...
                                             {:else}
                                                 <i class="fas fa-download"></i>
@@ -280,7 +299,9 @@
                                                 rel="noopener noreferrer"
                                                 class="btn btn-outline"
                                             >
-                                                <i class="fas fa-external-link-alt"></i>
+                                                <i
+                                                    class="fas fa-external-link-alt"
+                                                ></i>
                                                 Önizle
                                             </a>
                                         {/if}
@@ -293,14 +314,19 @@
             {:else if activeTab === "Yüklü"}
                 <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">Yüklü Eklentiler</h2>
-                    
+
                     {#if installedPluginsList.length === 0}
                         <div class="setting-card">
                             <div class="empty-state">
                                 <i class="fas fa-puzzle-piece"></i>
                                 <h3>Henüz yüklü eklenti yok</h3>
-                                <p>Workshop'tan eklentileri kurarak başlayın.</p>
-                                <a href="/settings/plugins" class="btn btn-primary">
+                                <p>
+                                    Workshop'tan eklentileri kurarak başlayın.
+                                </p>
+                                <a
+                                    href="/settings/plugins"
+                                    class="btn btn-primary"
+                                >
                                     <i class="fas fa-download"></i>
                                     Eklentileri Keşfet
                                 </a>
@@ -312,10 +338,15 @@
                                 <div class="setting-card workshop-item-card">
                                     <div class="item-header">
                                         <h3>{plugin.name}</h3>
-                                        <span class="item-status active">Aktif</span>
+                                        <span class="item-status active"
+                                            >Aktif</span
+                                        >
                                     </div>
                                     <div class="item-content">
-                                        <p>{plugin.description || "Açıklama yok"}</p>
+                                        <p>
+                                            {plugin.description ||
+                                                "Açıklama yok"}
+                                        </p>
                                         <div class="item-meta">
                                             <span class="item-author">
                                                 <i class="fas fa-user"></i>
@@ -332,7 +363,11 @@
                                     <div class="item-actions">
                                         <button
                                             class="btn btn-danger"
-                                            on:click={() => uninstallItem(plugin.id, "plugin")}
+                                            onclick={() =>
+                                                uninstallItem(
+                                                    plugin.id,
+                                                    "plugin",
+                                                )}
                                         >
                                             <i class="fas fa-trash"></i>
                                             Kaldır
@@ -344,7 +379,9 @@
                                                 rel="noopener noreferrer"
                                                 class="btn btn-outline"
                                             >
-                                                <i class="fas fa-external-link-alt"></i>
+                                                <i
+                                                    class="fas fa-external-link-alt"
+                                                ></i>
                                                 Önizle
                                             </a>
                                         {/if}
@@ -646,8 +683,12 @@
     }
 
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
     .error-container {
@@ -705,7 +746,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         .settings-content-wrapper {
             flex-direction: column;
             margin: 0;
