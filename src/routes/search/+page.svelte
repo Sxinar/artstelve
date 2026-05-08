@@ -1281,7 +1281,8 @@
                                             <p class="text-sm sm:text-base text-[var(--text-color-secondary)] leading-5 sm:leading-6 mt-1">{result.description}</p>
                                         </div>
                                     </div>
-                                {/each}
+                                </div>
+                            {/each}
                             </div>
                         {:else if searchQuery}
                             <div class="text-center mt-8 sm:mt-12 p-4 sm:p-6 text-[var(--text-color-secondary)] rounded-lg bg-[var(--card-background)] border border-[var(--border-color)]">
