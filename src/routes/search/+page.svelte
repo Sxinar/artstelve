@@ -1262,27 +1262,28 @@
                                                     {result.title}
                                                 </a>
                                             </h3>
-                                            <div class="flex gap-3 sm:gap-4">
-                                        {#if result.thumbnail}
-                                            <div class="flex-shrink-0 w-[80px] sm:w-[120px] h-[80px] sm:h-[120px] rounded-lg overflow-hidden bg-[var(--background-secondary)]">
-                                                <img
-                                                    src={result.thumbnail}
-                                                    alt=""
-                                                    class="w-full h-full object-cover"
-                                                    loading="lazy"
-                                                    onerror={(e) => {
-                                                        e.target.style.display =
-                                                            "none";
-                                                    }}
-                                                />
+                                        </div>
+                                        <div class="flex gap-3 sm:gap-4">
+                                            {#if result.thumbnail}
+                                                <div class="flex-shrink-0 w-[80px] sm:w-[120px] h-[80px] sm:h-[120px] rounded-lg overflow-hidden bg-[var(--background-secondary)]">
+                                                    <img
+                                                        src={result.thumbnail}
+                                                        alt=""
+                                                        class="w-full h-full object-cover"
+                                                        loading="lazy"
+                                                        onerror={(e) => {
+                                                            e.target.style.display =
+                                                                "none";
+                                                        }}
+                                                    />
+                                                </div>
+                                            {/if}
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm sm:text-base text-[var(--text-color-secondary)] leading-5 sm:leading-6 mt-1">{result.description}</p>
                                             </div>
-                                        {/if}
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-sm sm:text-base text-[var(--text-color-secondary)] leading-5 sm:leading-6 mt-1">{result.description}</p>
                                         </div>
                                     </div>
-                                </div>
-                            {/each}
+                                {/each}
                             </div>
                         {:else if searchQuery}
                             <div class="text-center mt-8 sm:mt-12 p-4 sm:p-6 text-[var(--text-color-secondary)] rounded-lg bg-[var(--card-background)] border border-[var(--border-color)]">
