@@ -1258,6 +1258,11 @@
                                                     href={result.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
+                                                >
+                                                    {result.title}
+                                                </a>
+                                            </h3>
+                                            <div class="flex gap-3 sm:gap-4">
                                         {#if result.thumbnail}
                                             <div class="flex-shrink-0 w-[80px] sm:w-[120px] h-[80px] sm:h-[120px] rounded-lg overflow-hidden bg-[var(--background-secondary)]">
                                                 <img
@@ -1272,6 +1277,9 @@
                                                 />
                                             </div>
                                         {/if}
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm sm:text-base text-[var(--text-color-secondary)] leading-5 sm:leading-6 mt-1">{result.description}</p>
+                                        </div>
                                     </div>
                                 {/each}
                             </div>
