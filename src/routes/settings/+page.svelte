@@ -565,7 +565,7 @@ a { color: #00ff41 !important; }`,
         </div>
     {/if}
 
-    <header class="settings-header">
+    <header class="settings-header px-4 sm:px-[3rem] py-4 sm:py-6">
         <div class="header-left">
             <a href="/" class="back-button" aria-label="Aramaya Dön">
                 <i class="fas fa-arrow-left"></i>
@@ -576,8 +576,8 @@ a { color: #00ff41 !important; }`,
         <div class="header-right"></div>
     </header>
 
-    <div class="settings-content-wrapper">
-        <aside class="settings-sidebar">
+    <div class="settings-content-wrapper flex-col sm:flex-row px-2 sm:px-4 gap-4 sm:gap-8">
+        <aside class="settings-sidebar w-full sm:w-[260px] flex-shrink-0 mb-4 sm:mb-0">
             <nav aria-label="Ayarlar Menüsü">
                 <ul>
                     {#each filteredTabs as tab}
@@ -595,10 +595,10 @@ a { color: #00ff41 !important; }`,
             </nav>
         </aside>
 
-        <main class="settings-main-content">
+        <main class="settings-main-content flex-1 min-w-0">
             {#if activeTab === "Temel Ayarlar"}
                 <section in:slide={{ duration: 300 }}>
-                    <h2 class="section-heading">{$t("basicSettings")}</h2>
+                    <h2 class="section-heading text-2xl sm:text-[1.8rem]">{$t("basicSettings")}</h2>
                     <div class="setting-card">
                         <div class="setting-row">
                             <div class="setting-info">

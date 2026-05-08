@@ -122,7 +122,7 @@ export async function GET({ url, setHeaders }) {
     const proxyLimitTotalRaw = url.searchParams.get('proxyLimitTotal');
     const proxyTimeoutMsRaw = url.searchParams.get('proxyTimeoutMs');
     const proxyCacheRaw = url.searchParams.get('proxyCache');
-    const region = url.searchParams.get('region') || 'all'; // 'all', 'TR', 'US', etc.
+    const region = url.searchParams.get('region') || 'TR'; // 'all', 'TR', 'US', etc.
     const safe = url.searchParams.get('safe') || 'on'; // 'on' | 'off'
     const size = url.searchParams.get('size') || ''; // images: small|medium|large
     const color = url.searchParams.get('color') || ''; // images: color filter

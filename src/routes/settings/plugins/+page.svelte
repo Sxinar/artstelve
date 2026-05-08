@@ -185,28 +185,29 @@
     <title>Eklentiler - Stelve</title>
 </svelte:head>
 
-<div class="settings-page" transition:fade={{ duration: 300 }}>
-    <header class="settings-header">
-        <div class="header-left">
-            <a href="/settings" class="back-button" aria-label="Ayarlar">
+<div class="flex flex-col min-h-screen bg-[var(--background-color)] text-[var(--text-color)] font-sans" transition:fade={{ duration: 300 }}>
+    <header class="flex items-center justify-between px-4 sm:px-12 py-4 sm:py-6 bg-transparent sticky top-0 z-[100] rounded-xl mx-2 sm:mx-4">
+        <div class="flex items-center gap-4">
+            <a href="/settings" class="flex items-center gap-3 text-[var(--text-color)] no-decoration px-5 py-3 rounded-xl bg-[var(--card-background)] border border-[var(--border-color)] transition-all duration-300 font-medium hover:bg-[var(--primary-color)] hover:text-white hover:border-[var(--primary-color)] hover:-translate-y-0.5 hover:shadow-lg" aria-label="Ayarlar">
                 <i class="fas fa-arrow-left"></i>
                 <span>Ayarlar</span>
             </a>
         </div>
-        <h1 class="settings-title">Eklentiler</h1>
-        <div class="header-right"></div>
+        <h1 class="text-2xl sm:text-4xl font-bold m-0 bg-gradient-to-br from-[var(--primary-color)] to-[var(--accent-color)] bg-clip-text text-transparent">Eklentiler</h1>
+        <div class="flex items-center gap-4"></div>
     </header>
 
-    <div class="settings-content-wrapper">
-        <aside class="settings-sidebar">
+    <div class="flex flex-col sm:flex-row min-h-[calc(100vh-80px)]">
+        <aside class="w-full sm:w-[280px] bg-[var(--background-secondary)] border-r border-[var(--border-color)] border-l-0 px-4 sm:px-6 py-4 sm:py-6 flex flex-col gap-2 order-1">
             <nav aria-label="Eklentiler Menüsü">
-                <ul>
+                <ul class="list-none p-0 m-0">
                     <li>
                         <button
                             class:active={activeTab === "Eklentiler"}
                             onclick={() => (activeTab = "Eklentiler")}
+                            class="w-full flex items-center gap-3 px-4 py-3.5 bg-transparent border-none rounded-xl text-[var(--text-color)] text-sm font-medium cursor-pointer transition-all duration-300 text-left hover:bg-[var(--hover-background)] hover:translate-x-1"
                         >
-                            <i class="fas fa-puzzle-piece"></i>
+                            <i class="fas fa-puzzle-piece w-5 text-center"></i>
                             <span>Workshop Eklentileri</span>
                         </button>
                     </li>
@@ -214,14 +215,15 @@
                         <button
                             class:active={activeTab === "Yüklü"}
                             onclick={() => (activeTab = "Yüklü")}
+                            class="w-full flex items-center gap-3 px-4 py-3.5 bg-transparent border-none rounded-xl text-[var(--text-color)] text-sm font-medium cursor-pointer transition-all duration-300 text-left hover:bg-[var(--hover-background)] hover:translate-x-1"
                         >
-                            <i class="fas fa-download"></i>
+                            <i class="fas fa-download w-5 text-center"></i>
                             <span>Yüklü Eklentiler</span>
                         </button>
                     </li>
                     <li>
-                        <button onclick={() => goto("/settings/themes")}>
-                            <i class="fas fa-paint-brush"></i>
+                        <button onclick={() => goto("/settings/themes")} class="w-full flex items-center gap-3 px-4 py-3.5 bg-transparent border-none rounded-xl text-[var(--text-color)] text-sm font-medium cursor-pointer transition-all duration-300 text-left hover:bg-[var(--hover-background)] hover:translate-x-1">
+                            <i class="fas fa-paint-brush w-5 text-center"></i>
                             <span>Temalar</span>
                         </button>
                     </li>
@@ -229,54 +231,54 @@
             </nav>
         </aside>
 
-        <main class="settings-main-content">
+        <main class="flex-1 p-4 sm:p-8 overflow-y-auto order-2 max-w-none w-full">
             {#if activeTab === "Eklentiler"}
                 <section in:slide={{ duration: 300 }}>
-                    <h2 class="section-heading">Workshop Eklentileri</h2>
+                    <h2 class="text-xl sm:text-[1.75rem] font-bold m-0 mb-6 sm:mb-8 text-[var(--text-color)]">Workshop Eklentileri</h2>
 
                     {#if $isLoadingWorkshop}
-                        <div class="setting-card">
-                            <div style="text-align: center; padding: 2rem;">
-                                <div class="spinner"></div>
+                        <div class="bg-[var(--card-background)] border border-[var(--border-color)] rounded-2xl p-6 transition-all duration-300 relative overflow-hidden">
+                            <div class="text-center p-8">
+                                <div class="w-10 h-10 border-3 border-[var(--border-color)] border-t-[var(--primary-color)] rounded-full animate-spin mb-4 mx-auto"></div>
                                 <p>Eklentiler yükleniyor...</p>
                             </div>
                         </div>
                     {:else if $workshopError}
-                        <div class="setting-card error-card">
+                        <div class="bg-[var(--card-background)] border border-[var(--border-color)] rounded-2xl p-6 transition-all duration-300 relative overflow-hidden text-[var(--danger-color)] text-center">
                             <i class="fas fa-exclamation-triangle"></i>
                             <p>{$workshopError}</p>
                         </div>
                     {:else}
-                        <div class="workshop-grid">
+                        <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mt-4">
                             {#each $plugins as plugin}
-                                <div class="setting-card workshop-item-card">
-                                    <div class="item-header">
+                                <div class="bg-[var(--card-background)] border border-[var(--border-color)] rounded-2xl p-6 transition-all duration-300 relative overflow-hidden hover:-translate-y-0.5 hover:shadow-lg hover:border-[var(--primary-color)]">
+                                    <div class="flex justify-between items-start mb-4">
                                         <h3>{plugin.name}</h3>
-                                        <span class="item-category"
+                                        <span class="text-sm text-[var(--text-secondary)]"
                                             >{plugin.category || "Genel"}</span
                                         >
                                     </div>
-                                    <div class="item-content">
+                                    <div class="mb-4">
                                         <p>
                                             {plugin.description ||
                                                 "Açıklama yok"}
                                         </p>
-                                        <div class="item-meta">
-                                            <span class="item-author">
+                                        <div class="flex flex-col gap-1 text-xs text-[var(--text-secondary)] mt-2">
+                                            <span class="flex items-center gap-1">
                                                 <i class="fas fa-user"></i>
                                                 {plugin.author || "Bilinmeyen"}
                                             </span>
                                             {#if plugin.version}
-                                                <span class="item-version">
+                                                <span class="flex items-center gap-1">
                                                     <i class="fas fa-tag"></i>
                                                     v{plugin.version}
                                                 </span>
                                             {/if}
                                         </div>
                                     </div>
-                                    <div class="item-actions">
+                                    <div class="flex gap-3 flex-wrap">
                                         <button
-                                            class="btn btn-primary"
+                                            class="px-5 py-2.5 rounded-lg text-sm font-medium text-decoration-none transition-all duration-300 cursor-pointer border border-transparent bg-[var(--primary-color)] text-white border-[var(--primary-color)] hover:bg-[var(--primary-hover)] hover:-translate-y-0.5 hover:shadow-lg"
                                             onclick={() =>
                                                 installItem(plugin, "plugin")}
                                             disabled={installingId ===
@@ -297,7 +299,7 @@
                                                 href={plugin.download_url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                class="btn btn-outline"
+                                                class="px-5 py-2.5 rounded-lg text-sm font-medium text-decoration-none transition-all duration-300 cursor-pointer border border-transparent bg-[var(--card-background)] text-[var(--text-color)] border-[var(--border-color)] hover:bg-[var(--hover-background)] hover:border-[var(--primary-color)] hover:text-[var(--primary-color)]"
                                             >
                                                 <i
                                                     class="fas fa-external-link-alt"
@@ -313,19 +315,19 @@
                 </section>
             {:else if activeTab === "Yüklü"}
                 <section in:slide={{ duration: 300 }}>
-                    <h2 class="section-heading">Yüklü Eklentiler</h2>
+                    <h2 class="text-[1.75rem] font-bold m-0 mb-8 text-[var(--text-color)]">Yüklü Eklentiler</h2>
 
                     {#if installedPluginsList.length === 0}
-                        <div class="setting-card">
-                            <div class="empty-state">
-                                <i class="fas fa-puzzle-piece"></i>
-                                <h3>Henüz yüklü eklenti yok</h3>
+                        <div class="bg-[var(--card-background)] border border-[var(--border-color)] rounded-2xl p-6 transition-all duration-300 relative overflow-hidden">
+                            <div class="text-center p-16 text-[var(--text-secondary)]">
+                                <i class="fas fa-puzzle-piece text-5xl mb-4 opacity-50"></i>
+                                <h3 class="text-xl text-[var(--text-color)] m-0 mb-2">Henüz yüklü eklenti yok</h3>
                                 <p>
                                     Workshop'tan eklentileri kurarak başlayın.
                                 </p>
                                 <a
                                     href="/settings/plugins"
-                                    class="btn btn-primary"
+                                    class="px-5 py-2.5 rounded-lg text-sm font-medium text-decoration-none transition-all duration-300 cursor-pointer border border-transparent bg-[var(--primary-color)] text-white border-[var(--primary-color)] hover:bg-[var(--primary-hover)] hover:-translate-y-0.5 hover:shadow-lg"
                                 >
                                     <i class="fas fa-download"></i>
                                     Eklentileri Keşfet
@@ -333,36 +335,36 @@
                             </div>
                         </div>
                     {:else}
-                        <div class="installed-grid">
+                        <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mt-4">
                             {#each installedPluginsList as plugin}
-                                <div class="setting-card workshop-item-card">
-                                    <div class="item-header">
+                                <div class="bg-[var(--card-background)] border border-[var(--border-color)] rounded-2xl p-6 transition-all duration-300 relative overflow-hidden hover:-translate-y-0.5 hover:shadow-lg hover:border-[var(--primary-color)]">
+                                    <div class="flex justify-between items-start mb-4">
                                         <h3>{plugin.name}</h3>
-                                        <span class="item-status active"
+                                        <span class="text-sm text-green-500"
                                             >Aktif</span
                                         >
                                     </div>
-                                    <div class="item-content">
+                                    <div class="mb-4">
                                         <p>
                                             {plugin.description ||
                                                 "Açıklama yok"}
                                         </p>
-                                        <div class="item-meta">
-                                            <span class="item-author">
+                                        <div class="flex flex-col gap-1 text-xs text-[var(--text-secondary)] mt-2">
+                                            <span class="flex items-center gap-1">
                                                 <i class="fas fa-user"></i>
                                                 {plugin.author || "Bilinmeyen"}
                                             </span>
                                             {#if plugin.version}
-                                                <span class="item-version">
+                                                <span class="flex items-center gap-1">
                                                     <i class="fas fa-tag"></i>
                                                     v{plugin.version}
                                                 </span>
                                             {/if}
                                         </div>
                                     </div>
-                                    <div class="item-actions">
+                                    <div class="flex gap-3 flex-wrap">
                                         <button
-                                            class="btn btn-danger"
+                                            class="px-5 py-2.5 rounded-lg text-sm font-medium text-decoration-none transition-all duration-300 cursor-pointer border border-transparent bg-red-500 text-white border-red-500 hover:bg-red-600 hover:-translate-y-0.5 hover:shadow-lg"
                                             onclick={() =>
                                                 uninstallItem(
                                                     plugin.id,
@@ -377,7 +379,7 @@
                                                 href={plugin.download_url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                class="btn btn-outline"
+                                                class="px-5 py-2.5 rounded-lg text-sm font-medium text-decoration-none transition-all duration-300 cursor-pointer border border-transparent bg-[var(--card-background)] text-[var(--text-color)] border-[var(--border-color)] hover:bg-[var(--hover-background)] hover:border-[var(--primary-color)] hover:text-[var(--primary-color)]"
                                             >
                                                 <i
                                                     class="fas fa-external-link-alt"
@@ -395,524 +397,3 @@
         </main>
     </div>
 </div>
-
-<style>
-    /* Modern Settings Styles */
-    .settings-page {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-        background-color: var(--background-color);
-        color: var(--text-color);
-        font-family: "Inter", sans-serif;
-    }
-
-    .settings-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1.5rem 3rem;
-        background: transparent;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        backdrop-filter: none;
-        border-radius: 12px;
-        margin: 0.5rem 1rem;
-    }
-
-    .header-left,
-    .header-right {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .back-button {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        color: var(--text-color);
-        text-decoration: none;
-        padding: 0.75rem 1.25rem;
-        border-radius: 0.75rem;
-        background: var(--card-background);
-        border: 1px solid var(--border-color);
-        transition: all 0.3s ease;
-        font-weight: 500;
-    }
-
-    .back-button:hover {
-        background: var(--primary-color);
-        color: white;
-        border-color: var(--primary-color);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .settings-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin: 0;
-        background: linear-gradient(
-            135deg,
-            var(--primary-color),
-            var(--accent-color)
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .settings-content-wrapper {
-        display: flex;
-        min-height: calc(100vh - 80px);
-    }
-
-    .settings-main-content {
-        flex: 1;
-        padding: 2rem;
-        overflow-y: auto;
-        order: 1;
-    }
-
-    .settings-sidebar {
-        width: 280px;
-        background: var(--background-secondary);
-        border-right: 1px solid var(--border-color);
-        border-left: none;
-        padding: 1.5rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        order: 1;
-    }
-
-    .settings-main-content {
-        flex: 1;
-        padding: 2rem;
-        overflow-y: auto;
-        order: 2;
-        max-width: none;
-        width: 100%;
-    }
-
-    .settings-sidebar nav ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .settings-sidebar button {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.875rem 1rem;
-        background: transparent;
-        border: none;
-        border-radius: 0.75rem;
-        color: var(--text-color);
-        font-size: 0.9rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-align: left;
-    }
-
-    .settings-sidebar button:hover {
-        background: var(--hover-background);
-        transform: translateX(4px);
-    }
-
-    .settings-sidebar button.active {
-        background: var(--primary-color);
-        color: white;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .settings-sidebar button i {
-        width: 20px;
-        text-align: center;
-    }
-
-    .section-heading {
-        font-size: 1.75rem;
-        font-weight: 700;
-        margin: 0 0 2rem 0;
-        color: var(--text-color);
-    }
-
-    .workshop-grid,
-    .installed-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.5rem;
-        margin-top: 1rem;
-    }
-
-    .workshop-item,
-    .installed-item {
-        background: var(--card-background);
-        border: 1px solid var(--border-color);
-        border-radius: 1rem;
-        padding: 1.5rem;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .workshop-item:hover,
-    .installed-item:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-        border-color: var(--primary-color);
-    }
-
-    .workshop-item-card {
-        background: var(--card-background);
-        border: 1px solid var(--border-color);
-        border-radius: 16px;
-        padding: 1.5rem;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .workshop-item-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-        border-color: var(--primary-color);
-    }
-
-    .item-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 1rem;
-    }
-
-    .item-title {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: var(--text-color);
-        margin: 0;
-        line-height: 1.3;
-    }
-
-    .item-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-        font-size: 0.8rem;
-        color: var(--text-secondary);
-        margin-top: 0.5rem;
-    }
-
-    .item-meta span {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-
-    .item-description {
-        font-size: 0.9rem;
-        color: var(--text-secondary);
-        line-height: 1.5;
-        margin-bottom: 1rem;
-    }
-
-    .item-actions {
-        display: flex;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-    }
-
-    .item-actions button,
-    .item-actions a {
-        padding: 0.625rem 1.25rem;
-        border-radius: 0.5rem;
-        font-size: 0.85rem;
-        font-weight: 500;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        border: 1px solid transparent;
-    }
-
-    .item-actions button {
-        background: var(--primary-color);
-        color: white;
-        border-color: var(--primary-color);
-    }
-
-    .item-actions button:hover {
-        background: var(--primary-hover);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .item-actions a {
-        background: var(--card-background);
-        color: var(--text-color);
-        border-color: var(--border-color);
-    }
-
-    .item-actions a:hover {
-        background: var(--hover-background);
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-    }
-
-    .loading-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 4rem 2rem;
-        color: var(--text-secondary);
-    }
-
-    .spinner {
-        width: 40px;
-        height: 40px;
-        border: 3px solid var(--border-color);
-        border-top: 3px solid var(--primary-color);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 1rem;
-    }
-
-    @keyframes spin {
-        0% {
-            transform: rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg);
-        }
-    }
-
-    .error-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 4rem 2rem;
-        color: var(--danger-color);
-        text-align: center;
-    }
-
-    .error-container i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 4rem 2rem;
-        color: var(--text-secondary);
-    }
-
-    .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-
-    .empty-state h3 {
-        font-size: 1.25rem;
-        color: var(--text-color);
-        margin: 0 0 0.5rem 0;
-    }
-
-    .empty-state p {
-        margin: 0 0 1.5rem 0;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 1024px) {
-        .workshop-grid,
-        .installed-grid {
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1.25rem;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .settings-page {
-            width: 100%;
-            min-height: 100vh;
-            background-color: var(--background-color);
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        .settings-content-wrapper {
-            flex-direction: column;
-            margin: 0;
-            width: 100%;
-            padding: 0;
-        }
-
-        .settings-sidebar {
-            width: 100%;
-            border-right: none;
-            border-bottom: 1px solid var(--border-color);
-            padding: 1rem;
-            order: 1;
-            background: var(--card-background);
-            position: sticky;
-            top: 0;
-            z-index: 50;
-        }
-
-        .settings-main-content {
-            padding: 1rem;
-            order: 2;
-            width: 100%;
-        }
-
-        .settings-header {
-            padding: 1rem 1.5rem;
-            margin: 0.5rem 1rem;
-            width: 100%;
-            box-sizing: border-box;
-            border-radius: 12px;
-        }
-
-        .settings-title {
-            font-size: 1.5rem;
-        }
-
-        .workshop-grid,
-        .installed-grid {
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-
-        .workshop-item,
-        .installed-item {
-            padding: 1.25rem;
-        }
-
-        .item-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-        }
-
-        .item-actions {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .item-actions button,
-        .item-actions a {
-            width: 100%;
-            justify-content: center;
-            padding: 0.75rem 1rem;
-        }
-
-        .item-meta {
-            flex-direction: row;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .section-heading {
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .settings-header {
-            padding: 0.75rem 1rem;
-            margin: 0.25rem 0.5rem;
-        }
-
-        .back-button {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.9rem;
-        }
-
-        .back-button span {
-            display: none;
-        }
-
-        .settings-title {
-            font-size: 1.25rem;
-        }
-
-        .settings-sidebar {
-            padding: 0.75rem;
-        }
-
-        .settings-sidebar button {
-            padding: 0.75rem;
-            font-size: 0.85rem;
-        }
-
-        .settings-sidebar button span {
-            font-size: 0.8rem;
-        }
-
-        .settings-main-content {
-            padding: 0.75rem;
-        }
-
-        .workshop-item,
-        .installed-item {
-            padding: 1rem;
-            border-radius: 0.75rem;
-        }
-
-        .item-header h3 {
-            font-size: 1rem;
-            line-height: 1.4;
-        }
-
-        .item-category,
-        .item-status {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-        }
-
-        .item-content p {
-            font-size: 0.85rem;
-            line-height: 1.4;
-        }
-
-        .item-meta {
-            font-size: 0.75rem;
-            gap: 0.75rem;
-        }
-
-        .item-actions button,
-        .item-actions a {
-            padding: 0.625rem 0.875rem;
-            font-size: 0.8rem;
-        }
-
-        .section-heading {
-            font-size: 1.25rem;
-            margin-bottom: 1rem;
-        }
-
-        .empty-state {
-            padding: 2rem 1rem;
-        }
-
-        .empty-state i {
-            font-size: 2rem;
-        }
-
-        .empty-state h3 {
-            font-size: 1.1rem;
-        }
-
-        .empty-state p {
-            font-size: 0.9rem;
-        }
-    }
-</style>
