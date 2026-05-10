@@ -5,7 +5,7 @@
     import { goto } from "$app/navigation";
     import { browser } from "$app/environment";
     import { t } from "$lib/i18n.js";
-    import { fade, slide, fly } from "svelte/transition";
+    import { fly } from "svelte/transition";
 
     // --- Debug Mode ---
     const DEBUG = false;
@@ -695,7 +695,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
 
         <main class="settings-main-content">
             {#if activeTab === "Temel Ayarlar"}
-                <section in:slide={{ duration: 300 }}>
+                <section>
                     <h2 class="section-heading">{$t("basicSettings")}</h2>
                     <div class="setting-card">
                         <div class="setting-row">
@@ -823,7 +823,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Görünüm"}
-                <section in:slide={{ duration: 300 }}>
+                <section>
                     <h2 class="section-heading">{$t("appearance")}</h2>
                     <div class="setting-card">
                         <div class="setting-row">
@@ -987,7 +987,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     }
                 </style>
             {:else if activeTab === "Hybrid Proxy"}
-                <section in:slide={{ duration: 300 }}>
+                <section>
                     <h2 class="section-heading">Artado Proxy</h2>
 
                     <div class="setting-card">
@@ -1091,7 +1091,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                                 </button>
                             </div>
                             {#if proxyLatency !== null && (proxyLatency > 400 || proxyLatency === "Hata")}
-                                <div class="latency-warning" in:fade>
+                                <div class="latency-warning">
                                     <i class="fas fa-exclamation-triangle"></i>
                                     <div class="warning-text">
                                         <strong>Düşük Hız Algılandı!</strong>
@@ -1103,7 +1103,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Bangs"}
-                <section in:slide={{ duration: 300 }}>
+                <section>
                     <h2 class="section-heading">Bang Komutları</h2>
                     <div class="setting-card">
                         <div class="setting-info">
@@ -1215,7 +1215,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Temalar"}
-                <section in:slide={{ duration: 300 }}>
+                <section>
                     <h2 class="section-heading">{$t("themes")}</h2>
                     <div class="setting-card">
                         <div class="themes-grid">
@@ -1307,7 +1307,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Özel CSS"}
-                <section in:slide={{ duration: 300 }}>
+                <section>
                     <h2 class="section-heading">Özel CSS</h2>
                     <div class="setting-card">
                         <p>Hızlı başlangıç için hazır CSS şablonları:</p>
@@ -1339,7 +1339,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Gelişmiş"}
-                <section in:slide={{ duration: 300 }}>
+                <section>
                     <h2 class="section-heading">Gelişmiş Ayarlar</h2>
 
                     <div class="setting-card">
@@ -1447,7 +1447,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Eklentiler"}
-                <section in:slide={{ duration: 300 }}>
+                <section>
                     <h2 class="section-heading">Workshop</h2>
                     {#if $isLoadingWorkshop}
                         <p>Yükleniyor...</p>
