@@ -5,7 +5,7 @@
     import { goto } from "$app/navigation";
     import { browser } from "$app/environment";
     import { t } from "$lib/i18n.js";
-    import { fly } from "svelte/transition";
+    import { fade, slide, fly } from "svelte/transition";
 
     // --- Debug Mode ---
     const DEBUG = false;
@@ -63,8 +63,8 @@
         advanced: true,
     });
 
-    let proxyLatency = null;
-    let isTestingProxy = false;
+    let proxyLatency = $state(null);
+    let isTestingProxy = $state(false);
 
     async function pingProxy() {
         if (!browser) return;
@@ -113,108 +113,94 @@
     function applyPresetCSS(preset) {
         const presets = {
             modernClean: `
-/* Modern Yuvarlak - Tüm sayfalarda yuvarlak köşeler, yumuşak gölgeler, inter font */
-html, body, * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-body { background: var(--background-color); }
-.result-item-card, .setting-card, .infobox-card, .widget-card, .calculator-box, .location-box { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); background: var(--card-background); transition: transform 0.2s ease, box-shadow 0.2s ease; }
-.result-item-card:hover, .setting-card:hover, .widget-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
-.search-box, .search-input, .search-bar-container { border-radius: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: none; }
-button, .btn, .search-button-header, .settings-button-header { border-radius: 12px; font-weight: 500; transition: all 0.2s ease; }
-.sidebar { border-radius: 0 16px 16px 0; box-shadow: 4px 0 16px rgba(0,0,0,0.08); }
-input, select, textarea { border-radius: 10px; font-family: inherit; }`,
+/* Modern Clean */
+.result-item-card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); background: var(--card-background); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.result-item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+.search-box { border-radius: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: none; }
+.sidebar { border-radius: 0 16px 16px 0; box-shadow: 4px 0 16px rgba(0,0,0,0.08); }`,
             softShadows: `
-/* Derin Gölgeler - Tüm sayfalarda derinlik hissi veren katmanlı gölgeler, georgia font */
-html, body, * { font-family: Georgia, 'Times New Roman', serif; }
-body { background: var(--background-color); }
-.result-item-card, .setting-card, .infobox-card, .widget-card { border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); background: var(--card-background); border: none; }
-.search-box, .search-bar-container { box-shadow: 0 12px 40px rgba(0,0,0,0.15); border-radius: 28px; border: none; }
-button, .btn { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transition: box-shadow 0.2s ease; }
-button:hover, .btn:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
-.sidebar { box-shadow: 8px 0 32px rgba(0,0,0,0.1); }
-input, select, textarea { box-shadow: inset 0 2px 8px rgba(0,0,0,0.05); border-radius: 12px; }`,
+/* Soft Shadows */
+.result-item-card { border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); background: var(--card-background); border: none; }
+.search-box { box-shadow: 0 12px 40px rgba(0,0,0,0.15); border-radius: 28px; border: none; }
+button { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transition: box-shadow 0.2s ease; }
+button:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.15); }`,
+            gradientElegance: `
+/* Gradient Elegance */
+.result-item-card { background: linear-gradient(135deg, var(--card-background) 0%, rgba(var(--primary-color-rgb), 0.05) 100%); border-radius: 16px; border: 1px solid rgba(var(--primary-color-rgb), 0.1); }
+.search-box { background: linear-gradient(135deg, var(--input-background) 0%, rgba(var(--primary-color-rgb), 0.05) 100%); border-radius: 24px; }
+.sidebar { background: linear-gradient(180deg, var(--card-background) 0%, rgba(var(--primary-color-rgb), 0.03) 100%); }`,
             darkModern: `
-/* Koyu Modern - Tüm sayfalarda koyu arka plan, yüksek kontrast, jetbrains mono font */
-html, body, * { font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; }
-:root { --background-color: #0a0a0f; --card-background: #12121a; --text-color: #e8e8e8; --text-color-secondary: #a0a0a0; --border-color: #22222e; --input-background: #1a1a24; --hover-background: #1e1e2a; }
-body { background: #0a0a0f; color: #e8e8e8; }
-.result-item-card, .setting-card, .infobox-card, .widget-card { background: #12121a; border: 1px solid #22222e; border-radius: 12px; }
-.search-box, .search-bar-container, input, select, textarea { background: #1a1a24; border: 1px solid #22222e; color: #e8e8e8; border-radius: 10px; }
-button, .btn { background: #1a1a24; border: 1px solid #22222e; color: #e8e8e8; border-radius: 8px; }
-.sidebar { background: #12121a; border-right: 1px solid #22222e; }
-a { color: #66b3ff; }
-a:hover { color: #99ccff; }`,
+/* Dark Modern */
+:root { --background-color: #0f0f13; --card-background: #1a1a20; --text-color: #e0e0e0; --border-color: #2a2a35; }
+body { background: #0f0f13; }
+.result-item-card { background: #1a1a20; border: 1px solid #2a2a35; border-radius: 12px; }
+.search-box { background: #1a1a20; border: 1px solid #2a2a35; color: #e0e0e0; }
+.sidebar { background: #1a1a20; border-right: 1px solid #2a2a35; }`,
             minimalElegant: `
-/* Minimal Şık - Tüm sayfalarda ince çizgiler, küçük yuvarlak köşeler, system-ui font */
-html, body, * { font-family: system-ui, -apple-system, sans-serif; }
-body { background: var(--background-color); }
-.result-item-card, .setting-card, .infobox-card, .widget-card { border: none; border-radius: 8px; background: var(--card-background); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-.search-box, .search-bar-container { border-radius: 12px; border: 1px solid var(--border-color); background: var(--input-background); }
-button, .btn { border-radius: 8px; font-weight: 500; border: 1px solid var(--border-color); }
-.sidebar { border-right: 1px solid var(--border-color); }
-input, select, textarea { border-radius: 6px; border: 1px solid var(--border-color); }
-h1, h2, h3, h4 { font-weight: 600; letter-spacing: -0.01em; }`,
+/* Minimal Elegant */
+.result-item-card { border: none; border-radius: 8px; background: var(--card-background); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.search-box { border-radius: 12px; border: 1px solid var(--border-color); background: var(--input-background); }
+button { border-radius: 8px; font-weight: 500; }
+.sidebar { border-right: 1px solid var(--border-color); }`,
             glassModern: `
-/* Cam Efekt - Tüm sayfalarda arka planı gösteren buzlu cam görünüm, poppins font */
-html, body, * { font-family: 'Poppins', -apple-system, sans-serif; }
-body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-attachment: fixed; }
-.result-item-card, .setting-card, .infobox-card, .widget-card { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border-radius: 16px; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
-.search-box, .search-bar-container { background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-radius: 24px; border: 1px solid rgba(255,255,255,0.3); }
-button, .btn { background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); border-radius: 12px; border: 1px solid rgba(255,255,255,0.3); }
-.sidebar { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.2); }
-input, select, textarea { background: rgba(255,255,255,0.6); backdrop-filter: blur(10px); border-radius: 10px; }`,
+/* Glass Modern */
+.result-item-card { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border-radius: 16px; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+.search-box { background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-radius: 24px; border: 1px solid rgba(255,255,255,0.3); }
+.sidebar { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.2); }`,
             colorful: `
-/* Canlı Renkler - Tüm sayfalarda mor-mavi renk geçişleri, nunito font */
-html, body, * { font-family: 'Nunito', -apple-system, sans-serif; }
-body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-attachment: fixed; }
-.result-item-card, .setting-card, .infobox-card, .widget-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; border: none; color: white; }
-.result-item-card *, .setting-card *, .infobox-card *, .widget-card * { color: white !important; }
-.search-box, .search-bar-container { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 24px; color: white; border: none; }
-button, .btn { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; color: white; border: none; }
-.sidebar { background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); }
-input, select, textarea { background: rgba(255,255,255,0.2); color: white; border-radius: 10px; border: none; }`,
+/* Colorful */
+.result-item-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; border: none; color: white; }
+.result-item-card .result-title a { color: white !important; }
+.result-item-card .result-url, .result-item-card .result-snippet { color: rgba(255,255,255,0.9) !important; }
+.search-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 24px; color: white; border: none; }
+.sidebar { background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); color: white; }`,
             neumorphic: `
-/* Yumuşak Derinlik - Tüm sayfalarda dışarı çıkık / içeri çökük efekt, segoe ui font */
-html, body, * { font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; }
-body { background: #e0e5ec; }
-.result-item-card, .setting-card, .infobox-card, .widget-card { background: #e0e5ec; border-radius: 20px; box-shadow: 8px 8px 16px rgba(163,177,198,0.6), -8px -8px 16px rgba(255,255,255,0.5); border: none; }
-.search-box, .search-bar-container { background: #e0e5ec; border-radius: 24px; box-shadow: inset 4px 4px 8px rgba(163,177,198,0.6), inset -4px -4px 8px rgba(255,255,255,0.5); border: none; }
-button, .btn { background: #e0e5ec; border-radius: 12px; box-shadow: 4px 4px 8px rgba(163,177,198,0.6), -4px -4px 8px rgba(255,255,255,0.5); border: none; color: #4a5568; }
-.sidebar { background: #e0e5ec; box-shadow: 5px 0 15px rgba(163,177,198,0.5); }
-input, select, textarea { background: #e0e5ec; box-shadow: inset 2px 2px 5px rgba(163,177,198,0.6), inset -2px -2px 5px rgba(255,255,255,0.5); border-radius: 10px; border: none; }`,
+/* Neumorphic */
+.result-item-card { background: var(--background-color); border-radius: 20px; box-shadow: 8px 8px 16px rgba(0,0,0,0.1), -8px -8px 16px rgba(255,255,255,0.1); border: none; }
+.search-box { background: var(--background-color); border-radius: 24px; box-shadow: inset 4px 4px 8px rgba(0,0,0,0.1), inset -4px -4px 8px rgba(255,255,255,0.1); border: none; }
+button { background: var(--background-color); border-radius: 12px; box-shadow: 4px 4px 8px rgba(0,0,0,0.1), -4px -4px 8px rgba(255,255,255,0.1); border: none; }`,
+            brutalist: `
+/* Brutalist */
+.result-item-card { border: 4px solid #000; border-radius: 0; background: #fff; box-shadow: 8px 8px 0 #000; }
+.search-box { border: 4px solid #000; border-radius: 0; background: #fff; box-shadow: 4px 4px 0 #000; }
+button { border: 3px solid #000; border-radius: 0; background: #fff; box-shadow: 4px 4px 0 #000; }
+.sidebar { border-right: 4px solid #000; background: #fff; }`,
             retro80s: `
-/* Retro 80'ler - Tüm sayfalarda parlak neon renkler, retro hissi, press start 2p font */
-html, body, * { font-family: 'Press Start 2P', cursive, monospace; font-size: 0.95em; }
-body { background: linear-gradient(45deg, #2d1b4e 0%, #1a0b2e 100%); }
-.result-item-card, .setting-card, .infobox-card, .widget-card { background: linear-gradient(45deg, #ff6b6b, #feca57); border: 3px solid #fff; border-radius: 0; box-shadow: 0 0 20px rgba(255,107,107,0.5); }
-.search-box, .search-bar-container { background: linear-gradient(90deg, #ff6b6b, #feca57); border: 3px solid #fff; border-radius: 0; box-shadow: 0 0 15px rgba(255,107,107,0.5); }
-button, .btn { background: #48dbfb; border: 3px solid #fff; border-radius: 0; box-shadow: 0 0 10px rgba(72,219,251,0.5); color: #000; }
-.sidebar { background: linear-gradient(180deg, #ff6b6b, #48dbfb); border-right: 3px solid #fff; }
-input, select, textarea { background: #ff9ff3; border: 3px solid #fff; border-radius: 0; color: #000; }
-a { color: #feca57; text-decoration: underline; }`,
+/* Retro 80s */
+.result-item-card { background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3); border: 3px solid #fff; border-radius: 15px; box-shadow: 0 0 20px rgba(255,107,107,0.5); }
+.search-box { background: linear-gradient(90deg, #ff6b6b, #feca57); border: 3px solid #fff; border-radius: 25px; box-shadow: 0 0 15px rgba(255,107,107,0.5); }
+.sidebar { background: linear-gradient(180deg, #ff6b6b, #48dbfb); border-right: 3px solid #fff; }`,
             cyberNeon: `
-/* Neon Işıklar - Tüm sayfalarda parlak yeşil neon ışıklar, koyu arka plan, orbitron font */
-html, body, * { font-family: 'Orbitron', 'Courier New', monospace; }
-:root { --background-color: #050505; --card-background: #0a0a0a; --text-color: #00ff41; --text-color-secondary: #00cc33; --border-color: #00ff41; --input-background: #0a0a0a; --hover-background: #111111; }
-body { background: #050505; color: #00ff41; }
-.result-item-card, .setting-card, .infobox-card, .widget-card { background: #0a0a0a; border: 2px solid #00ff41; border-radius: 0; box-shadow: 0 0 10px #00ff41, inset 0 0 10px rgba(0,255,65,0.1); }
-.result-item-card:hover, .setting-card:hover { box-shadow: 0 0 20px #00ff41, inset 0 0 20px rgba(0,255,65,0.2); }
-.search-box, .search-bar-container { background: #0a0a0a; border: 2px solid #00ff41; box-shadow: 0 0 15px #00ff41; color: #00ff41; border-radius: 0; }
-button, .btn { background: #0a0a0a; border: 2px solid #00ff41; color: #00ff41; box-shadow: 0 0 10px #00ff41; border-radius: 0; }
-.sidebar { background: #0a0a0a; border-right: 2px solid #00ff41; box-shadow: 0 0 10px #00ff41; }
-input, select, textarea { background: #0a0a0a; border: 2px solid #00ff41; color: #00ff41; border-radius: 0; }
-a { color: #00ff41; text-shadow: 0 0 5px #00ff41; }`,
+/* Cyber Neon */
+:root { --background-color: #0a0a0a; --card-background: #1a1a1a; --text-color: #00ff00; --border-color: #00ff00; }
+body { background: #0a0a0a; }
+.result-item-card { background: #1a1a1a; border: 2px solid #00ff00; border-radius: 0; box-shadow: 0 0 10px #00ff00, inset 0 0 10px rgba(0,255,0,0.1); }
+.result-item-card:hover { box-shadow: 0 0 20px #00ff00, inset 0 0 20px rgba(0,255,0,0.2); }
+.search-box { background: #1a1a1a; border: 2px solid #00ff00; box-shadow: 0 0 15px #00ff00; color: #00ff00; }
+.sidebar { background: #1a1a1a; border-right: 2px solid #00ff00; box-shadow: 0 0 10px #00ff00; }`,
+            holographic: `
+/* Holographic */
+.result-item-card { background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.1) 100%); border-radius: 20px; border: 2px solid rgba(255,255,255,0.3); backdrop-filter: blur(10px); box-shadow: 0 0 30px rgba(255,255,255,0.2), inset 0 0 30px rgba(255,255,255,0.1); animation: hologram 3s ease-in-out infinite; }
+@keyframes hologram { 0%, 100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(180deg); } }
+.search-box { background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 25px; backdrop-filter: blur(10px); box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+.sidebar { background: rgba(255,255,255,0.05); border-right: 2px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px); }`,
+            liquidMetal: `
+/* Liquid Metal */
+.result-item-card { background: linear-gradient(135deg, #c9c9c9 0%, #ffffff 25%, #c9c9c9 50%, #ffffff 75%, #c9c9c9 100%); border-radius: 30px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.3), inset 0 2px 10px rgba(255,255,255,0.8); }
+.search-box { background: linear-gradient(135deg, #c9c9c9 0%, #ffffff 50%, #c9c9c9 100%); border-radius: 30px; border: none; box-shadow: 0 8px 30px rgba(0,0,0,0.2), inset 0 2px 8px rgba(255,255,255,0.8); }
+.sidebar { background: linear-gradient(180deg, #c9c9c9 0%, #ffffff 50%, #c9c9c9 100%); border-right: none; box-shadow: 5px 0 20px rgba(0,0,0,0.2); }`,
             glitch: `
-/* Dijital Bozulma - Tüm sayfalarda renkli glitch kayma efekti, vt323 font */
-html, body, * { font-family: 'VT323', 'Courier New', monospace; font-size: 1.05em; }
-body { background: #000; color: #0f0; }
-.result-item-card, .setting-card, .infobox-card, .widget-card { background: #0f0; color: #000; border: 3px solid #f0f; border-radius: 0; box-shadow: 5px 5px 0 #f0f, -5px -5px 0 #0ff; animation: glitchMove 0.3s infinite; }
-@keyframes glitchMove { 0% { transform: translate(0); } 20% { transform: translate(-2px, 2px); } 40% { transform: translate(-2px, -2px); } 60% { transform: translate(2px, 2px); } 80% { transform: translate(2px, -2px); } 100% { transform: translate(0); } }
-.search-box, .search-bar-container { background: #0f0; border: 3px solid #f0f; color: #000; box-shadow: 3px 3px 0 #f0f, -3px -3px 0 #0ff; border-radius: 0; }
-button, .btn { background: #0ff; border: 3px solid #f0f; color: #000; box-shadow: 2px 2px 0 #f0f; border-radius: 0; }
-.sidebar { background: #0f0; border-right: 3px solid #f0f; }
-input, select, textarea { background: #f0f; border: 3px solid #0f0; color: #000; border-radius: 0; }
-h1, h2, h3 { text-shadow: 2px 2px 0 #f0f; }
-a { color: #0ff; text-decoration: underline wavy #f0f; }`,
+/* Glitch */
+.result-item-card { background: #0f0; color: #000; border: 3px solid #f0f; border-radius: 0; box-shadow: 5px 5px 0 #f0f, -5px -5px 0 #0ff; animation: glitch 0.3s infinite; }
+@keyframes glitch { 0% { transform: translate(0); } 20% { transform: translate(-2px, 2px); } 40% { transform: translate(-2px, -2px); } 60% { transform: translate(2px, 2px); } 80% { transform: translate(2px, -2px); } 100% { transform: translate(0); } }
+.search-box { background: #0f0; border: 3px solid #f0f; color: #000; box-shadow: 3px 3px 0 #f0f, -3px -3px 0 #0ff; }
+.sidebar { background: #0f0; border-right: 3px solid #f0f; }`,
+            morphing: `
+/* Morphing */
+.result-item-card { background: var(--card-background); border-radius: 30px; border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.1); transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+.result-item-card:hover { border-radius: 10px; transform: scale(1.05) rotate(2deg); box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+.search-box { border-radius: 30px; transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+.search-box:focus { border-radius: 10px; transform: scale(1.02); }`,
         };
         if (presets[preset]) applyCustomCss(presets[preset]);
     }
@@ -391,9 +377,9 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
     let plugins = writable([]);
     let logos = writable([]);
     let homeThemes = writable([]);
-    let workshopError = writable(null);
+    let workshopError = $state(null);
     let isLoadingWorkshop = writable(true);
-    let installingId = null;
+    let installingId = $state(null);
 
     async function fetchWorkshopItems() {
         debugLog("fetchWorkshopItems started");
@@ -522,8 +508,8 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
         }
     });
 
-    let installedGeneralThemes = [];
-    let installedHomeThemes = [];
+    let installedGeneralThemes = $state([]);
+    let installedHomeThemes = $state([]);
     async function fetchInstalledThemes() {
         try {
             const res = await fetch("/api/workshop/themes");
@@ -579,7 +565,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
         }
     }
 
-    let installedPluginsList = [];
+    let installedPluginsList = $state([]);
     async function fetchInstalledPlugins() {
         try {
             const res = await fetch("/api/workshop/plugins");
@@ -682,7 +668,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                         <li>
                             <button
                                 class:active={activeTab === tab.id}
-                                onclick={() => { console.log('Tab click:', tab.id); activeTab = tab.id; }}
+                                onclick={() => (activeTab = tab.id)}
                             >
                                 <i class={tab.icon}></i>
                                 <span>{$t(tab.label)}</span>
@@ -695,7 +681,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
 
         <main class="settings-main-content">
             {#if activeTab === "Temel Ayarlar"}
-                <section>
+                <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">{$t("basicSettings")}</h2>
                     <div class="setting-card">
                         <div class="setting-row">
@@ -823,7 +809,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Görünüm"}
-                <section>
+                <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">{$t("appearance")}</h2>
                     <div class="setting-card">
                         <div class="setting-row">
@@ -987,7 +973,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     }
                 </style>
             {:else if activeTab === "Hybrid Proxy"}
-                <section>
+                <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">Artado Proxy</h2>
 
                     <div class="setting-card">
@@ -1091,7 +1077,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                                 </button>
                             </div>
                             {#if proxyLatency !== null && (proxyLatency > 400 || proxyLatency === "Hata")}
-                                <div class="latency-warning">
+                                <div class="latency-warning" in:fade>
                                     <i class="fas fa-exclamation-triangle"></i>
                                     <div class="warning-text">
                                         <strong>Düşük Hız Algılandı!</strong>
@@ -1103,9 +1089,8 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Bangs"}
-                <section>
+                <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">Bang Komutları</h2>
-                    <p style="color:red; font-size:1.2rem;">DEBUG: Bangs section rendered</p>
                     <div class="setting-card">
                         <div class="setting-info">
                             <h3>Bang Komutları Hakkında</h3>
@@ -1216,7 +1201,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Temalar"}
-                <section>
+                <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">{$t("themes")}</h2>
                     <div class="setting-card">
                         <div class="themes-grid">
@@ -1308,21 +1293,26 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Özel CSS"}
-                <section>
+                <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">Özel CSS</h2>
                     <div class="setting-card">
                         <p>Hızlı başlangıç için hazır CSS şablonları:</p>
                         <div class="preset-buttons">
-                            <button onclick={() => applyPresetCSS("modernClean")} title="Tüm sayfalarda yuvarlak köşeler uygular. Kartlar, arama kutusu ve butonlar 16px ile 24px arası yuvarlaklık kazanır. Gölgeler yumuşak ve katmanlıdır. Inter font ailesini kullanarak modern ve temiz bir tipografi sunar. Arama sonuçları kartlarının üzerine gelindiğinde hafifçe yukarı kalkma ve gölge derinleşme efekti oluşturur. Ayarlar sayfası, sidebar ve diğer tüm bileşenlerde tutarlı bir görünüm sağlar." >Modern Yuvarlak</button>
-                            <button onclick={() => applyPresetCSS("softShadows")} title="Tüm sayfalarda derinlik hissi veren çok katmanlı gölgeler oluşturur. Kartlar 20px yuvarlaklıkla birlikte 32px derinliğinde yumuşak gölgeler alır. Arama kutusu daha belirgin 40px gölgelerle öne çıkar. Georgia serif font kullanarak klasik ve okunaklı bir tipografi sunar. Butonlarda hover efektiyle gölge büyümesi sağlar. Tüm bileşenlerde tutarlı derinlik katmanları oluşturur." >Derin Gölgeler</button>
-                            <button onclick={() => applyPresetCSS("darkModern")} title="Tüm sayfalarda koyu bir arka plan ve yüksek kontrast oluşturur. Arka plan tam siyah yakını (#0a0a0f), kartlar koyu gri tonlarındadır. JetBrains Mono monospace font kullanarak kod editörü hissiyatı verir. Kenarlıklar ince ve koyu renklidir. Bağlantılar mavi tonlarda belirginleşir. Ayarlar, arama sonuçları ve sidebar dahil tüm sayfalarda tutarlı koyu tema uygular." >Koyu Modern</button>
-                            <button onclick={() => applyPresetCSS("minimalElegant")} title="Tüm sayfalarda ince çizgiler ve küçük yuvarlak köşelerle sade bir görünüm sunar. Kartlar sadece 8px yuvarlaklık ve hafif bir gölge alır. System-ui font ile işletim sistemi yerel tipografisini kullanır. Başlıklar arasında harf aralığı daraltması yaparak modern bir hava katar. Tüm bileşenlerde gereksiz süslemeleri kaldırarak sade ve zarif bir deneyim sağlar. Ayarlar ve sidebar dahil her yerde tutarlıdır." >Minimal Şık</button>
-                            <button onclick={() => applyPresetCSS("glassModern")} title="Tüm sayfalarda arka planı gösteren buzlu cam görünümü uygular. Kartlar, arama kutusu ve butonlar yarı saydam beyaz zeminle blur efekti alır. Sayfa arka planında mor-mavi renk geçişi sabitlenir. Poppins font kullanarak yuvarlak ve modern karakterler sunar. Sidebar ve ayarlar kartlarında da cam efekti devam eder. Tüm sayfalarda içerikler hafifçe arka planı göstererek derinlik yaratır." >Cam Efekt</button>
-                            <button onclick={() => applyPresetCSS("colorful")} title="Tüm sayfalarda canlı mor-mavi renk geçişleri uygular. Kartlar ve arama kutusu moradan maviye doğru geçişli renklere bürünür. Nunito font ile yuvarlak ve samimi karakterler sunar. Butonlar pembe-kırmızı tonlarda farklı bir geçiş alır. Tüm kart içindeki metinler beyaz renge döner. Sidebar da aynı geçişli renkleri alır. Ayarlar sayfası dahil tüm bileşenlerde tutarlı canlı renk paleti oluşturur." >Canlı Renkler</button>
-                            <button onclick={() => applyPresetCSS("neumorphic")} title="Tüm sayfalarda dışarı çıkık ve içeri çökük efektler uygular. Kartlar, arama kutusu ve butonlar gri arka plan üzerinde yumuşak gölgelerle 3D görünüm kazanır. Aynı anda hem açık hem koyu yönlu gölgeler kullanılarak çıkıntı hissi oluşturulur. Segoe UI font ile Windows tarzı temiz tipografi sunar. Giriş alanları içeri çökük görünürken butonlar dışarı çıkık görünür. Tüm sayfalarda yumuşak ve dokunulabilir bir his yaratır." >Yumuşak Derinlik</button>
-                            <button onclick={() => applyPresetCSS("retro80s")} title="Tüm sayfalarda 1980'lerin parlak neon renklerini ve retro oyun estetiğini getirir. Kartlar kırmızı-sarı geçişli parlak renklerle kaplanır ve beyaz kalın kenarlıklar alır. Press Start 2P pixel font kullanarak 8-bit oyun hissi sunar. Köşeler keskin ve karedir. Butonlar turkuaz, giriş alanları pembe renge bürünür. Tüm sayfalarda oyun konsolu estetiği hakim olur. Arka plan koyu mor tonlarda sabitlenir." >Retro 80'ler</button>
-                            <button onclick={() => applyPresetCSS("cyberNeon")} title="Tüm sayfalarda parlak yeşil neon ışıklar ve karanlık bir cyberpunk atmosferi oluşturur. Arka plan tam siyah, tüm kenarlıklar ve metinler parlak yeşil neondur. Orbitron font ile bilim kurgu temalı tipografi sunar. Kartlar ve butonlar neon yeşil ışıltılı kutular haline gelir. Arama kutusu da neon çerçeveyle parlar. Tüm sayfalarda gece şehir ışıkları hissiyatı yaratır. Giriş alanları ve bağlantılar da neon efekti alır." >Neon Işıklar</button>
-                            <button onclick={() => applyPresetCSS("glitch")} title="Tüm sayfalarda sürekli hareket eden renkli dijital bozulma efekti uygular. Kartlar parlak yeşil, pembe ve mavi kutularla çevrilidir. VT323 terminal font kullanarak eski bilgisayar ekranı hissi sunar. Kartlar sürekli hafifçe titreyerek kayma efekti oluşturur. Köşeler tamamen karedir. Butonlar turkuaz, giriş alanları pembe zemine döner. Tüm sayfalarda hacker tarzı, bozuk ekran estetiği hakim olur." >Dijital Bozulma</button>
+                            <button onclick={() => applyPresetCSS("modernClean")} title="Yuvarlak köşeler ve yumuşak geçişler" >Modern Temiz</button>
+                            <button onclick={() => applyPresetCSS("softShadows")} title="Derinlik hissi veren gölgeler" >Yumuşak Gölgeler</button>
+                            <button onclick={() => applyPresetCSS("gradientElegance")} title="Renk geçişleriyle şık görünüm" >Gradient Şıklığı</button>
+                            <button onclick={() => applyPresetCSS("darkModern")} title="Koyu tonlarda modern tema" >Koyu Modern</button>
+                            <button onclick={() => applyPresetCSS("minimalElegant")} title="Sade ve zarif detaylar" >Minimal Şık</button>
+                            <button onclick={() => applyPresetCSS("glassModern")} title="Arka planı gösteren cam efekti" >Cam Efekt</button>
+                            <button onclick={() => applyPresetCSS("colorful")} title="Canlı renk paleti" >Canlı Renkler</button>
+                            <button onclick={() => applyPresetCSS("neumorphic")} title="Yumuşak çıkıntılı/çökük efektler" >Yumuşak Derinlik</button>
+                            <button onclick={() => applyPresetCSS("brutalist")} title="Keskin hatlar ve yüksek kontrast" >Keskin Hatlar</button>
+                            <button onclick={() => applyPresetCSS("retro80s")} title="80'lerin parlak neon renkleri" >Retro 80'ler</button>
+                            <button onclick={() => applyPresetCSS("cyberNeon")} title="Parlak neon ışıklar ve koyu arka plan" >Neon Işıklar</button>
+                            <button onclick={() => applyPresetCSS("holographic")} title="Parlak ışıltılı yüzey efekti" >Işıltılı Yüzey</button>
+                            <button onclick={() => applyPresetCSS("liquidMetal")} title="Metalik parlama ve akışkan efekt" >Metalik Parlaklık</button>
+                            <button onclick={() => applyPresetCSS("glitch")} title="Dijital bozulma ve kayma efekti" >Dijital Bozulma</button>
+                            <button onclick={() => applyPresetCSS("morphing")} title="Yumuşak şekil değişimi animasyonu" >Şekil Değişimi</button>
                         </div>
                         <p style="font-size:0.8rem; opacity:0.7; margin-top:0.5rem;"><i class="fas fa-info-circle"></i> Bir şablonun üzerine gelerek ne yaptığını görebilirsiniz.</p>
                         <textarea
@@ -1340,7 +1330,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Gelişmiş"}
-                <section>
+                <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">Gelişmiş Ayarlar</h2>
 
                     <div class="setting-card">
@@ -1448,7 +1438,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                     </div>
                 </section>
             {:else if activeTab === "Eklentiler"}
-                <section>
+                <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">Workshop</h2>
                     {#if $isLoadingWorkshop}
                         <p>Yükleniyor...</p>
