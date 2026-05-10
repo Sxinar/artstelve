@@ -682,7 +682,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
                         <li>
                             <button
                                 class:active={activeTab === tab.id}
-                                onclick={() => (activeTab = tab.id)}
+                                onclick={() => { console.log('Tab click:', tab.id); activeTab = tab.id; }}
                             >
                                 <i class={tab.icon}></i>
                                 <span>{$t(tab.label)}</span>
@@ -1105,6 +1105,7 @@ a { color: #0ff; text-decoration: underline wavy #f0f; }`,
             {:else if activeTab === "Bangs"}
                 <section>
                     <h2 class="section-heading">Bang Komutları</h2>
+                    <p style="color:red; font-size:1.2rem;">DEBUG: Bangs section rendered</p>
                     <div class="setting-card">
                         <div class="setting-info">
                             <h3>Bang Komutları Hakkında</h3>
