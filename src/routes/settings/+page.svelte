@@ -47,24 +47,13 @@
         blockedSites,
         showNavbarSubCategory,
         bangsOpenNewTab,
-        customBangs,
     } from "$lib/stores.js";
 
     let notifications = false;
-    let activeTab = $state("Temel Ayarlar");
-    let backupSelection = $state({
-        theme: true,
-        search: true,
-        proxy: true,
-        features: true,
-        bangs: true,
-        customCss: true,
-        blockedSites: true,
-        advanced: true,
-    });
+    let activeTab = "Temel Ayarlar";
 
-    let proxyLatency = $state(null);
-    let isTestingProxy = $state(false);
+    let proxyLatency = null;
+    let isTestingProxy = false;
 
     async function pingProxy() {
         if (!browser) return;
@@ -107,7 +96,7 @@
         { id: "Özel CSS", icon: "fas fa-code", label: "customCSS" },
     ];
 
-    const filteredTabs = tabs;
+    $: filteredTabs = tabs;
 
     // --- Helper Functions ---
     function applyPresetCSS(preset) {
@@ -229,51 +218,34 @@ body { background: #0a0a0a; }
 
     // --- Backup & Restore System ---
     function backupSettings() {
-        const settings = {};
-        if (backupSelection.theme) {
-            settings.selectedTheme = $selectedTheme;
-            settings.themeMode = $themeMode;
-            settings.uiDensity = $uiDensity;
-            settings.fontScale = $fontScale;
-            settings.cornerRadius = $cornerRadius;
-            settings.accentColor = $accentColor;
-            settings.searchHomeDesign = $searchHomeDesign;
-            settings.showNavbarSubCategory = $showNavbarSubCategory;
-        }
-        if (backupSelection.search) {
-            settings.selectedLanguage = $selectedLanguage;
-            settings.selectedEngine = $selectedEngine;
-            settings.safeSearch = $safeSearch;
-            settings.searchRegion = $searchRegion;
-        }
-        if (backupSelection.proxy) {
-            settings.hybridProxyBaseUrl = $hybridProxyBaseUrl;
-            settings.hybridProxyEngines = $hybridProxyEngines;
-            settings.hybridProxyLimitPerEngine = $hybridProxyLimitPerEngine;
-            settings.hybridProxyLimitTotal = $hybridProxyLimitTotal;
-            settings.hybridProxyTimeoutMs = $hybridProxyTimeoutMs;
-            settings.hybridProxyCache = $hybridProxyCache;
-        }
-        if (backupSelection.features) {
-            settings.enableSuggestions = $enableSuggestions;
-            settings.enableSpellCorrection = $enableSpellCorrection;
-            settings.enableWikiCard = $enableWikiCard;
-            settings.enableRelatedNews = $enableRelatedNews;
-            settings.enableRelatedSearches = $enableRelatedSearches;
-        }
-        if (backupSelection.bangs) {
-            settings.bangsOpenNewTab = $bangsOpenNewTab;
-            settings.customBangs = $customBangs;
-        }
-        if (backupSelection.customCss) {
-            settings.customCss = $customCssStore;
-        }
-        if (backupSelection.blockedSites) {
-            settings.blockedSites = $blockedSites;
-        }
-        if (backupSelection.advanced) {
-            settings.notifications = notifications;
-        }
+        const settings = {
+            selectedTheme: $selectedTheme,
+            customCss: $customCssStore,
+            aiSummaryEnabled: $aiSummaryEnabled,
+            selectedLanguage: $selectedLanguage,
+            selectedEngine: $selectedEngine,
+            hybridProxyBaseUrl: $hybridProxyBaseUrl,
+            hybridProxyEngines: $hybridProxyEngines,
+            hybridProxyLimitPerEngine: $hybridProxyLimitPerEngine,
+            hybridProxyLimitTotal: $hybridProxyLimitTotal,
+            hybridProxyTimeoutMs: $hybridProxyTimeoutMs,
+            hybridProxyCache: $hybridProxyCache,
+            enableSuggestions: $enableSuggestions,
+            enableSpellCorrection: $enableSpellCorrection,
+            enableWikiCard: $enableWikiCard,
+            enableRelatedNews: $enableRelatedNews,
+            enableRelatedSearches: $enableRelatedSearches,
+            themeMode: $themeMode,
+            uiDensity: $uiDensity,
+            fontScale: $fontScale,
+            cornerRadius: $cornerRadius,
+            accentColor: $accentColor,
+            safeSearch: $safeSearch,
+            blockedSites: $blockedSites,
+            searchHomeDesign: $searchHomeDesign,
+            showNavbarSubCategory: $showNavbarSubCategory,
+            bangsOpenNewTab: $bangsOpenNewTab,
+        };
         const blob = new Blob([JSON.stringify(settings, null, 2)], {
             type: "application/json",
         });
@@ -356,8 +328,6 @@ body { background: #0a0a0a; }
                     searchHomeCustomTheme.set(settings.searchHomeCustomTheme);
                 if (settings.bangsOpenNewTab !== undefined)
                     bangsOpenNewTab.set(settings.bangsOpenNewTab);
-                if (settings.customBangs !== undefined)
-                    customBangs.set(settings.customBangs);
 
                 alert("Ayarlar başarıyla geri yüklendi!");
                 location.reload(); // Reload to ensure full application
@@ -377,9 +347,9 @@ body { background: #0a0a0a; }
     let plugins = writable([]);
     let logos = writable([]);
     let homeThemes = writable([]);
-    let workshopError = $state(null);
+    let workshopError = writable(null);
     let isLoadingWorkshop = writable(true);
-    let installingId = $state(null);
+    let installingId = null;
 
     async function fetchWorkshopItems() {
         debugLog("fetchWorkshopItems started");
@@ -508,8 +478,8 @@ body { background: #0a0a0a; }
         }
     });
 
-    let installedGeneralThemes = $state([]);
-    let installedHomeThemes = $state([]);
+    let installedGeneralThemes = [];
+    let installedHomeThemes = [];
     async function fetchInstalledThemes() {
         try {
             const res = await fetch("/api/workshop/themes");
@@ -565,7 +535,7 @@ body { background: #0a0a0a; }
         }
     }
 
-    let installedPluginsList = $state([]);
+    let installedPluginsList = [];
     async function fetchInstalledPlugins() {
         try {
             const res = await fetch("/api/workshop/plugins");
@@ -1158,46 +1128,6 @@ body { background: #0a0a0a; }
                                 </div>
                             </div>
                         </div>
-                        <div class="divider"></div>
-                        <div class="custom-bangs-section">
-                            <h4>Kendi Bang'lerinizi Ekleyin</h4>
-                            <p>Özel kısayollar oluşturun. Örn: <code>!yt</code> ile YouTube'da arama.</p>
-                            <div class="custom-bang-form">
-                                <input type="text" placeholder="!kısayol" id="bangTrigger" style="flex:1; padding:0.5rem; border-radius:6px; border:1px solid var(--border-color); background:var(--background-color); color:var(--text-color);" />
-                                <input type="text" placeholder="İsim (örn: YouTube)" id="bangName" style="flex:2; padding:0.5rem; border-radius:6px; border:1px solid var(--border-color); background:var(--background-color); color:var(--text-color);" />
-                                <input type="text" placeholder="URL şablonu (örn: https://youtube.com/results?search_query={{q}})" id="bangUrl" style="flex:3; padding:0.5rem; border-radius:6px; border:1px solid var(--border-color); background:var(--background-color); color:var(--text-color);" />
-                                <button class="btn btn-primary" onclick={() => {
-                                    const t = document.getElementById('bangTrigger').value.trim();
-                                    const n = document.getElementById('bangName').value.trim();
-                                    const u = document.getElementById('bangUrl').value.trim();
-                                    if (!t || !n || !u) return alert('Tüm alanları doldurun');
-                                    if (!t.startsWith('!')) return alert('Kısayol ! ile başlamalı');
-                                    if (!u.includes('{{q}}')) return alert('URL şablonunda {{q}} olmalı');
-                                    const list = $customBangs;
-                                    if (list.find(b => b.trigger === t)) return alert('Bu kısayol zaten var');
-                                    customBangs.set([...list, { trigger: t, name: n, url: u }]);
-                                    document.getElementById('bangTrigger').value = '';
-                                    document.getElementById('bangName').value = '';
-                                    document.getElementById('bangUrl').value = '';
-                                }}>Ekle</button>
-                            </div>
-                            {#if $customBangs.length > 0}
-                                <div class="custom-bang-list" style="margin-top:1rem;">
-                                    {#each $customBangs as bang}
-                                        <div class="bang-item" style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; padding:0.5rem; background:var(--card-background); border-radius:6px; margin-bottom:0.5rem;">
-                                            <div style="display:flex; align-items:center; gap:1rem; flex:1;">
-                                                <code style="font-weight:bold;">{bang.trigger}</code>
-                                                <span>{bang.name}</span>
-                                                <span style="font-size:0.8rem; opacity:0.6; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{bang.url}</span>
-                                            </div>
-                                            <button onclick={() => {
-                                                customBangs.set($customBangs.filter(b => b.trigger !== bang.trigger));
-                                            }} aria-label="{bang.name} bang'ini sil" style="background:none; border:none; color:var(--danger-color,#e53935); cursor:pointer; padding:0.3rem;"><i class="fas fa-trash"></i></button>
-                                        </div>
-                                    {/each}
-                                </div>
-                            {/if}
-                        </div>
                     </div>
                 </section>
             {:else if activeTab === "Temalar"}
@@ -1298,23 +1228,66 @@ body { background: #0a0a0a; }
                     <div class="setting-card">
                         <p>Hızlı başlangıç için hazır CSS şablonları:</p>
                         <div class="preset-buttons">
-                            <button onclick={() => applyPresetCSS("modernClean")} title="Yuvarlak köşeler ve yumuşak geçişler" >Modern Temiz</button>
-                            <button onclick={() => applyPresetCSS("softShadows")} title="Derinlik hissi veren gölgeler" >Yumuşak Gölgeler</button>
-                            <button onclick={() => applyPresetCSS("gradientElegance")} title="Renk geçişleriyle şık görünüm" >Gradient Şıklığı</button>
-                            <button onclick={() => applyPresetCSS("darkModern")} title="Koyu tonlarda modern tema" >Koyu Modern</button>
-                            <button onclick={() => applyPresetCSS("minimalElegant")} title="Sade ve zarif detaylar" >Minimal Şık</button>
-                            <button onclick={() => applyPresetCSS("glassModern")} title="Arka planı gösteren cam efekti" >Cam Efekt</button>
-                            <button onclick={() => applyPresetCSS("colorful")} title="Canlı renk paleti" >Canlı Renkler</button>
-                            <button onclick={() => applyPresetCSS("neumorphic")} title="Yumuşak çıkıntılı/çökük efektler" >Yumuşak Derinlik</button>
-                            <button onclick={() => applyPresetCSS("brutalist")} title="Keskin hatlar ve yüksek kontrast" >Keskin Hatlar</button>
-                            <button onclick={() => applyPresetCSS("retro80s")} title="80'lerin parlak neon renkleri" >Retro 80'ler</button>
-                            <button onclick={() => applyPresetCSS("cyberNeon")} title="Parlak neon ışıklar ve koyu arka plan" >Neon Işıklar</button>
-                            <button onclick={() => applyPresetCSS("holographic")} title="Parlak ışıltılı yüzey efekti" >Işıltılı Yüzey</button>
-                            <button onclick={() => applyPresetCSS("liquidMetal")} title="Metalik parlama ve akışkan efekt" >Metalik Parlaklık</button>
-                            <button onclick={() => applyPresetCSS("glitch")} title="Dijital bozulma ve kayma efekti" >Dijital Bozulma</button>
-                            <button onclick={() => applyPresetCSS("morphing")} title="Yumuşak şekil değişimi animasyonu" >Şekil Değişimi</button>
+                            <button onclick={() => applyPresetCSS("modernClean")}
+                                >Modern Temiz</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("softShadows")}
+                                >Yumuşak Gölgeler</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("gradientElegance")}
+                                >Gradient Şıklığı</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("darkModern")}
+                                >Koyu Modern</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("minimalElegant")}
+                                >Minimal Şık</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("glassModern")}
+                                >Modern Cam</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("colorful")}
+                                >Renkli</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("neumorphic")}
+                                >Neumorfik</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("brutalist")}
+                                >Brutalist</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("retro80s")}
+                                >Retro 80s</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("cyberNeon")}
+                                >Cyber Neon</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("holographic")}
+                                >Holografik</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("liquidMetal")}
+                                >Sıvı Metal</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("glitch")}
+                                >Glitch</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("morphing")}
+                                >Morphing</button
+                            >
                         </div>
-                        <p style="font-size:0.8rem; opacity:0.7; margin-top:0.5rem;"><i class="fas fa-info-circle"></i> Bir şablonun üzerine gelerek ne yaptığını görebilirsiniz.</p>
                         <textarea
                             bind:value={$customCssStore}
                             oninput={(e) => applyCustomCss(e.target.value)}
@@ -1336,40 +1309,16 @@ body { background: #0a0a0a; }
                     <div class="setting-card">
                         <h3>Yedekleme ve Geri Yükleme</h3>
                         <p>
-                            Yedeklemek istediğiniz ayarları seçin ve dışa aktarın.
+                            Tüm ayarlarınızı dışa aktarın veya önceden aldığınız
+                            bir yedeği geri yükleyin.
                         </p>
-                        <div class="backup-selection" style="margin:1rem 0; display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:0.5rem;">
-                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.3rem;">
-                                <input type="checkbox" bind:checked={backupSelection.theme} /> Tema ve Görünüm
-                            </label>
-                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.3rem;">
-                                <input type="checkbox" bind:checked={backupSelection.search} /> Arama Ayarları
-                            </label>
-                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.3rem;">
-                                <input type="checkbox" bind:checked={backupSelection.proxy} /> Proxy Ayarları
-                            </label>
-                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.3rem;">
-                                <input type="checkbox" bind:checked={backupSelection.features} /> Arama Özellikleri
-                            </label>
-                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.3rem;">
-                                <input type="checkbox" bind:checked={backupSelection.bangs} /> Bang Komutları
-                            </label>
-                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.3rem;">
-                                <input type="checkbox" bind:checked={backupSelection.customCss} /> Özel CSS
-                            </label>
-                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.3rem;">
-                                <input type="checkbox" bind:checked={backupSelection.blockedSites} /> Engellenen Siteler
-                            </label>
-                            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.3rem;">
-                                <input type="checkbox" bind:checked={backupSelection.advanced} /> Gelişmiş Ayarlar
-                            </label>
-                        </div>
                         <div class="action-buttons">
                             <button
                                 class="button primary"
                                 onclick={backupSettings}
                             >
-                                <i class="fas fa-download"></i> Seçili Ayarları Yedekle
+                                <i class="fas fa-download"></i> Ayarları Yedekle
+                                (İndir)
                             </button>
                             <label class="button secondary file-upload-btn">
                                 <i class="fas fa-upload"></i> Yedekten Geri

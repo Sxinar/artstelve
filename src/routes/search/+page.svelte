@@ -41,7 +41,6 @@
         enableRelatedNews,
         enableRelatedSearches,
         bangsOpenNewTab,
-        customBangs,
     } from "$lib/stores.js"; // Import AI summary setting
     import { safeSearch, blockedSites } from "$lib/stores.js";
     import { t } from "$lib/i18n.js";
@@ -93,15 +92,9 @@
 
         const parts = query.trim().split(/\s+/);
         const bang = parts[0].toLowerCase();
-        const customBang = $customBangs.find(b => b.trigger.toLowerCase() === bang);
-        if (bang.startsWith("!") && (BANG_COMMANDS[bang] || customBang)) {
+        if (bang.startsWith("!") && BANG_COMMANDS[bang]) {
             const searchQ = parts.slice(1).join(" ");
-            let url;
-            if (customBang) {
-                url = customBang.url.replace('{{q}}', encodeURIComponent(searchQ));
-            } else {
-                url = BANG_COMMANDS[bang].url + encodeURIComponent(searchQ);
-            }
+            const url = BANG_COMMANDS[bang].url + encodeURIComponent(searchQ);
             if ($bangsOpenNewTab) {
                 window.open(url, "_blank");
             } else {
@@ -667,21 +660,13 @@
         if (isBang) {
             // Instant client-side bang suggestions
             const qLower = val.trim().toLowerCase();
-            const builtIn = Object.keys(BANG_COMMANDS)
+            suggestions = Object.keys(BANG_COMMANDS)
                 .filter((bang) => bang.startsWith(qLower))
                 .map((bang) => ({
                     text: bang,
                     description: BANG_COMMANDS[bang].name,
                     isBang: true,
                 }));
-            const custom = $customBangs
-                .filter((b) => b.trigger.toLowerCase().startsWith(qLower))
-                .map((b) => ({
-                    text: b.trigger,
-                    description: b.name,
-                    isBang: true,
-                }));
-            suggestions = [...builtIn, ...custom];
             showSuggestions = suggestions.length > 0;
             return;
         }
