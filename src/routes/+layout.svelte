@@ -28,6 +28,9 @@
 		aiSummaryEnabled,
 		selectedLanguage,
 		selectedEngine,
+		hybridProxyBaseUrl,
+		hybridProxyEngines,
+		hybridProxyTimeoutMs,
 		themeMode,
 		uiDensity,
 		fontScale,
@@ -282,6 +285,30 @@
 	// Initialize on mount
 	onMount(() => {
 		if (browser) {
+			// === Tek seferlik proxy migrasyonu (v3) ===
+			if (!localStorage.getItem('proxyMigrated_v3')) {
+				const oldUrl = localStorage.getItem('hybridProxyBaseUrl');
+				if (!oldUrl || oldUrl.includes('artadoproxy.vercel.app')) {
+					localStorage.setItem('hybridProxyBaseUrl', 'https://artados.vercel.app');
+					hybridProxyBaseUrl.set('https://artados.vercel.app');
+				}
+				const oldEngines = localStorage.getItem('hybridProxyEngines');
+				if (!oldEngines || oldEngines !== 'all') {
+					localStorage.setItem('hybridProxyEngines', 'all');
+					hybridProxyEngines.set('all');
+				}
+				const oldEngine = localStorage.getItem('selectedEngine');
+				if (oldEngine === 'Hybrid Proxy' || oldEngine === 'Secure Proxy') {
+					localStorage.setItem('selectedEngine', 'Artado Proxy');
+					selectedEngine.set('Artado Proxy');
+				}
+				const oldTimeout = parseInt(localStorage.getItem('hybridProxyTimeoutMs') || '0', 10);
+				if (!oldTimeout || oldTimeout >= 20000) {
+					localStorage.setItem('hybridProxyTimeoutMs', '10000');
+					hybridProxyTimeoutMs.set(10000);
+				}
+				localStorage.setItem('proxyMigrated_v3', '1');
+			}
 			window.addEventListener("keydown", handleKeyDown);
 			return () => window.removeEventListener("keydown", handleKeyDown);
 		}
@@ -541,8 +568,8 @@
 					bind:value={$selectedEngine}
 					aria-label="Arama Motoru Seçimi"
 				>
-					<option value="Hybrid Proxy">Artado Proxy (Önerilen)</option
-					>
+					<option value="Artado">Artado Search</option>
+					<option value="Artado Proxy">Artado Proxy (Önerilen)</option>
 				</select>
 				<i class="fas fa-shield-alt dropdown-icon" aria-hidden="true"
 				></i>
@@ -653,6 +680,7 @@
 	<footer class="footer">
 		<div class="footer-content">
 			<p>&copy; {new Date().getFullYear()} Artado Search</p>
+			<a href="/settings" class="footer-settings-link">Ayarlar</a>
 		</div>
 	</footer>
 </div>
@@ -672,13 +700,13 @@
 
 	.header {
 		display: flex;
-		justify-content: flex-start; /* Default to left */
+		justify-content: flex-end; /* Default to right */
 		padding: 1rem;
 		position: absolute;
 		top: 0;
-		left: 0; /* Default to left */
-		right: auto;
-		z-index: 10;
+		left: auto; /* Default to right */
+		right: 0;
+		z-index: 1000;
 	}
 
 	.menu-button {
@@ -919,6 +947,17 @@
 		background: transparent;
 	}
 
+	/* Footer'ı ana sayfada görünür yap */
+	:global(body[data-route="/"] .footer) {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		width: 100%;
+		background: var(--background-color);
+		z-index: 50;
+	}
+
 	.footer-content {
 		max-width: 1200px;
 		margin: 0 auto;
@@ -929,6 +968,19 @@
 		color: var(--text-secondary, #666);
 		font-size: 0.85rem;
 		margin: 0;
+	}
+
+	.footer-settings-link {
+		color: var(--primary-color, #1a73e8);
+		text-decoration: none;
+		font-size: 0.85rem;
+		margin-left: 1rem;
+		transition: color 0.2s ease, text-decoration 0.2s ease;
+	}
+
+	.footer-settings-link:hover {
+		color: var(--primary-color-dark, #1558b8);
+		text-decoration: underline;
 	}
 
 	/* Footer Mobile Responsive */
@@ -1083,6 +1135,31 @@
 	/* Ensure menu button is visible on homepage and other pages */
 	:global(body[data-route="/"] .menu-button) {
 		display: flex !important;
+	}
+
+	/* Ensure header is visible on homepage */
+	:global(body[data-route="/"] .header) {
+		display: flex !important;
+		z-index: 1000 !important;
+	}
+
+	/* Hide menu button on mobile homepage - use footer settings link instead */
+	@media (max-width: 768px) {
+		:global(body[data-route="/"] .header) {
+			display: none !important;
+		}
+		:global(body[data-route="/search"] .header) {
+			display: flex !important;
+			padding: 0.5rem 0;
+		}
+		:global(body[data-route="/search"] .menu-button) {
+			display: flex !important;
+			padding: 0.5rem;
+			font-size: 1.2rem;
+			background: var(--card-background);
+			border-radius: 50%;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+		}
 	}
 
 	/* Search page should be full-bleed on mobile; layout padding creates side gaps */

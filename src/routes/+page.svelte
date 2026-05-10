@@ -568,11 +568,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 1rem;
+    padding: 2rem;
     box-sizing: border-box; /* Include padding in width/height */
     background-color: var(--background-color);
     background-image: var(--background-image, none);
     color: var(--text-color);
+    height: 100vh;
+    overflow: hidden; /* Aşağı kaydırmayı engelle */
   }
 
   .home-header {
@@ -1140,59 +1142,48 @@
   }
 
   @media (max-width: 768px) {
+    /* Ana sayfayı tam ekran yap - padding'i kaldır */
     .home-container {
-      padding: 1rem;
+      padding: 0;
       min-height: 100vh;
       justify-content: flex-start;
-      padding-top: 2rem;
+      padding-top: 0;
       width: 100%;
       margin: 0;
       box-sizing: border-box;
-      background-color: var(--background-color);
-      background-image: var(--background-image, none);
+      background-color: transparent;
+      background-image: none;
+      overflow: hidden; /* Mobilde aşağı kaydırmayı engelle */
     }
 
+    /* Home-header'ı mobilde gizle - layout'ta zaten menu-button var */
     .home-header {
-      padding: 0 1rem;
-      margin-bottom: 1.5rem;
-      width: 100%;
-    }
-
-    .home-header h1 {
-      font-size: 2rem;
-    }
-
-    .home-header .menu-button {
-      padding: 0.6rem 1rem;
-      font-size: 0.8rem;
-      min-width: 48px;
-      min-height: 48px;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
+      display: none;
     }
 
     .logo-container {
-      margin-bottom: 2rem;
+      margin: 3rem 0 2rem 0;
       gap: 1rem;
       text-align: center;
       width: 100%;
+      padding: 0 1rem;
     }
 
     .logo {
-      width: 70px;
-      height: 70px;
-      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+      width: 80px;
+      height: 80px;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
     }
 
     h1 {
-      font-size: 1.75rem;
+      font-size: 2rem;
       letter-spacing: -0.5px;
-      margin: 0 0 1rem 0;
+      margin: 0 0 0.5rem 0;
       line-height: 1.2;
     }
 
     .subtitle {
-      font-size: 0.9rem;
+      font-size: 1rem;
       opacity: 0.8;
       margin: 0;
     }
@@ -1201,17 +1192,18 @@
       width: 100% !important;
       max-width: none !important;
       padding: 0 1rem;
-      margin: 0 auto;
+      margin: 0 auto 2rem auto;
     }
 
     .search-box {
       padding: 1rem;
-      height: 52px;
+      height: 56px;
       margin: 0;
       font-size: 1rem;
-      border-radius: 1rem;
+      border-radius: 16px;
       width: 100%;
       max-width: 100%;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     .search-input {
@@ -1220,151 +1212,145 @@
     }
 
     .search-icon {
-      font-size: 1.1rem;
+      font-size: 1.2rem;
       margin-right: 0.75rem;
       flex-shrink: 0;
     }
 
     .voice-search-btn {
-      width: 40px;
-      height: 40px;
-      font-size: 0.9rem;
+      width: 44px;
+      height: 44px;
+      font-size: 1rem;
       flex-shrink: 0;
     }
 
     .suggestion-item {
-      padding: 0.8rem 1rem;
+      padding: 1rem;
       gap: 0.75rem;
-      font-size: 0.95rem;
+      font-size: 1rem;
     }
 
     .suggestion-icon-wrapper {
-      width: 28px;
-      height: 28px;
-      font-size: 0.8rem;
+      width: 32px;
+      height: 32px;
+      font-size: 0.9rem;
     }
 
     .results {
       padding: 0 1rem;
       width: 100%;
-    }
-
-    /* Search Results Mobile Responsive */
-    .results {
-      margin-top: 1.5rem;
-      max-width: none;
-      padding: 0 1rem;
-      width: 100%;
+      margin-top: 1rem;
     }
 
     .result-item {
-      padding: 1rem;
+      padding: 1.25rem;
       margin-bottom: 1rem;
-      border-radius: 0.875rem;
+      border-radius: 12px;
     }
 
     .result-title {
-      font-size: 1.1rem;
-      margin: 0 0 0.3rem 0;
+      font-size: 1.15rem;
+      margin: 0 0 0.5rem 0;
       line-height: 1.3;
     }
 
     .result-url {
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       margin: 0 0 0.5rem 0;
     }
 
     .result-snippet {
-      font-size: 0.9rem;
-      line-height: 1.4;
+      font-size: 0.95rem;
+      line-height: 1.5;
     }
 
     .loading-initial {
-      margin-top: 2rem;
+      margin-top: 3rem;
     }
 
     .loading-initial i {
-      font-size: 2rem !important;
+      font-size: 2.5rem !important;
     }
   }
 
   /* --- Homepage Mobile Design --- */
   @media (max-width: 480px) {
     .home-container {
-      padding: 0.75rem;
-      padding-top: 1.5rem;
+      padding: 0;
+      padding-top: 0;
       justify-content: flex-start;
       width: 100%;
       margin: 0;
       box-sizing: border-box;
-      background-color: var(--background-color);
-      background-image: var(--background-image, none);
+      background-color: transparent;
+      background-image: none;
     }
 
+    /* Home-header'ı mobilde gizle */
     .home-header {
-      padding: 0 0.75rem;
-      margin-bottom: 1rem;
-      width: 100%;
+      display: none;
     }
 
     .logo-container {
-      margin-bottom: 1.5rem;
+      margin: 2.5rem 0 1.5rem 0;
       gap: 0.75rem;
       width: 100%;
+      padding: 0 0.75rem;
     }
 
     .logo {
-      width: 50px;
-      height: 50px;
+      width: 70px;
+      height: 70px;
     }
 
     h1 {
-      font-size: 1.5rem;
+      font-size: 1.75rem;
       margin: 0 0 0.5rem 0;
-      line-height: 1.1;
+      line-height: 1.2;
     }
 
     .subtitle {
-      font-size: 0.85rem;
+      font-size: 0.95rem;
     }
 
     .search-container {
       padding: 0 0.75rem;
       width: 100% !important;
+      margin: 0 auto 1.5rem auto;
     }
 
     .search-box {
       padding: 0.875rem;
-      height: 48px;
-      font-size: 0.9rem;
-      border-radius: 0.875rem;
+      height: 52px;
+      font-size: 1rem;
+      border-radius: 14px;
     }
 
     .search-input {
-      font-size: 0.9rem;
+      font-size: 1rem;
     }
 
     .search-icon {
-      font-size: 1rem;
+      font-size: 1.1rem;
       margin-right: 0.5rem;
     }
 
     .voice-search-btn {
-      width: 36px;
-      height: 36px;
-      font-size: 0.8rem;
+      width: 40px;
+      height: 40px;
+      font-size: 0.95rem;
     }
 
     .suggestion-item {
-      padding: 0.75rem;
+      padding: 0.875rem;
       gap: 0.5rem;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
     }
 
     .suggestion-icon-wrapper {
-      width: 24px;
-      height: 24px;
-      font-size: 0.7rem;
+      width: 28px;
+      height: 28px;
+      font-size: 0.85rem;
     }
 
     .results {
@@ -1373,86 +1359,114 @@
     }
 
     .result-item {
-      padding: 0.75rem;
-      margin-bottom: 0.75rem;
+      padding: 1rem;
+      margin-bottom: 0.875rem;
     }
 
     .result-title {
-      font-size: 1rem;
-      margin: 0 0 0.25rem 0;
+      font-size: 1.1rem;
+      margin: 0 0 0.4rem 0;
     }
 
     .result-url {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       margin: 0 0 0.4rem 0;
     }
 
     .result-description {
-      font-size: 0.85rem;
-      line-height: 1.3;
+      font-size: 0.9rem;
+      line-height: 1.4;
     }
   }
 
   /* Search Results Mobile Responsive */
   .results {
     margin-top: 1rem;
-    padding: 0 0.25rem;
+    padding: 0 1rem;
   }
 
   .result-item {
-    padding: 0.75rem;
-    margin-bottom: 0.75rem;
-    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 12px;
   }
 
   .result-title {
-    font-size: 1rem;
-    margin: 0 0 0.25rem 0;
-    line-height: 1.2;
-  }
-
-  .result-url {
-    font-size: 0.75rem;
+    font-size: 1.1rem;
     margin: 0 0 0.4rem 0;
-  }
-
-  .result-snippet {
-    font-size: 0.85rem;
     line-height: 1.3;
   }
 
+  .result-url {
+    font-size: 0.85rem;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .result-snippet {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
   .loading-initial {
-    margin-top: 1.5rem;
+    margin-top: 2rem;
   }
 
   .loading-initial i {
-    font-size: 1.5rem !important;
+    font-size: 2rem !important;
+  }
+
+  /* Layout padding override for homepage to prevent box effect */
+  :global(body[data-route="/"] .main-content-area) {
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  :global(body[data-route="/"] .page-container) {
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  :global(body[data-route="/"]) {
+    overflow: hidden;
   }
 
   /* --- Extra Small Mobile --- */
   @media (max-width: 360px) {
     .home-container {
-      padding: 0.5rem;
-      padding-top: 1rem;
+      padding: 0;
+      padding-top: 0;
     }
 
-    h1 {
-      font-size: 1.3rem;
+    /* Home-header'ı mobilde gizle */
+    .home-header {
+      display: none;
     }
 
-    .search-box {
-      height: 44px;
-      padding: 0.75rem;
-      font-size: 0.85rem;
-    }
-
-    .search-input {
-      font-size: 0.85rem;
+    .logo-container {
+      margin: 2rem 0 1rem 0;
+      padding: 0 0.5rem;
     }
 
     .logo {
-      width: 45px;
-      height: 45px;
+      width: 60px;
+      height: 60px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+    }
+
+    .search-container {
+      padding: 0 0.5rem;
+    }
+
+    .search-box {
+      height: 48px;
+      padding: 0.75rem;
     }
   }
 </style>

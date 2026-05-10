@@ -12,6 +12,7 @@ const translations = {
         settings: "Ayarlar",
         themes: "Temalar",
         language: "Dil",
+        languageDesc: "Artado Search'ü kullandığınız dili seçin.",
         searchEngine: "Arama Motoru",
         aiSummary: "AI Özeti",
         showAiSummary: "Arama sonuçlarında AI özetini göster",
@@ -96,7 +97,10 @@ const translations = {
         advanced: "Advanced",
         plugins: "Plugins",
         hybridProxy: "Hybrid Proxy",
+        bangCommands: "Bang Commands",
+        bangCommandsDesc: "Use bang commands for quick searches on Artado Search. For example: !g test searches on Google, !w turkey searches on Wikipedia.",
         openBangsInNewTab: "Open bang commands in new tab",
+        openBangsInNewTabDesc: "Always open bang commands in a new tab.",
         // Add more translations as needed
     },
     fr: {
@@ -144,6 +148,10 @@ const translations = {
         advanced: "Avancé",
         plugins: "Eklentiler",
         hybridProxy: "Hybrid Proxy",
+        bangCommands: "Commandes Bang",
+        bangCommandsDesc: "Utilisez les commandes bang pour des recherches rapides sur Artado Search. Par exemple: !g test recherche sur Google, !w turquie recherche sur Wikipedia.",
+        openBangsInNewTab: "Ouvrir les commandes bang dans un nouvel onglet",
+        openBangsInNewTabDesc: "Toujours ouvrir les commandes bang dans un nouvel onglet.",
         // Add more translations as needed
     }
 };

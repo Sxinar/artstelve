@@ -62,13 +62,13 @@ export const aiSummaryEnabled = createPersistentStore('aiSummaryEnabled', true);
 export const selectedLanguage = createPersistentStore('selectedLanguage', 'tr'); // Default key 'tr'
 
 // Search Engine Store (persisted)
-export const selectedEngine = createPersistentStore('selectedEngine', 'Hybrid Proxy'); // Default Hybrid Proxy 
+export const selectedEngine = createPersistentStore('selectedEngine', 'Artado Proxy');
 
-export const hybridProxyBaseUrl = createPersistentStore('hybridProxyBaseUrl', 'https://artadoproxy.vercel.app');
-export const hybridProxyEngines = createPersistentStore('hybridProxyEngines', 'duckduckgo,brave,startpage,qwant,mojeek,ask,marginalia');
+export const hybridProxyBaseUrl = createPersistentStore('hybridProxyBaseUrl', 'https://artados.vercel.app');
+export const hybridProxyEngines = createPersistentStore('hybridProxyEngines', 'all');
 export const hybridProxyLimitPerEngine = createPersistentStore('hybridProxyLimitPerEngine', 5);
 export const hybridProxyLimitTotal = createPersistentStore('hybridProxyLimitTotal', 35);
-export const hybridProxyTimeoutMs = createPersistentStore('hybridProxyTimeoutMs', 20000);
+export const hybridProxyTimeoutMs = createPersistentStore('hybridProxyTimeoutMs', 10000);
 export const hybridProxyCache = createPersistentStore('hybridProxyCache', true);
 
 // --- Design/Appearance Stores (persisted) ---

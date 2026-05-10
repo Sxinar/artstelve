@@ -75,10 +75,6 @@
         }
     }
 
-    $: if (activeTab === "Hybrid Proxy" && proxyLatency === null) {
-        pingProxy();
-    }
-
     const tabs = [
         {
             id: "Temel Ayarlar",
@@ -89,68 +85,107 @@
         {
             id: "Hybrid Proxy",
             icon: "fas fa-network-wired",
-            label: "hybridProxy",
-        },
-        {
-            id: "Çeviri",
-            icon: "fas fa-language",
-            label: "Translate",
-            show: true,
+            label: "Artado Proxy",
         },
         { id: "Bangs", icon: "fas fa-bolt", label: "Bangs" },
         { id: "Gelişmiş", icon: "fas fa-tools", label: "advanced" },
         { id: "Özel CSS", icon: "fas fa-code", label: "customCSS" },
     ];
 
-    $: filteredTabs = $enableTranslatePlugin
-        ? tabs
-        : tabs.filter((tab) => tab.id !== "Çeviri");
+    $: filteredTabs = tabs;
 
     // --- Helper Functions ---
     function applyPresetCSS(preset) {
         const presets = {
-            minimal: `
-/* Minimal Theme */
-.result-item-card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.05); background: var(--card-background); }
-.sidebar { backdrop-filter: none; background: var(--card-background); }`,
-            glassmorphism: `
-/* Glassmorphism Theme */
-.result-item-card { background: rgba(255,255,255,0.1); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1); }
-.sidebar { background: rgba(255,255,255,0.1); backdrop-filter: blur(12px); border-right: 1px solid rgba(255,255,255,0.1); }`,
-            neon: `
-/* Neon Theme */
-.result-item-card { background: #000; border: 1px solid #0f0; box-shadow: 0 0 10px #0f0; color: #0f0; }
-.result-title a { color: #0f0 !important; text-shadow: 0 0 5px #0f0; }`,
-            retroTerminal: `
-/* Retro Terminal */
-body { font-family: 'Courier New', Courier, monospace; }
-.result-item-card { border: 1px dashed var(--primary-color); box-shadow: none; border-radius: 0; }
-.search-box { border-radius: 0; border: 2px solid var(--primary-color); }`,
-            cyberpunk: `
-/* Cyberpunk */
-.result-item-card { clip-path: polygon(0 0, 100% 0, 100% 85%, 95% 100%, 0 100%); border-left: 5px solid #f0e; border-right: 5px solid #0ff; background: #0a0a0f; }
-h1, h2, h3 { text-transform: uppercase; letter-spacing: 2px; }`,
-            bubbleGum: `
-/* Bubble Gum */
-.result-item-card { border-radius: 20px; border: 3px solid #ffb7b2; background: #fff0f5; }
-.search-box { border: 3px solid #ff9aa2; }
-.sidebar { background: #ffdac1; }`,
-            midnightOled: `
-/* Midnight OLED */
-:root { --background-color: #000000; --card-background: #0a0a0a; --text-color: #ffffff; --border-color: #222; }
-body { background: #000 !important; }
-.result-item-card { border: 1px solid #333; box-shadow: none; }`,
-            matrix: `
-/* Matrix Green */
-:root { --primary-color: #00ff41; --text-color: #00ff41; --background-color: #000; --card-background: #050505; }
-* { font-family: 'Courier New', monospace !important; }
-.result-item-card { border: 1px solid #00ff41; box-shadow: 0 0 5px #00ff41; }
-a { color: #00ff41 !important; }`,
-            lavenderMist: `
-/* Lavender Mist */
-:root { --primary-color: #9d50bb; --background-color: #f8f9ff; --card-background: #ffffff; --text-color: #2d3436; }
-.result-item-card { border: none; border-radius: 24px; box-shadow: 0 10px 30px rgba(157, 80, 187, 0.05); }
-.search-box { border-radius: 30px; background: #fff; border: 1px solid #eee; }`,
+            modernClean: `
+/* Modern Clean */
+.result-item-card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); background: var(--card-background); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.result-item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+.search-box { border-radius: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: none; }
+.sidebar { border-radius: 0 16px 16px 0; box-shadow: 4px 0 16px rgba(0,0,0,0.08); }`,
+            softShadows: `
+/* Soft Shadows */
+.result-item-card { border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); background: var(--card-background); border: none; }
+.search-box { box-shadow: 0 12px 40px rgba(0,0,0,0.15); border-radius: 28px; border: none; }
+button { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transition: box-shadow 0.2s ease; }
+button:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.15); }`,
+            gradientElegance: `
+/* Gradient Elegance */
+.result-item-card { background: linear-gradient(135deg, var(--card-background) 0%, rgba(var(--primary-color-rgb), 0.05) 100%); border-radius: 16px; border: 1px solid rgba(var(--primary-color-rgb), 0.1); }
+.search-box { background: linear-gradient(135deg, var(--input-background) 0%, rgba(var(--primary-color-rgb), 0.05) 100%); border-radius: 24px; }
+.sidebar { background: linear-gradient(180deg, var(--card-background) 0%, rgba(var(--primary-color-rgb), 0.03) 100%); }`,
+            darkModern: `
+/* Dark Modern */
+:root { --background-color: #0f0f13; --card-background: #1a1a20; --text-color: #e0e0e0; --border-color: #2a2a35; }
+body { background: #0f0f13; }
+.result-item-card { background: #1a1a20; border: 1px solid #2a2a35; border-radius: 12px; }
+.search-box { background: #1a1a20; border: 1px solid #2a2a35; color: #e0e0e0; }
+.sidebar { background: #1a1a20; border-right: 1px solid #2a2a35; }`,
+            minimalElegant: `
+/* Minimal Elegant */
+.result-item-card { border: none; border-radius: 8px; background: var(--card-background); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.search-box { border-radius: 12px; border: 1px solid var(--border-color); background: var(--input-background); }
+button { border-radius: 8px; font-weight: 500; }
+.sidebar { border-right: 1px solid var(--border-color); }`,
+            glassModern: `
+/* Glass Modern */
+.result-item-card { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border-radius: 16px; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+.search-box { background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-radius: 24px; border: 1px solid rgba(255,255,255,0.3); }
+.sidebar { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.2); }`,
+            colorful: `
+/* Colorful */
+.result-item-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; border: none; color: white; }
+.result-item-card .result-title a { color: white !important; }
+.result-item-card .result-url, .result-item-card .result-snippet { color: rgba(255,255,255,0.9) !important; }
+.search-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 24px; color: white; border: none; }
+.sidebar { background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); color: white; }`,
+            neumorphic: `
+/* Neumorphic */
+.result-item-card { background: var(--background-color); border-radius: 20px; box-shadow: 8px 8px 16px rgba(0,0,0,0.1), -8px -8px 16px rgba(255,255,255,0.1); border: none; }
+.search-box { background: var(--background-color); border-radius: 24px; box-shadow: inset 4px 4px 8px rgba(0,0,0,0.1), inset -4px -4px 8px rgba(255,255,255,0.1); border: none; }
+button { background: var(--background-color); border-radius: 12px; box-shadow: 4px 4px 8px rgba(0,0,0,0.1), -4px -4px 8px rgba(255,255,255,0.1); border: none; }`,
+            brutalist: `
+/* Brutalist */
+.result-item-card { border: 4px solid #000; border-radius: 0; background: #fff; box-shadow: 8px 8px 0 #000; }
+.search-box { border: 4px solid #000; border-radius: 0; background: #fff; box-shadow: 4px 4px 0 #000; }
+button { border: 3px solid #000; border-radius: 0; background: #fff; box-shadow: 4px 4px 0 #000; }
+.sidebar { border-right: 4px solid #000; background: #fff; }`,
+            retro80s: `
+/* Retro 80s */
+.result-item-card { background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3); border: 3px solid #fff; border-radius: 15px; box-shadow: 0 0 20px rgba(255,107,107,0.5); }
+.search-box { background: linear-gradient(90deg, #ff6b6b, #feca57); border: 3px solid #fff; border-radius: 25px; box-shadow: 0 0 15px rgba(255,107,107,0.5); }
+.sidebar { background: linear-gradient(180deg, #ff6b6b, #48dbfb); border-right: 3px solid #fff; }`,
+            cyberNeon: `
+/* Cyber Neon */
+:root { --background-color: #0a0a0a; --card-background: #1a1a1a; --text-color: #00ff00; --border-color: #00ff00; }
+body { background: #0a0a0a; }
+.result-item-card { background: #1a1a1a; border: 2px solid #00ff00; border-radius: 0; box-shadow: 0 0 10px #00ff00, inset 0 0 10px rgba(0,255,0,0.1); }
+.result-item-card:hover { box-shadow: 0 0 20px #00ff00, inset 0 0 20px rgba(0,255,0,0.2); }
+.search-box { background: #1a1a1a; border: 2px solid #00ff00; box-shadow: 0 0 15px #00ff00; color: #00ff00; }
+.sidebar { background: #1a1a1a; border-right: 2px solid #00ff00; box-shadow: 0 0 10px #00ff00; }`,
+            holographic: `
+/* Holographic */
+.result-item-card { background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.1) 100%); border-radius: 20px; border: 2px solid rgba(255,255,255,0.3); backdrop-filter: blur(10px); box-shadow: 0 0 30px rgba(255,255,255,0.2), inset 0 0 30px rgba(255,255,255,0.1); animation: hologram 3s ease-in-out infinite; }
+@keyframes hologram { 0%, 100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(180deg); } }
+.search-box { background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 25px; backdrop-filter: blur(10px); box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+.sidebar { background: rgba(255,255,255,0.05); border-right: 2px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px); }`,
+            liquidMetal: `
+/* Liquid Metal */
+.result-item-card { background: linear-gradient(135deg, #c9c9c9 0%, #ffffff 25%, #c9c9c9 50%, #ffffff 75%, #c9c9c9 100%); border-radius: 30px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.3), inset 0 2px 10px rgba(255,255,255,0.8); }
+.search-box { background: linear-gradient(135deg, #c9c9c9 0%, #ffffff 50%, #c9c9c9 100%); border-radius: 30px; border: none; box-shadow: 0 8px 30px rgba(0,0,0,0.2), inset 0 2px 8px rgba(255,255,255,0.8); }
+.sidebar { background: linear-gradient(180deg, #c9c9c9 0%, #ffffff 50%, #c9c9c9 100%); border-right: none; box-shadow: 5px 0 20px rgba(0,0,0,0.2); }`,
+            glitch: `
+/* Glitch */
+.result-item-card { background: #0f0; color: #000; border: 3px solid #f0f; border-radius: 0; box-shadow: 5px 5px 0 #f0f, -5px -5px 0 #0ff; animation: glitch 0.3s infinite; }
+@keyframes glitch { 0% { transform: translate(0); } 20% { transform: translate(-2px, 2px); } 40% { transform: translate(-2px, -2px); } 60% { transform: translate(2px, 2px); } 80% { transform: translate(2px, -2px); } 100% { transform: translate(0); } }
+.search-box { background: #0f0; border: 3px solid #f0f; color: #000; box-shadow: 3px 3px 0 #f0f, -3px -3px 0 #0ff; }
+.sidebar { background: #0f0; border-right: 3px solid #f0f; }`,
+            morphing: `
+/* Morphing */
+.result-item-card { background: var(--card-background); border-radius: 30px; border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.1); transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+.result-item-card:hover { border-radius: 10px; transform: scale(1.05) rotate(2deg); box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+.search-box { border-radius: 30px; transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+.search-box:focus { border-radius: 10px; transform: scale(1.02); }`,
         };
         if (presets[preset]) applyCustomCss(presets[preset]);
     }
@@ -616,22 +651,19 @@ a { color: #00ff41 !important; }`,
 
                         <div class="divider"></div>
 
-                        <div class="setting-group">
+                        <div class="setting-row">
                             <div class="setting-info">
-                                <label for="engine-select">Arama Kaynağı</label>
+                                <h3><label for="engine-select">Arama Kaynağı</label></h3>
                                 <p>Sonuçların getirileceği güvenli katman.</p>
                             </div>
-                            <div class="setting-control">
-                                <div class="enhanced-select">
-                                    <select
-                                        id="engine-select"
-                                        bind:value={$selectedEngine}
-                                    >
-                                        <option value="Hybrid Proxy"
-                                            >Artado Proxy (Önerilen)</option
-                                        >
-                                    </select>
-                                </div>
+                            <div class="enhanced-select">
+                                <select
+                                    id="engine-select"
+                                    bind:value={$selectedEngine}
+                                >
+                                    <option value="Artado Proxy">Artado Proxy (Önerilen)</option>
+                                    <option value="Artado">Artado Search</option>
+                                </select>
                             </div>
                         </div>
                         <div class="divider"></div>
@@ -723,7 +755,7 @@ a { color: #00ff41 !important; }`,
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>{$t("accentColor")}</h3>
-                                <p>Uygulama genelinde vurgu rengini seçin.</p>
+                                <p>{$t("accentColorDesc")}</p>
                             </div>
                             <input
                                 type="color"
@@ -830,88 +862,69 @@ a { color: #00ff41 !important; }`,
                 </style>
             {:else if activeTab === "Hybrid Proxy"}
                 <section in:slide={{ duration: 300 }}>
-                    <h2 class="section-heading">Hybrid Proxy</h2>
+                    <h2 class="section-heading">Artado Proxy</h2>
+
                     <div class="setting-card">
+                        <!-- Proxy URL -->
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>Proxy Base URL</h3>
+                                <h3>Proxy URL</h3>
                                 <p>
-                                    Varsayılan:
-                                    https://artstelve-proxy.vercel.app/ — kendi
-                                    proxy sunucunuzu kullanıyorsanız burayı
-                                    güncelleyin. host ederek kendi sunucunuzu
-                                    kullanabilirsiniz.
+                                    Artado Proxy sunucusunun adresi. Varsayılan: <code>https://artados.vercel.app</code>
                                 </p>
                             </div>
                             <input
                                 class="text-input"
                                 type="text"
                                 bind:value={$hybridProxyBaseUrl}
-                                placeholder="https://artstelve-proxy.vercel.app/"
+                                placeholder="https://artados.vercel.app"
                             />
                         </div>
 
                         <div class="divider"></div>
 
+                        <!-- Kaynak -->
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>Engines</h3>
+                                <h3>Kaynak</h3>
                                 <p>
-                                    Virgülle ayırın. Varsayılan:
-                                    duckduckgo,yahoo,yandex,brave,startpage,qwant,ecosia,mojeek,ask,aol
+                                    Sonuçların getirileceği kaynak:
+                                    <code>google</code>, <code>bing</code> veya <code>all</code>.
+                                    Birden fazla girilirse otomatik <code>all</code> seçilir.
                                 </p>
                             </div>
                             <input
                                 class="text-input"
                                 type="text"
                                 bind:value={$hybridProxyEngines}
-                                placeholder="duckduckgo,yahoo,yandex,brave,startpage,qwant,ecosia,mojeek,ask,aol"
+                                placeholder="all"
                             />
                         </div>
 
                         <div class="divider"></div>
 
+                        <!-- Sonuç Sayısı -->
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>Limit (per engine)</h3>
-                                <p>
-                                    Her motor için maksimum sonuç sayısı (1-20).
-                                </p>
+                                <h3>Sonuç Sayısı</h3>
+                                <p>Arama başına getirilecek maksimum sonuç sayısı (1–50). Varsayılan: 20</p>
                             </div>
                             <input
                                 class="text-input"
                                 type="number"
                                 min="1"
-                                max="20"
-                                bind:value={$hybridProxyLimitPerEngine}
-                            />
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>Toplam Sonuç</h3>
-                                <p>
-                                    Arama başına getirilecek toplam sonuç
-                                    (1-100). Varsayılan: 20
-                                </p>
-                            </div>
-                            <input
-                                class="text-input"
-                                type="number"
-                                min="1"
-                                max="100"
+                                max="50"
                                 bind:value={$hybridProxyLimitTotal}
                             />
                         </div>
 
                         <div class="divider"></div>
 
+                        <!-- Timeout -->
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>Timeout (ms)</h3>
-                                <p>Proxy arama timeout (3000-30000).</p>
+                                <h3>Zaman Aşımı (ms)</h3>
+                                <p>Proxy isteği için maksimum bekleme süresi (3000–30000 ms).</p>
                             </div>
                             <input
                                 class="text-input"
@@ -925,112 +938,42 @@ a { color: #00ff41 !important; }`,
 
                         <div class="divider"></div>
 
-                        <div
-                            class="setting-row"
-                            style="flex-direction: column; align-items: flex-start; gap: 1rem;"
-                        >
-                            <div
-                                style="display: flex; justify-content: space-between; width: 100%; align-items: center;"
-                            >
+                        <!-- Önbellek -->
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>Önbellek</h3>
+                                <p>Sonuçları önbellekten getir (daha hızlı ama eski veriler olabilir).</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" bind:checked={$hybridProxyCache} />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <!-- Hız Testi -->
+                        <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 1rem;">
+                            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
                                 <div class="setting-info">
-                                    <h3>Hız Testi</h3>
-                                    <p>
-                                        Proxy sunucusunun yanıt süresini kontrol
-                                        edin.
-                                    </p>
+                                    <h3>Bağlantı Testi</h3>
+                                    <p>Proxy sunucusunun yanıt süresini ölçer.</p>
                                 </div>
-                                <button
-                                    class="button"
-                                    onclick={pingProxy}
-                                    disabled={isTestingProxy}
-                                >
-                                    <i
-                                        class="fas fa-sync-alt"
-                                        class:fa-spin={isTestingProxy}
-                                    ></i>
-                                    {proxyLatency !== null
-                                        ? `${proxyLatency} ms`
-                                        : "Test Et"}
+                                <button class="button" onclick={pingProxy} disabled={isTestingProxy}>
+                                    <i class="fas fa-sync-alt" class:fa-spin={isTestingProxy}></i>
+                                    {proxyLatency !== null ? `${proxyLatency} ms` : "Test Et"}
                                 </button>
                             </div>
-
                             {#if proxyLatency !== null && (proxyLatency > 400 || proxyLatency === "Hata")}
                                 <div class="latency-warning" in:fade>
                                     <i class="fas fa-exclamation-triangle"></i>
                                     <div class="warning-text">
                                         <strong>Düşük Hız Algılandı!</strong>
-                                        <p>
-                                            Proxy hızı oldukça yavaş görünüyor.
-                                            Bu durum arama sonuçlarını
-                                            etkileyebilir.
-                                        </p>
+                                        <p>Proxy yanıt süresi yüksek, arama sonuçları etkilenebilir.</p>
                                     </div>
-                                    <a
-                                        href="mailto:sxi@artadosearch.com?subject=Artado%20Proxy%20Gecikme%20Raporu&body=Merhaba%2C%0A%0AProxy%20gecikmesi%3A%20{proxyLatency}%20ms%0AProxy%20URL%3A%20{$hybridProxyBaseUrl}%0A%0AProblem%20detaylar%C4%B1%3A"
-                                        class="report-btn"
-                                    >
-                                        Hızı Bildir
-                                    </a>
                                 </div>
                             {/if}
                         </div>
-                    </div>
-                </section>
-            {:else if activeTab === "Çeviri"}
-                <section in:slide={{ duration: 300 }}>
-                    <h2 class="section-heading">Çeviri Ayarları</h2>
-
-                    <div class="setting-card">
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>Çeviri Eklentisi</h3>
-                                <p>
-                                    Çeviri özelliklerini aktif veya pasif hale
-                                    getirin.
-                                </p>
-                            </div>
-                            <div class="setting-control">
-                                <label class="switch">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={$enableTranslatePlugin}
-                                    />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        {#if $enableTranslatePlugin}
-                            <div class="setting-row">
-                                <div class="setting-info">
-                                    <h3>Hızlı Çeviri Komutları</h3>
-                                    <p>
-                                        Çeviri eklentisini kullanarak metinleri
-                                        farklı dillere çevirin.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="sample-box">
-                                <strong>Komut Örnekleri</strong>
-                                <ul>
-                                    <li>
-                                        <code>!tr hello</code> - İngilizce'den Türkçe'ye
-                                    </li>
-                                    <li>
-                                        <code>!en merhaba</code> - Türkçe'den İngilizce'ye
-                                    </li>
-                                    <li>
-                                        <code>!de hello</code> - İngilizce'den Almanca'ya
-                                    </li>
-                                    <li>
-                                        <code>!fr bonjour</code> - Fransızca'dan
-                                        Türkçe'ye
-                                    </li>
-                                    <li><code>!tr</code> - Dil seçim ekranı</li>
-                                </ul>
-                            </div>
-                        {/if}
                     </div>
                 </section>
             {:else if activeTab === "Bangs"}
@@ -1054,8 +997,7 @@ a { color: #00ff41 !important; }`,
                             <div class="setting-info">
                                 <h3>{$t("openBangsInNewTab")}</h3>
                                 <p>
-                                    Bang komutlarını her zaman yeni bir sekmede
-                                    açar.
+                                    {$t("openBangsInNewTabDesc")}
                                 </p>
                             </div>
                             <label class="switch">
@@ -1204,27 +1146,64 @@ a { color: #00ff41 !important; }`,
                     <div class="setting-card">
                         <p>Hızlı başlangıç için hazır CSS şablonları:</p>
                         <div class="preset-buttons">
-                            <button onclick={() => applyPresetCSS("minimal")}
-                                >Minimal</button
+                            <button onclick={() => applyPresetCSS("modernClean")}
+                                >Modern Temiz</button
                             >
                             <button
-                                onclick={() => applyPresetCSS("glassmorphism")}
-                                >Glassmorphism</button
+                                onclick={() => applyPresetCSS("softShadows")}
+                                >Yumuşak Gölgeler</button
                             >
                             <button
-                                onclick={() => applyPresetCSS("midnightOled")}
-                                aria-label="Midnight OLED Tema Uygula"
-                                >Midnight OLED</button
+                                onclick={() => applyPresetCSS("gradientElegance")}
+                                >Gradient Şıklığı</button
                             >
                             <button
-                                onclick={() => applyPresetCSS("matrix")}
-                                aria-label="Matrix Green Tema Uygula"
-                                >Matrix</button
+                                onclick={() => applyPresetCSS("darkModern")}
+                                >Koyu Modern</button
                             >
                             <button
-                                onclick={() => applyPresetCSS("lavenderMist")}
-                                aria-label="Lavender Mist Tema Uygula"
-                                >Lavender</button
+                                onclick={() => applyPresetCSS("minimalElegant")}
+                                >Minimal Şık</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("glassModern")}
+                                >Modern Cam</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("colorful")}
+                                >Renkli</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("neumorphic")}
+                                >Neumorfik</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("brutalist")}
+                                >Brutalist</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("retro80s")}
+                                >Retro 80s</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("cyberNeon")}
+                                >Cyber Neon</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("holographic")}
+                                >Holografik</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("liquidMetal")}
+                                >Sıvı Metal</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("glitch")}
+                                >Glitch</button
+                            >
+                            <button
+                                onclick={() => applyPresetCSS("morphing")}
+                                >Morphing</button
                             >
                         </div>
                         <textarea
@@ -1269,6 +1248,27 @@ a { color: #00ff41 !important; }`,
                                     style="display: none;"
                                 />
                             </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-card danger-card" style="margin-top: 2rem;">
+                        <h3><i class="fas fa-trash-alt" style="color:var(--danger-color, #e53935);"></i> Verileri Sıfırla</h3>
+                        <p>
+                            Tüm ayarlar, tema tercihleri ve özel CSS fabrika değerlerine döndürülür.
+                            <strong>Bu işlem geri alınamaz.</strong>
+                        </p>
+                        <div class="action-buttons" style="margin-top:1rem;">
+                            <button
+                                class="button danger"
+                                onclick={() => {
+                                    if (confirm('Tüm ayarlar sıfırlanacak. Emin misiniz?')) {
+                                        localStorage.clear();
+                                        location.reload();
+                                    }
+                                }}
+                            >
+                                <i class="fas fa-redo"></i> Tüm Ayarları Sıfırla
+                            </button>
                         </div>
                     </div>
 
@@ -1816,6 +1816,7 @@ a { color: #00ff41 !important; }`,
         display: flex;
         gap: 1rem;
         margin-bottom: 1rem;
+        flex-wrap: wrap;
     }
     .preset-buttons button {
         padding: 0.5rem 1rem;
@@ -2244,6 +2245,7 @@ a { color: #00ff41 !important; }`,
         .settings-sidebar button {
             padding: 0.6rem 1rem;
             font-size: 0.9rem;
+            border-radius: 12px;
         }
     }
 
@@ -2281,6 +2283,8 @@ a { color: #00ff41 !important; }`,
             order: 1;
             background: var(--card-background);
             border-bottom: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 0.5rem;
         }
 
         .settings-main-content {
@@ -2314,6 +2318,15 @@ a { color: #00ff41 !important; }`,
         }
         .workshop-grid {
             grid-template-columns: 1fr;
+        }
+
+        .preset-buttons {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .preset-buttons button {
+            width: 100%;
         }
     }
     .latency-warning {
@@ -2489,57 +2502,6 @@ a { color: #00ff41 !important; }`,
         color: var(--primary-color);
     }
 
-    /* Çeviri Ayarları Stilleri */
-    .shortcuts-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        margin-top: 1rem;
-    }
-
-    .shortcut-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem;
-        background: var(--hover-background);
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-    }
-
-    .shortcut-item kbd {
-        background: var(--card-background);
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        padding: 0.3rem 0.6rem;
-        font-size: 0.8rem;
-        font-family: "Courier New", monospace;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .shortcut-item span {
-        flex: 1;
-        font-weight: 500;
-    }
-
-    .api-info {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-top: 1rem;
-    }
-
-    .api-item {
-        padding: 0.8rem;
-        background: var(--hover-background);
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        font-size: 0.9rem;
-    }
-
-    .api-item strong {
-        color: var(--primary-color);
-    }
 
     /* Switch Toggle Styles */
     .switch {

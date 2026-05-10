@@ -65,11 +65,23 @@
     let newsStartDate = $state("");
     let newsEndDate = $state("");
 
+    // Active fetch controller — cancels previous in-flight request
+    let activeFetchController = null;
+
     // Pagination state
     let offset = $state(0);
     let count = $state(20);
     let infoBoxResult = writable(null);
     let queryAiSummary = writable(null); // Store for the query AI summary
+
+    // Widget state — mobilde varsayılan kapalı
+    const isDesktop = () => browser && window.innerWidth > 768;
+    let wikiOpen = $state(isDesktop());
+    let newsWidgetOpen = $state(false);
+    let searchesWidgetOpen = $state(false);
+    let relatedNewsItems = $state([]);
+    let relatedSearchItems = $state([]);
+    let widgetsLoading = $state(false);
 
     function performSearch(query, skipSpelling = false) {
         if (!query) return;
@@ -113,10 +125,20 @@
             queryAiSummary.set(null); // Reset query summary
             return;
         }
+        // Önceki isteği iptal et
+        if (activeFetchController) {
+            activeFetchController.abort();
+        }
+        const fetchController = new AbortController();
+        activeFetchController = fetchController;
+
         isLoading = true;
         error.set(null); // Reset error store
         infoBoxResult.set(null);
         queryAiSummary.set(null); // Reset query summary on new fetch
+        wikiOpen = isDesktop(); // Mobilde kapalı, masaüstünde açık
+        newsWidgetOpen = false;
+        searchesWidgetOpen = false;
         console.log(`[Frontend] Fetching ${type} results for: ${query}`);
 
         try {
@@ -126,7 +148,7 @@
             params.set("t", type);
             params.set("engine", $selectedEngine);
             if (skipSpelling) params.set("spelling", "0");
-            if ($selectedEngine === "Hybrid Proxy") {
+            if ($selectedEngine === "Artado Proxy") {
                 params.set("proxyBaseUrl", $hybridProxyBaseUrl);
                 params.set("proxyEngines", $hybridProxyEngines);
                 params.set(
@@ -156,7 +178,13 @@
             params.set("count", String(count));
             const apiUrl = `/api/search?${params.toString()}`;
 
-            const response = await fetch(apiUrl); // Fetch from our own API
+            const fetchTimeout = setTimeout(() => fetchController.abort(), 20000);
+            let response;
+            try {
+                response = await fetch(apiUrl, { signal: fetchController.signal });
+            } finally {
+                clearTimeout(fetchTimeout);
+            }
 
             if (!response.ok) {
                 let errorData;
@@ -209,10 +237,16 @@
             // Arama yapıldığında yazım hatası kontrolü yap (Bunu mu demek istediniz banner'ı için)
             if (query && type === "web") {
                 fetchSuggestions(query);
+                fetchRelatedWidgets(query);
             }
         } catch (err) {
             console.error("[Frontend] Error fetching search results:", err);
-            error.set(err.message); // Set error store
+            // Önceki isteğin iptali ise sessizce geç (yeni istek zaten başladı)
+            if (err.name === 'AbortError' && fetchController !== activeFetchController) return;
+            const msg = err.name === 'AbortError'
+                ? 'Arama zaman aşımına uğradı. Lütfen tekrar deneyin.'
+                : err.message;
+            error.set(msg); // Set error store
             searchResults.set([]);
             infoBoxResult.set(null);
             queryAiSummary.set(null); // Reset query summary on error
@@ -241,6 +275,59 @@
             }
         }
     }
+
+    async function fetchRelatedWidgets(query) {
+        if (!query || !browser) return;
+        widgetsLoading = true;
+        relatedNewsItems = [];
+        relatedSearchItems = [];
+        try {
+            const newsParams = new URLSearchParams({ i: query, t: 'news', engine: $selectedEngine, count: '5', region: 'TR', lang: 'tr' });
+            if ($selectedEngine === 'Artado Proxy') {
+                newsParams.set('proxyBaseUrl', $hybridProxyBaseUrl);
+                newsParams.set('proxyLimitTotal', '5');
+            }
+            const newsCtrl = new AbortController();
+            const newsTimeout = setTimeout(() => newsCtrl.abort(), 8000);
+            const newsRes = await fetch(`/api/search?${newsParams}`, { signal: newsCtrl.signal })
+                .catch(() => null)
+                .finally(() => clearTimeout(newsTimeout));
+            if (newsRes?.ok) {
+                const d = await newsRes.json();
+                if (d.ok && d.searchResults?.length) relatedNewsItems = d.searchResults.slice(0, 5);
+            }
+        } catch(e) { /* ignore */ }
+        try {
+            const wikiCtrl = new AbortController();
+            const wikiTimeout = setTimeout(() => wikiCtrl.abort(), 5000);
+            const wikiSuggestRes = await fetch(
+                `https://tr.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=8&namespace=0&format=json&origin=*`,
+                { signal: wikiCtrl.signal }
+            ).catch(() => null).finally(() => clearTimeout(wikiTimeout));
+            if (wikiSuggestRes?.ok) {
+                const d = await wikiSuggestRes.json();
+                const suggestions = (d[1] || []).filter(s => s && s.toLowerCase() !== query.toLowerCase());
+                relatedSearchItems = suggestions.map((text, i) => ({
+                    text,
+                    url: (d[3] || [])[i] || `https://tr.wikipedia.org/wiki/${encodeURIComponent(text)}`
+                }));
+            }
+        } catch(e) { /* ignore */ }
+        // Eğer hâlâ boşsa sorgu varyasyonları üret
+        if (relatedSearchItems.length === 0 && query.trim()) {
+            const q = query.trim();
+            const fallbacks = [
+                `${q} nedir`,
+                `${q} ne demek`,
+                `${q} nasıl`,
+                `${q} hakkında`,
+                `${q} tarihi`,
+            ].filter(s => s !== q);
+            relatedSearchItems = fallbacks.map(text => ({ text, url: '' }));
+        }
+        widgetsLoading = false;
+    }
+
 
     async function loadPlugins() {
         if (!browser) return;
@@ -657,7 +744,7 @@
         <div class="search-bar-container" onclick={(e) => e.stopPropagation()}>
             <div
                 class="input-wrapper"
-                style="flex:1; position: relative; display: flex;"
+                style="flex:1; position: relative; display: flex; align-items: center;"
             >
                 <input
                     type="text"
@@ -672,7 +759,31 @@
                     aria-label="Arama"
                     class="search-input"
                     autocomplete="off"
+                    style="flex: 1;"
                 />
+                
+                {#if inputQuery}
+                    <button
+                        class="clear-button-header"
+                        onclick={() => {
+                            inputQuery = "";
+                            suggestions = [];
+                            showSuggestions = false;
+                            document.querySelector(".search-input")?.focus();
+                        }}
+                        aria-label="Aramayı temizle"
+                    >
+                        <i class="fas fa-times"></i>
+                    </button>
+                {/if}
+                <button
+                    class="search-button-header"
+                    onclick={() => handleSearchSubmit()}
+                    aria-label="Ara"
+                >
+                    <i class="fas fa-search"></i>
+                </button>
+
                 {#if showSuggestions && (suggestions.length > 0 || spellCorrection)}
                     <div
                         class="suggestions-dropdown"
@@ -735,28 +846,9 @@
                         {/if}
                     </div>
                 {/if}
+                
             </div>
-            {#if inputQuery}
-                <button
-                    class="clear-button-header"
-                    onclick={() => {
-                        inputQuery = "";
-                        suggestions = [];
-                        showSuggestions = false;
-                        document.querySelector(".search-input-header")?.focus();
-                    }}
-                    aria-label="Aramayı temizle"
-                >
-                    <i class="fas fa-times"></i>
-                </button>
-            {/if}
-            <button
-                class="search-button-header"
-                onclick={() => handleSearchSubmit()}
-                aria-label="Ara"
-            >
-                <i class="fas fa-search"></i>
-            </button>
+
         </div>
         <div class="header-actions">
             <button
@@ -810,7 +902,7 @@
     (Kept structure if we want to re-enable or conditionally show for 'web' only if relevant)
     -->
 
-    <div class="search-main-content">
+    <div class="search-main-content" class:images-mode={activeSearchType === 'images'}>
         <main class="results-container" aria-live="polite">
             {#if isLoading}
                 <div class="loading-container" in:fade={{ duration: 200 }}>
@@ -1307,6 +1399,19 @@
                 <!-- Pagination Controls -->
                 {#if $searchResults.length > 0 && !isLoading}
                     <div class="pagination-container">
+                        <!-- Page Numbers -->
+                        {#each paginationPages.slice(0, 12) as page}
+                            <button
+                                class="pagination-btn"
+                                class:active={page === currentPage}
+                                onclick={() => goToPage(page)}
+                                disabled={isLoading}
+                            >
+                                {page}
+                            </button>
+                        {/each}
+                    </div>
+                    <div class="pagination-nav-buttons">
                         <!-- Prev Button -->
                         <button
                             class="pagination-btn nav-btn"
@@ -1319,18 +1424,6 @@
                                 style="margin-right: 5px;"
                             ></i> Önceki
                         </button>
-
-                        <!-- Page Numbers -->
-                        {#each paginationPages.slice(0, 12) as page}
-                            <button
-                                class="pagination-btn"
-                                class:active={page === currentPage}
-                                onclick={() => goToPage(page)}
-                                disabled={isLoading}
-                            >
-                                {page}
-                            </button>
-                        {/each}
 
                         <!-- Next Button -->
                         <button
@@ -1352,47 +1445,84 @@
         </main>
 
         <!-- === Infobox Area === -->
-        {#if activeSearchType === "web" && $infoBoxResult && !isLoading && !$error}
+        {#if activeSearchType === "web" && !isLoading && !$error && ($infoBoxResult?.wikipediaInfo || relatedNewsItems.length > 0 || relatedSearchItems.length > 0 || ($infoBoxResult && ($infoBoxResult.type === 'calculator' || $infoBoxResult.type === 'location')))}
+
             <aside class="infobox-container">
-                <!-- Wikipedia Özet Kutusu (Öncelikli gösterilir) -->
-                {#if $infoBoxResult.wikipediaInfo}
-                    <div class="infobox-card wikipedia-box">
-                        <h4>
-                            <i class="fas fa-book-open wiki-icon"></i>
-                            {$infoBoxResult.wikipediaInfo.title || "Wikipedia"}
-                        </h4>
-                        {#if $infoBoxResult.wikipediaInfo.thumbnail}
-                            <img
-                                src={$infoBoxResult.wikipediaInfo.thumbnail}
-                                alt={$infoBoxResult.wikipediaInfo.title || ""}
-                                class="infobox-image"
-                                loading="lazy"
-                                onerror={(e) => {
-                                    e.target.style.display = "none";
-                                }}
-                            />
-                        {/if}
-                        {#if $infoBoxResult.wikipediaInfo.extract}
-                            <p class="wiki-extract">
-                                {$infoBoxResult.wikipediaInfo.extract}
-                            </p>
-                        {/if}
-                        {#if $infoBoxResult.wikipediaInfo.url}
-                            <a
-                                href={$infoBoxResult.wikipediaInfo.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="wiki-link"
-                            >
-                                <i class="fas fa-external-link-alt"></i> Wikipedia'da
-                                devamını oku
-                            </a>
+
+                <!-- Wikipedia (üst, tam genişlik) -->
+                {#if $infoBoxResult?.wikipediaInfo}
+                    <div class="widget-card wiki-widget" style="margin-bottom:0.75rem;">
+                        <button class="widget-header" onclick={() => (wikiOpen = !wikiOpen)}>
+                            <span><i class="fas fa-book-open"></i> {$infoBoxResult.wikipediaInfo.title || "Wikipedia"}</span>
+                            <i class="fas fa-chevron-{wikiOpen ? 'up' : 'down'}"></i>
+                        </button>
+                        {#if wikiOpen}
+                            <div class="widget-body" transition:slide={{ duration: 200 }}>
+                                {#if $infoBoxResult.wikipediaInfo.thumbnail}
+                                    <img src={$infoBoxResult.wikipediaInfo.thumbnail}
+                                        alt={$infoBoxResult.wikipediaInfo.title || ""}
+                                        class="infobox-image" loading="lazy"
+                                        onerror={(e) => (e.target.style.display = "none")} />
+                                {/if}
+                                {#if $infoBoxResult.wikipediaInfo.extract}
+                                    <p class="wiki-extract">{$infoBoxResult.wikipediaInfo.extract}</p>
+                                {/if}
+                                {#if $infoBoxResult.wikipediaInfo.url}
+                                    <a href={$infoBoxResult.wikipediaInfo.url} target="_blank" rel="noopener noreferrer" class="wiki-link">
+                                        <i class="fas fa-external-link-alt"></i> Wikipedia'da devamını oku
+                                    </a>
+                                {/if}
+                            </div>
                         {/if}
                     </div>
                 {/if}
-
-                <!-- Diğer Infobox Tipleri (Sadece Wikipedia yoksa gösterilir) -->
-                {#if !$infoBoxResult.wikipediaInfo}
+                <!-- Haberler + Aramalar yan yana -->
+                <div class="infobox-bottom-row">
+                    {#if relatedNewsItems.length > 0}
+                        <div class="widget-card news-widget">
+                            <button class="widget-header" onclick={() => (newsWidgetOpen = !newsWidgetOpen)}>
+                                <span><i class="fas fa-newspaper"></i> İlgili Haberler</span>
+                                <i class="fas fa-chevron-{newsWidgetOpen ? 'up' : 'down'}"></i>
+                            </button>
+                            {#if newsWidgetOpen}
+                                <div class="widget-body" transition:slide={{ duration: 200 }}>
+                                    {#each relatedNewsItems as item}
+                                        <a href={item.url} target="_blank" rel="noopener noreferrer" class="news-item">
+                                            {#if item.thumbnail}
+                                                <img src={item.thumbnail} alt="" class="news-thumb" loading="lazy" onerror={(e) => (e.target.style.display='none')} />
+                                            {/if}
+                                            <div class="news-text">
+                                                <span class="news-title">{item.title}</span>
+                                                {#if item.source}<span class="news-source">{item.source}</span>{/if}
+                                            </div>
+                                        </a>
+                                    {/each}
+                                </div>
+                            {/if}
+                        </div>
+                    {/if}
+                    {#if relatedSearchItems.length > 0}
+                        <div class="widget-card searches-widget">
+                            <button class="widget-header" onclick={() => (searchesWidgetOpen = !searchesWidgetOpen)}>
+                                <span><i class="fas fa-search"></i> İlgili Aramalar</span>
+                                <i class="fas fa-chevron-{searchesWidgetOpen ? 'up' : 'down'}"></i>
+                            </button>
+                            {#if searchesWidgetOpen}
+                                <div class="widget-body" transition:slide={{ duration: 200 }}>
+                                    {#each relatedSearchItems as item}
+                                        <button class="related-search-item" onclick={() => item.url ? window.open(item.url, '_blank') : performSearch(item.text)}>
+                                            <i class="fas fa-search" style="font-size:0.75rem; opacity:0.5;"></i>
+                                            {item.text}
+                                        </button>
+                                    {/each}
+                                </div>
+                            {/if}
+                        </div>
+                    {/if}
+                </div>
+                <!-- Calculator / Location (wiki yoksa) -->
+                {#if $infoBoxResult && !$infoBoxResult.wikipediaInfo}
+                    <div style="margin-top:0.75rem;">
                     {#if $infoBoxResult.type === "calculator"}
                         <div class="infobox-card calculator-box">
                             <h4>Hesap Makinesi</h4>
@@ -1401,112 +1531,13 @@
                         </div>
                     {:else if $infoBoxResult.type === "location" && $infoBoxResult.data}
                         <div class="infobox-card location-box">
-                            <h4>
-                                {$infoBoxResult.data.name || "Konum Bilgisi"}
-                            </h4>
-                            {#if $infoBoxResult.data.profile?.img}
-                                <img
-                                    src={$infoBoxResult.data.profile.img}
-                                    alt={$infoBoxResult.data.name || ""}
-                                    class="infobox-image"
-                                    loading="lazy"
-                                    onerror={(e) => {
-                                        e.target.style.display = "none";
-                                    }}
-                                />
-                            {/if}
-                            {#if $infoBoxResult.data.description}
-                                <p>{$infoBoxResult.data.description}</p>
-                            {/if}
-                            {#if $infoBoxResult.data.address?.streetAddress}
-                                <p class="address">
-                                    {$infoBoxResult.data.address.streetAddress}, {$infoBoxResult
-                                        .data.address.addressLocality || ""}
-                                </p>
-                            {/if}
-                            {#if $infoBoxResult.data.url}
-                                <a
-                                    href={$infoBoxResult.data.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    >Daha fazla bilgi</a
-                                >
-                            {/if}
-                        </div>
-                    {:else if $infoBoxResult.type === "generic_infobox"}
-                        <div class="infobox-card">
-                            <h4>{$infoBoxResult.title || "Site Bilgisi"}</h4>
-
-                            {#if $infoBoxResult.profile?.img}
-                                <img
-                                    src={$infoBoxResult.profile.img}
-                                    alt={$infoBoxResult.title || "Logo"}
-                                    class="infobox-image"
-                                    loading="lazy"
-                                    onerror={(e) => {
-                                        console.warn(
-                                            "Infobox image failed to load:",
-                                            e.target.src,
-                                        );
-                                        e.target.style.display = "none";
-                                    }}
-                                />
-                            {/if}
-
-                            {#if $infoBoxResult.description}
-                                <p>{$infoBoxResult.description}</p>
-                            {:else}
-                                <p class="text-secondary">
-                                    Açıklama bulunamadı.
-                                </p>
-                            {/if}
-
-                            {#if $infoBoxResult.url}
-                                <a
-                                    href={$infoBoxResult.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    >Siteye Git <i
-                                        class="fas fa-external-link-alt"
-                                    ></i></a
-                                >
-                            {/if}
-                        </div>
-                    {:else}
-                        <!-- Fallback for other known/unknown infobox types -->
-                        <div class="infobox-card">
-                            <h4>
-                                {$infoBoxResult.title ||
-                                    $infoBoxResult.type ||
-                                    "Bilgi"}
-                            </h4>
-                            {#if $infoBoxResult.description || $infoBoxResult.result}
-                                <p>
-                                    {$infoBoxResult.description ||
-                                        $infoBoxResult.result}
-                                </p>
-                            {/if}
-                            <!-- Try to show image even in fallback if it exists -->
-                            {#if $infoBoxResult.profile?.img}
-                                <img
-                                    src={$infoBoxResult.profile.img}
-                                    alt="Info"
-                                    class="infobox-image"
-                                    style="max-width: 100px; display: block; margin-top: 10px;"
-                                    onerror={(e) =>
-                                        (e.target.style.display = "none")}
-                                />
-                            {/if}
-                            {#if $infoBoxResult.url}<a
-                                    href={$infoBoxResult.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    >Daha fazla bilgi</a
-                                >{/if}
+                            <h4>{$infoBoxResult.data.name || "Konum Bilgisi"}</h4>
+                            {#if $infoBoxResult.data.description}<p>{$infoBoxResult.data.description}</p>{/if}
+                            {#if $infoBoxResult.data.url}<a href={$infoBoxResult.data.url} target="_blank" rel="noopener noreferrer">Daha fazla bilgi</a>{/if}
                         </div>
                     {/if}
+                    </div>
                 {/if}
-                <!-- End of check for !$infoBoxResult.wikipediaInfo -->
             </aside>
         {/if}
     </div>
@@ -1738,7 +1769,7 @@
         color: var(--text-color-secondary);
         cursor: pointer;
         font-size: 1.1rem;
-        padding: 0 0.5rem;
+        padding: 0 0.5rem 0 0.2rem;
         line-height: 1;
     }
     .clear-button-header:hover {
@@ -1762,7 +1793,9 @@
     .header-actions {
         margin-left: auto;
         flex-shrink: 0;
+        display: flex;
     }
+
     .icon-button {
         /* Settings button */
         background: none;
@@ -1855,18 +1888,29 @@
         flex-wrap: wrap;
         width: 100%;
         box-sizing: border-box;
-        padding: 1.5rem; /* Add padding around content */
-        gap: 2rem;
+        padding: 1.5rem 1.5rem 1.5rem 2rem;
+        gap: 1.5rem;
         align-items: flex-start;
-        max-width: 1100px;
-        margin: 1rem 0 0 1.5rem; /* Align left with padding */
+        max-width: none;
+        margin: 1rem 0 0;
     }
 
     .results-container {
         flex: 1;
         min-width: 0; /* Allow shrinking */
-        max-width: 700px;
+        max-width: 800px;
         margin-bottom: 2rem;
+    }
+
+    .search-main-content.images-mode {
+        max-width: 100%;
+        width: 100%;
+        margin: 1rem 0 0 0;
+    }
+
+    .search-main-content.images-mode .results-container {
+        max-width: 100%;
+        width: 100%;
     }
 
     /* Card polish */
@@ -2020,6 +2064,8 @@
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap: 1rem;
+        width: 100%;
+        justify-content: stretch;
     }
 
     .image-result-item {
@@ -2348,8 +2394,16 @@
         justify-content: center;
         align-items: center;
         gap: 0.5rem;
-        margin: 2rem 0 4rem;
+        margin: 1rem 0 0.5rem;
         flex-wrap: wrap;
+    }
+
+    .pagination-nav-buttons {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        margin: 0.5rem 0 1rem;
     }
 
     .pagination-btn {
@@ -2396,13 +2450,24 @@
     }
 
     .infobox-container {
-        width: 300px;
+        width: 560px;
         flex-shrink: 0;
         margin-top: 0;
         position: sticky;
-        /* Adjust top based on header + nav height */
-        top: calc(61px + 48px + 1.5rem); /* Header + Nav + Top Padding */
+        top: calc(61px + 48px + 1.5rem);
         align-self: flex-start;
+    }
+    .infobox-bottom-row {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+    .infobox-bottom-row > .widget-card {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        max-width: none !important;
     }
 
     /* Responsive adjustments */
@@ -2410,17 +2475,22 @@
         /* Adjust alignment margin */
         .search-main-content {
             margin-left: 1rem;
-            margin-right: 1rem;
+            margin-right: 2rem;
+        }
+    }
+    @media (max-width: 1280px) {
+        .search-main-content {
+            padding-left: 1.5rem;
         }
     }
     @media (max-width: 1024px) {
         .infobox-container {
-            width: 250px;
-            top: calc(61px + 48px + 1rem); /* Adjust top for smaller padding */
+            width: 420px;
+            top: calc(61px + 48px + 1rem);
         }
         .search-main-content {
-            /* margin needs to be adjusted for smaller screens */
-            margin: 1rem 0 0 0; /* Remove side margin for full bleed */
+            margin: 1rem 0 0 0;
+            padding-left: 1rem;
         }
         .search-header,
         .search-type-nav {
@@ -2445,7 +2515,15 @@
             box-sizing: border-box;
         }
         .infobox-container {
-            display: none;
+            width: 100%;
+            position: static;
+            max-height: none;
+            overflow-y: visible;
+            margin-left: 0;
+            order: 0;
+            margin-top: 0.75rem;
+            padding: 0 12px;
+            box-sizing: border-box;
         }
         .search-header {
             position: sticky;
@@ -2467,6 +2545,7 @@
         .clear-button-header {
             font-size: 1.1rem;
         }
+
         .settings-button-header {
             font-size: 1.2rem; /* Adjust icon size */
             padding: 0.5rem;
@@ -2549,24 +2628,29 @@
         border-color: var(--primary-color);
     }
     /* Image grid adjustments for smaller screens */
-    @media (max-width: 600px) {
+    @media (max-width: 768px) {
+        .search-main-content.images-mode {
+            padding: 0.5rem;
+            width: 100%;
+            margin: 0;
+        }
+        .search-main-content.images-mode .results-container {
+            max-width: 100%;
+            width: 100%;
+            padding: 0;
+        }
         .image-results {
-            grid-template-columns: repeat(
-                auto-fill,
-                minmax(120px, 1fr)
-            ); /* Fewer/smaller columns */
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 0.5rem;
         }
         .image-result-item img {
-            height: 120px; /* Adjust height */
+            height: 120px;
         }
     }
-    @media (max-width: 400px) {
+    @media (max-width: 480px) {
         .image-results {
-            grid-template-columns: repeat(
-                auto-fill,
-                minmax(100px, 1fr)
-            ); /* Even smaller */
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.4rem;
         }
         .image-result-item img {
             height: 100px;
@@ -2859,8 +2943,10 @@
     /* === Image Results Grid === */
     .image-results {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
         gap: 0.8rem;
+        width: 100%;
+        justify-content: stretch;
     }
     .image-result-item {
         display: block;
@@ -3002,11 +3088,13 @@
     }
 
     .infobox-image {
-        max-width: 100%;
+        max-width: 120px;
         height: auto;
         border-radius: 4px;
-        margin-bottom: 1rem; /* More space below image */
+        margin-bottom: 0.75rem;
         display: block;
+        float: right;
+        margin-left: 0.75rem;
         background-color: var(--border-color);
     }
 
@@ -3023,6 +3111,113 @@
         color: var(--text-color);
         margin-top: 0;
         word-wrap: break-word;
+    }
+
+    /* === Widgets Row === */
+    .widgets-row {
+        display: flex;
+        flex-direction: row;
+        gap: 1rem;
+        padding: 0 1.5rem 1.5rem;
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+    .widgets-right-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        flex: 1;
+        min-width: 220px;
+        max-width: 340px;
+    }
+    .wiki-widget {
+        flex: 2;
+        min-width: 280px;
+        max-width: 600px;
+    }
+    .widget-card {
+        flex: 1;
+        min-width: 220px;
+        max-width: 420px;
+        background: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .widget-header {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-color);
+        font-size: 0.95rem;
+        font-weight: 600;
+        gap: 0.5rem;
+    }
+    .widget-header:hover {
+        background: rgba(128,128,128,0.07);
+    }
+    .widget-header span {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .widget-body {
+        padding: 0.75rem 1rem 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+    /* News items */
+    .news-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-color);
+        text-decoration: none;
+        color: var(--text-color);
+    }
+    .news-item:last-child { border-bottom: none; }
+    .news-item:hover .news-title { color: var(--primary-color); }
+    .news-thumb {
+        width: 48px;
+        height: 48px;
+        object-fit: cover;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+    .news-text { display: flex; flex-direction: column; gap: 0.2rem; }
+    .news-title { font-size: 0.85rem; line-height: 1.3; }
+    .news-source { font-size: 0.75rem; color: var(--text-color-secondary); }
+    /* Related search items */
+    .related-search-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.4rem 0;
+        background: none;
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-color);
+        font-size: 0.88rem;
+        cursor: pointer;
+        text-align: left;
+    }
+    .related-search-item:last-child { border-bottom: none; }
+    .related-search-item:hover { color: var(--primary-color); }
+    @media (max-width: 768px) {
+        .widgets-row {
+            flex-direction: column;
+            padding: 0 1rem 1rem;
+        }
+        .widget-card {
+            max-width: 100%;
+        }
     }
 
     /* Location Infobox */
@@ -3248,40 +3443,42 @@
         }
 
         .search-header {
-            flex-direction: column;
-            position: relative;
-            left: -12px;
-            width: calc(100% + 24px);
-            padding: 1rem 12px;
-            gap: 1rem;
-            box-sizing: border-box;
-            margin-top: 0;
-            margin-bottom: 0;
+            flex-direction: row;
+            align-items: center;
+            padding: 0.5rem 0.5rem 0.5rem 0;
+            gap: 0.5rem;
+        }
+
+        .logo-link {
+            margin-bottom: 0.5rem;
+        }
+
+        .header-logo {
+            height: 28px;
         }
 
         .search-bar-container {
-            max-width: 100%;
-            width: 100%;
+            flex: 1;
+            max-width: calc(100% - 60px);
+            padding: 0 0.5rem;
         }
 
         .header-actions {
-            width: 100%;
             display: flex;
-            justify-content: center;
         }
 
         .settings-button-header {
-            padding: 0.8rem;
-            font-size: 1.4rem;
-            min-width: 44px;
-            min-height: 44px;
+            padding: 0.6rem;
+            font-size: 1.2rem;
+            min-width: 40px;
+            min-height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .search-type-nav {
-            padding: 0 1rem;
+            padding: 0 0.5rem 0 0.5rem;
             margin: 0;
         }
 
@@ -3327,7 +3524,7 @@
 
     .result-item-card {
         padding: 1rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.1rem;
     }
 
     .result-title {
