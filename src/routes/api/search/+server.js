@@ -560,7 +560,7 @@ export async function GET({ url, setHeaders }) {
                         };
                     }
                 }
-            } catch (e) { console.log(`[ArtadoProxy] wiki skipped: ${e.message}`); }
+            } catch (e) { /* wiki failed silently */ }
 
             console.log(`[ArtadoProxy] returning ${searchResults.length} results (total ${Date.now() - t0}ms)`);
             return json({ ok: true, type: searchType, searchResults, infoBoxResult: { wikipediaInfo } });

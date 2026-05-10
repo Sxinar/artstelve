@@ -31,6 +31,10 @@
         hybridProxyTimeoutMs,
         hybridProxyCache,
         enableSuggestions,
+        enableSpellCorrection,
+        enableWikiCard,
+        enableRelatedNews,
+        enableRelatedSearches,
         enableTranslatePlugin,
         themeMode,
         uiDensity,
@@ -226,6 +230,11 @@ body { background: #0a0a0a; }
             hybridProxyLimitTotal: $hybridProxyLimitTotal,
             hybridProxyTimeoutMs: $hybridProxyTimeoutMs,
             hybridProxyCache: $hybridProxyCache,
+            enableSuggestions: $enableSuggestions,
+            enableSpellCorrection: $enableSpellCorrection,
+            enableWikiCard: $enableWikiCard,
+            enableRelatedNews: $enableRelatedNews,
+            enableRelatedSearches: $enableRelatedSearches,
             themeMode: $themeMode,
             uiDensity: $uiDensity,
             fontScale: $fontScale,
@@ -289,6 +298,16 @@ body { background: #0a0a0a; }
                     hybridProxyTimeoutMs.set(settings.hybridProxyTimeoutMs);
                 if (settings.hybridProxyCache !== undefined)
                     hybridProxyCache.set(settings.hybridProxyCache);
+                if (settings.enableSuggestions !== undefined)
+                    enableSuggestions.set(settings.enableSuggestions);
+                if (settings.enableSpellCorrection !== undefined)
+                    enableSpellCorrection.set(settings.enableSpellCorrection);
+                if (settings.enableWikiCard !== undefined)
+                    enableWikiCard.set(settings.enableWikiCard);
+                if (settings.enableRelatedNews !== undefined)
+                    enableRelatedNews.set(settings.enableRelatedNews);
+                if (settings.enableRelatedSearches !== undefined)
+                    enableRelatedSearches.set(settings.enableRelatedSearches);
                 if (settings.themeMode) themeMode.set(settings.themeMode);
                 if (settings.uiDensity) uiDensity.set(settings.uiDensity);
                 if (settings.fontScale) fontScale.set(settings.fontScale);
@@ -670,22 +689,6 @@ body { background: #0a0a0a; }
 
                         <div class="setting-row">
                             <div class="setting-info">
-                                <h3>Otomatik Tamamlama</h3>
-                                <p>Arama çubuğunda önerileri göster.</p>
-                            </div>
-                            <label class="switch">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={$enableSuggestions}
-                                />
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <div class="setting-row">
-                            <div class="setting-info">
                                 <h3>Tarayıcı Varsayılan Arama Motoru</h3>
                                 <p>
                                     Artado Search'ü tarayıcınızın varsayılan
@@ -748,6 +751,31 @@ body { background: #0a0a0a; }
                                     <option value="rounded">Yuvarlak</option>
                                     <option value="medium">Orta</option>
                                     <option value="square">Keskin</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 class="section-heading" style="margin-top: 1.5rem;">Site Teması</h2>
+                    <div class="setting-card">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h3>Tema</h3>
+                                <p>Site genelinde uygulanan görsel temayı seçin.</p>
+                            </div>
+                            <div class="select-wrapper">
+                                <select bind:value={$selectedTheme}>
+                                    <option value="klasik">Klasik</option>
+                                    <option value="koyu">Koyu</option>
+                                    <option value="mavi">Mavi</option>
+                                    <option value="pastel">Pastel</option>
+                                    <option value="doga">Doğa</option>
+                                    <option value="terminal">Terminal</option>
+                                    <option value="gece-yarisi">Gece Yarısı</option>
+                                    <option value="gunesli">Güneşli</option>
+                                    <option value="retro">Retro</option>
+                                    <option value="komur">Kömür</option>
+                                    <option value="okyanus">Okyanus</option>
                                 </select>
                             </div>
                         </div>
@@ -1225,6 +1253,64 @@ body { background: #0a0a0a; }
                     <h2 class="section-heading">Gelişmiş Ayarlar</h2>
 
                     <div class="setting-card">
+                        <h3>Arama Özellikleri</h3>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>Otomatik Öneriler</h4>
+                                <p>Yazarken arama önerileri göster.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" bind:checked={$enableSuggestions} />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>Bunu mu demek istediniz?</h4>
+                                <p>Yazım hatası olduğunda düzeltme önerisi göster.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" bind:checked={$enableSpellCorrection} />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>Wikipedia Kartı</h4>
+                                <p>Arama sonuçlarında Wikipedia bilgi kartı göster.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" bind:checked={$enableWikiCard} />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>İlgili Haberler</h4>
+                                <p>Arama sonuçlarında ilgili haberleri göster.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" bind:checked={$enableRelatedNews} />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>İlgili Aramalar</h4>
+                                <p>Arama sonuçlarında ilgili arama önerileri göster.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" bind:checked={$enableRelatedSearches} />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-card" style="margin-top: 2rem;">
                         <h3>Yedekleme ve Geri Yükleme</h3>
                         <p>
                             Tüm ayarlarınızı dışa aktarın veya önceden aldığınız

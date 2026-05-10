@@ -92,6 +92,10 @@ export const safeSearch = createPersistentStore('safeSearch', true);
 
 // --- Privacy & Features ---
 export const enableSuggestions = createPersistentStore('enableSuggestions', true);
+export const enableSpellCorrection = createPersistentStore('enableSpellCorrection', true);
+export const enableWikiCard = createPersistentStore('enableWikiCard', true);
+export const enableRelatedNews = createPersistentStore('enableRelatedNews', true);
+export const enableRelatedSearches = createPersistentStore('enableRelatedSearches', true);
 export const searchRegion = createPersistentStore('searchRegion', 'TR'); // 'all', 'tr', 'us', etc.
 
 // --- Plugin Controls ---

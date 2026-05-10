@@ -36,6 +36,10 @@
         searchRegion,
         customLogo,
         enableSuggestions,
+        enableSpellCorrection,
+        enableWikiCard,
+        enableRelatedNews,
+        enableRelatedSearches,
         bangsOpenNewTab,
     } from "$lib/stores.js"; // Import AI summary setting
     import { safeSearch, blockedSites } from "$lib/stores.js";
@@ -278,25 +282,32 @@
 
     async function fetchRelatedWidgets(query) {
         if (!query || !browser) return;
+        if (!$enableRelatedNews && !$enableRelatedSearches) return;
         widgetsLoading = true;
         relatedNewsItems = [];
         relatedSearchItems = [];
-        try {
-            const newsParams = new URLSearchParams({ i: query, t: 'news', engine: $selectedEngine, count: '5', region: 'TR', lang: 'tr' });
-            if ($selectedEngine === 'Artado Proxy') {
-                newsParams.set('proxyBaseUrl', $hybridProxyBaseUrl);
-                newsParams.set('proxyLimitTotal', '5');
-            }
-            const newsCtrl = new AbortController();
-            const newsTimeout = setTimeout(() => newsCtrl.abort(), 8000);
-            const newsRes = await fetch(`/api/search?${newsParams}`, { signal: newsCtrl.signal })
-                .catch(() => null)
-                .finally(() => clearTimeout(newsTimeout));
-            if (newsRes?.ok) {
-                const d = await newsRes.json();
-                if (d.ok && d.searchResults?.length) relatedNewsItems = d.searchResults.slice(0, 5);
-            }
-        } catch(e) { /* ignore */ }
+        if ($enableRelatedNews) {
+            try {
+                const newsParams = new URLSearchParams({ i: query, t: 'news', engine: $selectedEngine, count: '5', region: 'TR', lang: 'tr' });
+                if ($selectedEngine === 'Artado Proxy') {
+                    newsParams.set('proxyBaseUrl', $hybridProxyBaseUrl);
+                    newsParams.set('proxyLimitTotal', '5');
+                }
+                const newsCtrl = new AbortController();
+                const newsTimeout = setTimeout(() => newsCtrl.abort(), 8000);
+                const newsRes = await fetch(`/api/search?${newsParams}`, { signal: newsCtrl.signal })
+                    .catch(() => null)
+                    .finally(() => clearTimeout(newsTimeout));
+                if (newsRes?.ok) {
+                    const d = await newsRes.json();
+                    if (d.ok && d.searchResults?.length) relatedNewsItems = d.searchResults.slice(0, 5);
+                }
+            } catch(e) { /* ignore */ }
+        }
+        if (!$enableRelatedSearches) {
+            widgetsLoading = false;
+            return;
+        }
         try {
             const wikiCtrl = new AbortController();
             const wikiTimeout = setTimeout(() => wikiCtrl.abort(), 5000);
@@ -620,13 +631,12 @@
             const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
             if (res.ok) {
                 const data = await res.json();
-                // Yeni format: { suggestions: [...], spellCorrection: {...} | null }
                 if (Array.isArray(data)) {
                     suggestions = data;
                     spellCorrection = null;
                 } else {
                     suggestions = data.suggestions || [];
-                    spellCorrection = data.spellCorrection || null;
+                    spellCorrection = $enableSpellCorrection ? (data.spellCorrection || null) : null;
                 }
             } else {
                 suggestions = [];
@@ -784,12 +794,12 @@
                     <i class="fas fa-search"></i>
                 </button>
 
-                {#if showSuggestions && (suggestions.length > 0 || spellCorrection)}
+                {#if $enableSuggestions && showSuggestions && (suggestions.length > 0 || ($enableSpellCorrection && spellCorrection))}
                     <div
                         class="suggestions-dropdown"
                         transition:fly={{ y: 20, duration: 400, delay: 0 }}
                     >
-                        {#if spellCorrection}
+                        {#if $enableSpellCorrection && spellCorrection}
                             <button
                                 class="did-you-mean-row"
                                 onclick={() =>
@@ -982,7 +992,7 @@
                         {#if filteredResults.length > 0}
                             <div class="results-list web-results">
                                 <!-- Spell Correction Banner -->
-                                {#if spellCorrection}
+                                {#if $enableSpellCorrection && spellCorrection}
                                     <div
                                         class="did-you-mean-banner"
                                         in:slide={{ duration: 300 }}
@@ -1445,12 +1455,12 @@
         </main>
 
         <!-- === Infobox Area === -->
-        {#if activeSearchType === "web" && !isLoading && !$error && ($infoBoxResult?.wikipediaInfo || relatedNewsItems.length > 0 || relatedSearchItems.length > 0 || ($infoBoxResult && ($infoBoxResult.type === 'calculator' || $infoBoxResult.type === 'location')))}
+        {#if activeSearchType === "web" && !isLoading && !$error && (($enableWikiCard && $infoBoxResult?.wikipediaInfo) || ($enableRelatedNews && relatedNewsItems.length > 0) || ($enableRelatedSearches && relatedSearchItems.length > 0) || ($infoBoxResult && ($infoBoxResult.type === 'calculator' || $infoBoxResult.type === 'location')))}
 
             <aside class="infobox-container">
 
                 <!-- Wikipedia (üst, tam genişlik) -->
-                {#if $infoBoxResult?.wikipediaInfo}
+                {#if $enableWikiCard && $infoBoxResult?.wikipediaInfo}
                     <div class="widget-card wiki-widget" style="margin-bottom:0.75rem;">
                         <button class="widget-header" onclick={() => (wikiOpen = !wikiOpen)}>
                             <span><i class="fas fa-book-open"></i> {$infoBoxResult.wikipediaInfo.title || "Wikipedia"}</span>
@@ -1478,7 +1488,7 @@
                 {/if}
                 <!-- Haberler + Aramalar yan yana -->
                 <div class="infobox-bottom-row">
-                    {#if relatedNewsItems.length > 0}
+                    {#if $enableRelatedNews && relatedNewsItems.length > 0}
                         <div class="widget-card news-widget">
                             <button class="widget-header" onclick={() => (newsWidgetOpen = !newsWidgetOpen)}>
                                 <span><i class="fas fa-newspaper"></i> İlgili Haberler</span>
@@ -1501,7 +1511,7 @@
                             {/if}
                         </div>
                     {/if}
-                    {#if relatedSearchItems.length > 0}
+                    {#if $enableRelatedSearches && relatedSearchItems.length > 0}
                         <div class="widget-card searches-widget">
                             <button class="widget-header" onclick={() => (searchesWidgetOpen = !searchesWidgetOpen)}>
                                 <span><i class="fas fa-search"></i> İlgili Aramalar</span>
@@ -2538,13 +2548,6 @@
             border-bottom: 1px solid var(--border-color);
             border-radius: 0;
         }
-        .search-input {
-            font-size: 1rem;
-        }
-        .search-button-header,
-        .clear-button-header {
-            font-size: 1.1rem;
-        }
 
         .settings-button-header {
             font-size: 1.2rem; /* Adjust icon size */
@@ -3459,8 +3462,18 @@
 
         .search-bar-container {
             flex: 1;
-            max-width: calc(100% - 60px);
-            padding: 0 0.5rem;
+            max-width: calc(100% - 48px);
+            padding: 0 0.3rem;
+        }
+        .search-button-header,
+        .clear-button-header {
+            font-size: 0.95rem;
+            padding: 0 0.3rem;
+            flex-shrink: 0;
+        }
+        .search-input {
+            font-size: 0.95rem;
+            min-width: 0;
         }
 
         .header-actions {
