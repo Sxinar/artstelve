@@ -51,7 +51,7 @@
     } from "$lib/stores.js";
 
     let notifications = false;
-    let activeTab = "Temel Ayarlar";
+    let activeTab = $state("Temel Ayarlar");
     let backupSelection = $state({
         theme: true,
         search: true,
