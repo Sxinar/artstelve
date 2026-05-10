@@ -117,6 +117,7 @@ export const searchHomeCustomTheme = createPersistentStore('searchHomeCustomThem
 
 // Bangs Preferences
 export const bangsOpenNewTab = createPersistentStore('bangsOpenNewTab', false); // Default false
+export const customBangs = createPersistentStore('customBangs', []); // Array of { trigger, name, url }
 
 // --- Translation Stores (Devs only, no local persistence for data) ---
 export const translateInput = writable('');
