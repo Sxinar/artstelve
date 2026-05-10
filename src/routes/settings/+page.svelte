@@ -720,6 +720,64 @@ body { background: #0a0a0a; }
                             </div>
                         </div>
                     </div>
+
+                    <div class="setting-card" style="margin-top: 2rem;">
+                        <h3>Arama Özellikleri</h3>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>Otomatik Öneriler</h4>
+                                <p>Yazarken arama önerileri göster.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" bind:checked={$enableSuggestions} />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>Bunu mu demek istediniz?</h4>
+                                <p>Yazım hatası olduğunda düzeltme önerisi göster.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" bind:checked={$enableSpellCorrection} />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>Wikipedia Kartı</h4>
+                                <p>Arama sonuçlarında Wikipedia bilgi kartı göster.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" bind:checked={$enableWikiCard} />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>İlgili Haberler</h4>
+                                <p>Arama sonuçlarında ilgili haberleri göster.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" bind:checked={$enableRelatedNews} />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <h4>İlgili Aramalar</h4>
+                                <p>Arama sonuçlarında ilgili arama önerileri göster.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" bind:checked={$enableRelatedSearches} />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
                 </section>
             {:else if activeTab === "Görünüm"}
                 <section in:slide={{ duration: 300 }}>
@@ -754,10 +812,7 @@ body { background: #0a0a0a; }
                                 </select>
                             </div>
                         </div>
-                    </div>
-
-                    <h2 class="section-heading" style="margin-top: 1.5rem;">Site Teması</h2>
-                    <div class="setting-card">
+                        <div class="divider"></div>
                         <div class="setting-row">
                             <div class="setting-info">
                                 <h3>Tema</h3>
@@ -1253,64 +1308,6 @@ body { background: #0a0a0a; }
                     <h2 class="section-heading">Gelişmiş Ayarlar</h2>
 
                     <div class="setting-card">
-                        <h3>Arama Özellikleri</h3>
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h4>Otomatik Öneriler</h4>
-                                <p>Yazarken arama önerileri göster.</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" bind:checked={$enableSuggestions} />
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="divider"></div>
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h4>Bunu mu demek istediniz?</h4>
-                                <p>Yazım hatası olduğunda düzeltme önerisi göster.</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" bind:checked={$enableSpellCorrection} />
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="divider"></div>
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h4>Wikipedia Kartı</h4>
-                                <p>Arama sonuçlarında Wikipedia bilgi kartı göster.</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" bind:checked={$enableWikiCard} />
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="divider"></div>
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h4>İlgili Haberler</h4>
-                                <p>Arama sonuçlarında ilgili haberleri göster.</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" bind:checked={$enableRelatedNews} />
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="divider"></div>
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h4>İlgili Aramalar</h4>
-                                <p>Arama sonuçlarında ilgili arama önerileri göster.</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" bind:checked={$enableRelatedSearches} />
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="setting-card" style="margin-top: 2rem;">
                         <h3>Yedekleme ve Geri Yükleme</h3>
                         <p>
                             Tüm ayarlarınızı dışa aktarın veya önceden aldığınız
