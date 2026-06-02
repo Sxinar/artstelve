@@ -78,6 +78,11 @@ Artado Search'ü tarayıcınızın varsayılan arama motoru olarak ayarlamak iç
 3. "Artado Search Ekle" seçeneğini kullanın
 4. Veya OpenSearch XML dosyasını doğrudan tarayıcıya yükleyin
 
+### Bilinen Uyumsuzluklar:
+darkreader (site hata veriyor ve yüklenmiyor)
+
+
+
 ### OpenSearch Entegrasyonu
 Proje, tarayıcılarla tam uyumluluk sağlayan `static/opensearch.xml` dosyası içerir. Bu dosya, Artado Search'ü tarayıcınıza varsayılan arama motoru olarak eklemenizi kolaylaştırır.
 
