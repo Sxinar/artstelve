@@ -1,33 +1,37 @@
-# 🔍 Artado Search
+#  Artado Search
 
 Artado Search, gizlilik odaklı, yüksek performanslı ve modern bir arama motorudur. SvelteKit ve Svelte 5 altyapısı ile geliştirilen bu proje, kullanıcıların verilerini takip etmeden birden fazla kaynaktan gelen sonuçları en hızlı şekilde sunmayı hedefler.
 
-## ✨ Temel Özellikler
+##  Temel Özellikler
 
-### 🛡️ Gizlilik ve Güvenlik
+### Gizlilik ve Güvenlik
 - **Sıfır Takip**: Kullanıcı sorguları, IP adresleri veya davranışsal veriler asla kaydedilmez
 - **Güvenli Render**: Tüm arama sonuçları XSS saldırılarına karşı sanitize edilerek sunulur
 - **Proxy Katmanı**: Sonuçlar, kaynak sitelerden Artado Proxy aracılığıyla anonimleştirilerek çekilir
 
-### 🚀 Performans
+### Performans
 - **Svelte 5 & Vite**: En yeni web teknolojileri ile ışık hızında sayfa geçişleri
 - **Hibrit Arama**: DuckDuckGo, Brave, Startpage, Qwant, Mojeek, Ask ve Marginalia gibi birden fazla motorun gücünü tek bir noktada birleştirir
 - **Akıllı Önbellekleme**: Sık yapılan aramalar hem sunucu hem de CDN seviyesinde önbelleğe alınır
 
-### 🎨 Kullanıcı Deneyimi (UX)
+### Kullanıcı Deneyimi (UX)
 - **Akıllı Otomatik Tamamlama**: Yazmaya başladığınız anda Türkçe karakter uyumlu öneriler
 - **Yazım Denetimi**: "Bunu mu demek istediniz?" özelliği ile hatalı sorgular için anında düzeltme önerisi
 - **Özelleştirilebilir Tasarım**: Karanlık mod desteği, animasyonlar ve özelleştirilebilir vurgu renkleri
 - **Workshop Logoları**: Kullanıcılar tarafından oluşturulan özel logo tasarımları
 - **Modern Bilgi Kartları**: Wikipedia kaynaklarından gelen infobox'lar
 
-### ⚡ Bang Komutları
+### Bang Komutları
 - **Hızlı Arama**: Bang komutları ile farklı platformlarda hızlı arama yapın
 - **Yeni Sekmede Açılır**: Bang komutları yeni sekmede açılır, mevcut sekme korunur
 - **27+ Komut**: Google, DuckDuckGo, YouTube, Wikipedia, GitHub, Twitter, Facebook, Reddit, Stack Overflow, NPM, PyPI, Docker Hub, AWS, Azure, Google Cloud ve daha fazlası
 - **Kategori Bazlı**: Arama motorları, sosyal medya, geliştirme, referans, bulut hizmetleri, haberler, haritalar ve araçlar
 
-## 🛠️ Teknik Mimari
+## Teknik Uyumsuzluklar
+- **Dark Reader** Eklentisi ile Kullanılırken Uyumsuzluklar yaşanıyor ve Artado Search Beta tasarımı hiçbir şekilde ekranda gözükmüyor.
+- Geri bildirim için Teşekkürler @javav12
+
+## Teknik Mimari
 
 ### Frontend
 - **Framework**: SvelteKit (Svelte 5 tabanlı)
@@ -41,7 +45,7 @@ Artado Search, gizlilik odaklı, yüksek performanslı ve modern bir arama motor
 - **Workshop API**: Bulut tabanlı logo yönetim ve yayınlama sistemi
 - **Proxy Entegrasyonu**: Artado Proxy (`https://artadoproxy.vercel.app`) üzerinden tüm arama sonuçları
 
-## ⚙️ Kurulum Rehberi
+## Kurulum Rehberi
 
 ### Gereksinimler
 - Node.js >= 20.x
@@ -63,7 +67,7 @@ Artado Search, gizlilik odaklı, yüksek performanslı ve modern bir arama motor
    ```
 4. Tarayıcınızda açın: `http://localhost:5173`
 
-## 🌍 Tarayıcıya Ekleme (Varsayılan Arama Motoru)
+## Tarayıcıya Ekleme (Varsayılan Arama Motoru)
 
 Artado Search'ü tarayıcınızın varsayılan arama motoru olarak ayarlamak için:
 
@@ -81,7 +85,7 @@ Artado Search'ü tarayıcınızın varsayılan arama motoru olarak ayarlamak iç
 ### OpenSearch Entegrasyonu
 Proje, tarayıcılarla tam uyumluluk sağlayan `static/opensearch.xml` dosyası içerir. Bu dosya, Artado Search'ü tarayıcınıza varsayılan arama motoru olarak eklemenizi kolaylaştırır.
 
-## 📦 Proje Yapısı
+## Proje Yapısı
 
 ```text
 /src
@@ -96,7 +100,7 @@ Proje, tarayıcılarla tam uyumluluk sağlayan `static/opensearch.xml` dosyası 
   /static         # Logo, favicon ve opensearch.xml
 ```
 
-## 🎯 Kullanım Kılavuzu
+## Kullanım Kılavuzu
 
 ### Bang Komutları
 Bang komutları, farklı platformlarda hızlı arama yapmanızı sağlayan kısayollardır. Kullanımı:
