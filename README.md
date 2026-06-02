@@ -2,6 +2,13 @@
 
 Artado Search, gizlilik odaklı, yüksek performanslı ve modern bir arama motorudur. SvelteKit ve Svelte 5 altyapısı ile geliştirilen bu proje, kullanıcıların verilerini takip etmeden birden fazla kaynaktan gelen sonuçları en hızlı şekilde sunmayı hedefler.
 
+
+
+## Teknik Uyumsuzluklar
+- **Dark Reader** Eklentisi ile Kullanılırken Uyumsuzluklar yaşanıyor ve Artado Search Beta tasarımı hiçbir şekilde ekranda gözükmüyor.
+- Geri bildirim için Teşekkürler @javav12
+
+
 ##  Temel Özellikler
 
 ### Gizlilik ve Güvenlik
@@ -27,9 +34,6 @@ Artado Search, gizlilik odaklı, yüksek performanslı ve modern bir arama motor
 - **27+ Komut**: Google, DuckDuckGo, YouTube, Wikipedia, GitHub, Twitter, Facebook, Reddit, Stack Overflow, NPM, PyPI, Docker Hub, AWS, Azure, Google Cloud ve daha fazlası
 - **Kategori Bazlı**: Arama motorları, sosyal medya, geliştirme, referans, bulut hizmetleri, haberler, haritalar ve araçlar
 
-## Teknik Uyumsuzluklar
-- **Dark Reader** Eklentisi ile Kullanılırken Uyumsuzluklar yaşanıyor ve Artado Search Beta tasarımı hiçbir şekilde ekranda gözükmüyor.
-- Geri bildirim için Teşekkürler @javav12
 
 ## Teknik Mimari
 
