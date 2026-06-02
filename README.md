@@ -79,9 +79,8 @@ Artado Search'ü tarayıcınızın varsayılan arama motoru olarak ayarlamak iç
 4. Veya OpenSearch XML dosyasını doğrudan tarayıcıya yükleyin
 
 ### Bilinen Uyumsuzluklar:
-darkreader (site hata veriyor ve yüklenmiyor)
-
-
+darkreader: site hata veriyor ve yüklenmiyor (``TypeError: can't access property "nodeType", e is null``)
+çözüm: darkreader'ı geçici süreliğine kapatmak
 
 ### OpenSearch Entegrasyonu
 Proje, tarayıcılarla tam uyumluluk sağlayan `static/opensearch.xml` dosyası içerir. Bu dosya, Artado Search'ü tarayıcınıza varsayılan arama motoru olarak eklemenizi kolaylaştırır.
