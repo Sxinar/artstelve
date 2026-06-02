@@ -636,14 +636,14 @@
 			<a href="https://artadosearch.com/manifest"
 				><i class="fas fa-scroll icon" aria-hidden="true"></i> Manifesto</a
 			>
-			<a href="https://artado.xyz/blog/gizlilik"
+			<a href="http://artado.xyz/blog/page.php?slug=gizlilik"
 				><i class="fas fa-shield-halved icon" aria-hidden="true"></i> Gizlilik</a
 			>
 			<a href="https://devs.artado.xyz"
 				><i class="fas fa-code icon" aria-hidden="true"></i> Developers</a
 			>
 			<a
-				href="https://github.com/artadosearch"
+				href="https://github.com/Sxinar/artstelve"
 				target="_blank"
 				rel="noopener noreferrer"
 				><i class="fab fa-github icon" aria-hidden="true"></i> Github</a
