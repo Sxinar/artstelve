@@ -3,7 +3,7 @@
   import { writable } from "svelte/store"; // For local state if needed
   import { goto } from "$app/navigation"; // Import goto for navigation
   import { BANG_COMMANDS } from "$lib/bangs.js";
-
+  
   // Güvenli metin vurgulama - XSS güvenli (innerHTML kullanmaz)
   function highlightParts(text, query) {
     if (!query || query.length < 2) return [{ text, bold: false }];
@@ -23,7 +23,7 @@
     return parts;
   }
 
-  import { fade } from "svelte/transition";
+  import { fade,fly } from "svelte/transition";
 
   // Get stores from context provided by layout
   const selectedTheme = getContext("theme"); // Read-only access is enough here
