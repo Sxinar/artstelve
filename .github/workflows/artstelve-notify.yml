@@ -14,28 +14,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build and Send Notification
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ACTOR: ${{ github.actor }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          COMMIT_SHA: ${{ github.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_ACTION: ${{ github.event.action }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          WEBHOOK_URL: ${{ secrets.STOAT_WEBHOOK_URL }} # GitHub Secrets'tan okunur
         run: |
-          EVENT="${{ github.event_name }}"
-          USER="${{ github.actor }}"
-          REPO="${{ github.repository }}"
-          URL="https://github.com/$REPO"
+          URL="https://github.com/$REPOSITORY"
 
           # Olay tipine göre mesajı şekillendirelim
-          if [ "$EVENT" == "watch" ]; then
-            MSG="⭐ **Yeni Star!**\n👤 **Kullanıcı:** $USER\n✨ Depo parlamaya devam ediyor!"
-          elif [ "$EVENT" == "fork" ]; then
-            MSG="🍴 **Repo Forklandı!**\n👤 **Kullanıcı:** $USER\n📦 Artık bir kopyası daha var!"
-          elif [ "$EVENT" == "push" ]; then
-            MSG="🚀 **Yeni Push!**\n👤 **Yapan:** $USER\n📝 **Mesaj:** ${{ github.event.head_commit.message }}\n🔗 [Commit'i Gör]($URL/commit/${{ github.sha }})"
-          elif [ "$EVENT" == "pull_request" ]; then
-            MSG="🔀 **Pull Request:** ${{ github.event.pull_request.title }}\n👤 **Durum:** ${{ github.event.action }}\n🔗 [PR Detay](${{ github.event.pull_request.html_url }})"
-          elif [ "$EVENT" == "issues" ]; then
-            MSG="📢 **Yeni Issue Açıldı!**\n👤 **Açan:** $USER\n📌 **Başlık:** ${{ github.event.issue.title }}\n🔗 [İncele](${{ github.event.issue.html_url }})"
+          if [ "$EVENT_NAME" == "watch" ]; then
+            MSG="⭐ **Yeni Star!**\n👤 **Kullanıcı:** $ACTOR\n✨ Depo parlamaya devam ediyor!"
+          elif [ "$EVENT_NAME" == "fork" ]; then
+            MSG="🍴 **Repo Forklandı!**\n👤 **Kullanıcı:** $ACTOR\n📦 Artık bir kopyası daha var!"
+          elif [ "$EVENT_NAME" == "push" ]; then
+            MSG="🚀 **Yeni Push!**\n👤 **Yapan:** $ACTOR\n📝 **Mesaj:** $COMMIT_MSG\n🔗 [Commit'i Gör]($URL/commit/$COMMIT_SHA)"
+          elif [ "$EVENT_NAME" == "pull_request" ]; then
+            MSG="🔀 **Pull Request:** $PR_TITLE\n👤 **Durum:** $PR_ACTION\n🔗 [PR Detay]($PR_URL)"
+          elif [ "$EVENT_NAME" == "issues" ]; then
+            MSG="📢 **Yeni Issue Açıldı!**\n👤 **Açan:** $ACTOR\n📌 **Başlık:** $ISSUE_TITLE\n🔗 [İncele]($ISSUE_URL)"
           else
-            MSG="🔔 **GitHub Etkinliği:** $EVENT\n👤 **Yapan:** $USER\n📍 **Repo:** $REPO"
+            MSG="🔔 **GitHub Etkinliği:** $EVENT_NAME\n👤 **Yapan:** $ACTOR\n📍 **Repo:** $REPOSITORY"
           fi
 
-          # Stoat Webhook'una gönder (Yeni Linkin)
-          curl -X POST https://stoat.chat/api/webhooks/01KGQ34WFB2HH440J4DEV4JM0Q/RF2h_nRlfb3DtQ4HaLKFPErRK7KFUlT3mSV1vWL5ev_90BNiG5LcX5Y9dhZ7D_bJ/ \
+          # jq kullanarak mesaj içeriğini güvenli bir JSON formatına çeviriyoruz.
+          # Bu sayede mesaj içindeki " (çift tırnak) veya özel karakterler scripti bozamaz.
+          JSON_PAYLOAD=$(jq -n --arg msg "$MSG" '{content: $msg}')
+
+          # Stoat Webhook'una güvenli gönderim
+          curl -X POST "$WEBHOOK_URL" \
           -H "Content-Type: application/json" \
-          -d "{\"content\": \"$MSG\"}"
+          -d "$JSON_PAYLOAD"
