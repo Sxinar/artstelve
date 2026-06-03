@@ -4,11 +4,6 @@ Artado Search, gizlilik odaklı, yüksek performanslı ve modern bir arama motor
 
 
 
-## Teknik Uyumsuzluklar
-- **Dark Reader** Eklentisi ile Kullanılırken Uyumsuzluklar yaşanıyor ve Artado Search Beta tasarımı hiçbir şekilde ekranda gözükmüyor.
-- Geri bildirim için Teşekkürler @javav12
-
-
 ##  Temel Özellikler
 
 ### Gizlilik ve Güvenlik
