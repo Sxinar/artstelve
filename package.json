@@ -7,7 +7,8 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''"
+		"prepare": "svelte-kit sync || echo ''",
+		"lint": "eslint ."
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-vercel": "^5.5.2",
@@ -16,7 +17,11 @@
 		"@tailwindcss/forms": "^0.5.9",
 		"@tailwindcss/typography": "^0.5.15",
 		"@tailwindcss/vite": "^4.0.0",
+		"eslint": "^9.39.4",
+		"eslint-plugin-jsx-a11y": "^6.10.2",
+		"eslint-plugin-svelte": "^3.19.0",
 		"svelte": "^5.0.0",
+		"svelte-eslint-parser": "^1.8.0",
 		"tailwindcss": "^4.0.0",
 		"vite": "^6.2.5"
 	},
