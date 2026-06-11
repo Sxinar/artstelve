@@ -445,7 +445,7 @@
                   <i class="fas fa-times"></i>
                 </button>
               </div>
-              {#each suggestions.slice(0, 7) as s, i}
+              {#each suggestions.slice(0, 7) as s, i (i)}
                 <button
                   class="suggestion-item"
                   class:focused={i === focusedSuggestionIndex}
@@ -466,7 +466,7 @@
                     style="display: flex; flex-direction: column;"
                   >
                     <span
-                      >{#each highlightParts(s.text, searchQuery) as part}{#if part.bold}<b
+                      >{#each highlightParts(s.text, searchQuery) as part, i (i)}{#if part.bold}<b
                             >{part.text}</b
                           >{:else}{part.text}{/if}{/each}</span
                     >

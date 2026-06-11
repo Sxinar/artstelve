@@ -49,6 +49,7 @@
     import { BANG_COMMANDS } from "$lib/bangs.js";
 
     // Get sidebar store from context
+
     const isSidebarOpen = getContext("sidebar");
 
     let searchQuery = $state("");
@@ -817,7 +818,7 @@
                             <div class="suggestions-header">
                                 <i class="fas fa-magic"></i> Öneriler
                             </div>
-                            {#each suggestions.slice(0, 7) as s, i}
+                            {#each suggestions.slice(0, 7) as s, i (i)}
                                 <button
                                     class="suggestion-item"
                                     class:focused={i === focusedSuggestionIndex}
@@ -838,7 +839,7 @@
                                         style="display: flex; flex-direction: column;"
                                     >
                                         <span
-                                            >{#each highlightParts(s.text, inputQuery) as part}{#if part.bold}<b
+                                            >{#each highlightParts(s.text, inputQuery) as part, i (i)}{#if part.bold}<b
                                                         >{part.text}</b
                                                     >{:else}{part.text}{/if}{/each}</span
                                         >
@@ -970,7 +971,7 @@
                                             class="special-links"
                                             style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;"
                                         >
-                                            {#each res.links as link}
+                                            {#each res.links as link (link.url)}
                                                 <a
                                                     href={link.url}
                                                     target="_blank"
@@ -1410,7 +1411,7 @@
                 {#if $searchResults.length > 0 && !isLoading}
                     <div class="pagination-container">
                         <!-- Page Numbers -->
-                        {#each paginationPages.slice(0, 12) as page}
+                        {#each paginationPages.slice(0, 12) as page (page)}
                             <button
                                 class="pagination-btn"
                                 class:active={page === currentPage}
@@ -1496,7 +1497,7 @@
                             </button>
                             {#if newsWidgetOpen}
                                 <div class="widget-body" transition:slide={{ duration: 200 }}>
-                                    {#each relatedNewsItems as item}
+                                    {#each relatedNewsItems as item (item.url)}
                                         <a href={item.url} target="_blank" rel="noopener noreferrer" class="news-item">
                                             {#if item.thumbnail}
                                                 <img src={item.thumbnail} alt="" class="news-thumb" loading="lazy" onerror={(e) => (e.target.style.display='none')} />
@@ -1519,7 +1520,7 @@
                             </button>
                             {#if searchesWidgetOpen}
                                 <div class="widget-body" transition:slide={{ duration: 200 }}>
-                                    {#each relatedSearchItems as item}
+                                    {#each relatedSearchItems as item, i (i)}
                                         <button class="related-search-item" onclick={() => item.url ? window.open(item.url, '_blank') : performSearch(item.text)}>
                                             <i class="fas fa-search" style="font-size:0.75rem; opacity:0.5;"></i>
                                             {item.text}

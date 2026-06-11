@@ -1,12 +1,13 @@
 <script>
     import { page } from "$app/stores";
+    import { base } from '$app/paths';
 </script>
 
 <div class="error-container">
     <h1>{$page.status}</h1>
     <p>{$page.error?.message || "Bir hata oluştu."}</p>
     <div class="actions">
-        <a href="/" class="home-button">
+        <a href="{base}/" class="home-button">
             <i class="fas fa-home"></i>
             Ana Sayfaya Dön
         </a>

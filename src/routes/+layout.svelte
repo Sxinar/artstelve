@@ -510,7 +510,7 @@
 					</optgroup>
 					{#if $workshopThemes && $workshopThemes.length > 0}
 						<optgroup label="Workshop Temaları">
-							{#each $workshopThemes as theme}
+							{#each $workshopThemes as theme (theme.download_url)}
 								<option value={theme.download_url}
 									>{theme.name}</option
 								>

@@ -14,8 +14,7 @@ export default [
       parser: svelteParser,
     },
     rules: {
-
-      // 'jsx-a11y/alt-text': 'error'
+      'svelte/no-navigation-without-resolve': 'off'
     },
   },
 

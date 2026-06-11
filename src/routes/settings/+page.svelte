@@ -96,7 +96,7 @@
         { id: "Özel CSS", icon: "fas fa-code", label: "customCSS" },
     ];
 
-    $: filteredTabs = tabs;
+    let filteredTabs = tabs;
 
     // --- Helper Functions ---
     function applyPresetCSS(preset) {
@@ -534,7 +534,9 @@ body { background: #0a0a0a; }
             alert("Hata: " + e.message);
         }
     }
-
+    function hasDuplicates(array) {
+        return new Set(array).size !== array.length;
+    }
     let installedPluginsList = [];
     async function fetchInstalledPlugins() {
         try {
@@ -563,6 +565,8 @@ body { background: #0a0a0a; }
                 $selectedEngine,
         );
     }
+
+
 
     function installAsDefaultSearch() {
         // Create OpenSearch description and trigger browser installation
@@ -634,7 +638,7 @@ body { background: #0a0a0a; }
         <aside class="settings-sidebar">
             <nav aria-label="Ayarlar Menüsü">
                 <ul>
-                    {#each filteredTabs as tab}
+                    {#each filteredTabs as tab (tab.id)}
                         <li>
                             <button
                                 class:active={activeTab === tab.id}
@@ -870,7 +874,7 @@ body { background: #0a0a0a; }
                                     <div class="workshop-sections">
                                         <div class="workshop-section">
                                             <div class="workshop-mini-grid">
-                                                {#each $logos.slice(0, 4) as logo}
+                                                {#each ($logos || []).slice(0, 4) as logo, i (i)}
                                                     <div class="mini-item">
                                                         <img
                                                             src={logo.download_url ||
@@ -1135,7 +1139,7 @@ body { background: #0a0a0a; }
                     <h2 class="section-heading">{$t("themes")}</h2>
                     <div class="setting-card">
                         <div class="themes-grid">
-                            {#each ["klasik", "koyu", "mavi", "pastel", "doga", "terminal", "gece-yarisi", "gunesli", "retro", "komur", "okyanus"] as theme}
+                            {#each ["klasik", "koyu", "mavi", "pastel", "doga", "terminal", "gece-yarisi", "gunesli", "retro", "komur", "okyanus"] as theme (theme)}
                                 <button
                                     class="theme-button"
                                     class:active={$selectedTheme === theme}
@@ -1149,7 +1153,7 @@ body { background: #0a0a0a; }
                             {/each}
 
                             {#if installedGeneralThemes.length > 0}
-                                {#each installedGeneralThemes as itheme}
+                                {#each installedGeneralThemes as itheme (itheme.id)}
                                     <div class="theme-button-wrapper">
                                         <button
                                             class="theme-button"
@@ -1362,7 +1366,7 @@ body { background: #0a0a0a; }
                         </p>
                         {#if $blockedSites.length > 0}
                             <ul class="blocked-sites-list">
-                                {#each $blockedSites as site}
+                                {#each $blockedSites as site, i (hasDuplicates($blockedSites) ? i : site)}
                                     <li>
                                         <span>{site}</span>
                                         <button
@@ -1407,7 +1411,7 @@ body { background: #0a0a0a; }
                             </h3>
                             {#if $themes.length > 0}
                                 <div class="workshop-grid">
-                                    {#each $themes as theme}
+                                    {#each $themes as theme (theme.id || theme.name)}
                                         <div class="workshop-item">
                                             <div class="workshop-preview">
                                                 {#if theme.image_url}
@@ -1490,7 +1494,7 @@ body { background: #0a0a0a; }
                             </h3>
                             {#if $plugins.length > 0}
                                 <div class="workshop-grid">
-                                    {#each $plugins as plugin}
+                                    {#each $plugins as plugin (plugin.id)}
                                         <div class="workshop-item">
                                             <div class="workshop-preview">
                                                 {#if plugin.image_url}
