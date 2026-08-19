@@ -51,24 +51,13 @@
     } from "$lib/stores.js";
 
     let notifications = false;
-    let activeTab = $page.url.searchParams.get("tab") || "Temel Ayarlar";
+    let activeTab = $derived($page.url.searchParams.get("tab") || "Temel Ayarlar");
     let newBang = { trigger: "!", name: "", urlTemplate: "" };
     let editingBangId = null;
     let bangError = "";
     let siteDomain = "";
     let siteAction = "block";
     let siteRuleError = "";
-
-    function openSettingsTab(tabId) {
-        activeTab = tabId;
-        if (browser) {
-            const url = new URL(window.location.href);
-            if (tabId === "Bangs") url.searchParams.set("tab", "bangs");
-            else url.searchParams.delete("tab");
-            window.history.replaceState(window.history.state, "", url);
-        }
-        if (browser) window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
-    }
 
     let proxyLatency = null;
     let isTestingProxy = false;
@@ -116,13 +105,6 @@
     ];
 
     let filteredTabs = $derived(tabs);
-
-    $effect(() => {
-        const requestedTab = $page.url.searchParams.get("tab");
-        activeTab = tabs.some((tab) => tab.id === requestedTab)
-            ? requestedTab
-            : "Temel Ayarlar";
-    });
 
     // --- Helper Functions ---
     function applyPresetCSS(preset) {
