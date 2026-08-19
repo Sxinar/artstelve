@@ -115,7 +115,7 @@
         { id: "Özel CSS", icon: "fas fa-code", label: "customCSS" },
     ];
 
-    $: filteredTabs = tabs;
+    let filteredTabs = $derived(tabs);
 
     // --- Helper Functions ---
     function applyPresetCSS(preset) {
