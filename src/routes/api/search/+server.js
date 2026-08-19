@@ -412,7 +412,7 @@ export async function GET({ url, setHeaders }) {
                 ok: true,
                 type: searchType,
                 searchResults: mappedResults,
-                infoBoxResult: wikipediaInfo ? { wikipediaInfo } : null
+                infoBoxResult: null
             });
 
         } catch (err) {
