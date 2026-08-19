@@ -51,7 +51,7 @@
     } from "$lib/stores.js";
 
     let notifications = false;
-    let activeTab = $page.url.searchParams.get("tab") === "bangs" ? "Bangs" : "Temel Ayarlar";
+    let activeTab = $page.url.searchParams.get("tab") || "Temel Ayarlar";
     let newBang = { trigger: "!", name: "", urlTemplate: "" };
     let editingBangId = null;
     let bangError = "";
@@ -116,6 +116,13 @@
     ];
 
     let filteredTabs = $derived(tabs);
+
+    $effect(() => {
+        const requestedTab = $page.url.searchParams.get("tab");
+        activeTab = tabs.some((tab) => tab.id === requestedTab)
+            ? requestedTab
+            : "Temel Ayarlar";
+    });
 
     // --- Helper Functions ---
     function applyPresetCSS(preset) {
@@ -521,9 +528,6 @@ body { background: #0a0a0a; }
     onMount(() => {
         debugLog("Settings page mounted", { browser, activeTab });
         if (browser) {
-            if (new URLSearchParams(window.location.search).get("tab") === "bangs") {
-                activeTab = "Bangs";
-            }
             debugLog("Fetching workshop items");
             fetchWorkshopItems();
             debugLog("Fetching installed themes");
@@ -667,15 +671,14 @@ body { background: #0a0a0a; }
                 <ul>
                     {#each filteredTabs as tab}
                         <li>
-                            {#if tab.id === "Bangs"}
-                                <a href="/settings?tab=bangs" data-sveltekit-reload class:active={activeTab === tab.id}>
-                                    <i class={tab.icon}></i><span>{$t(tab.label)}</span>
-                                </a>
-                            {:else}
-                                <button type="button" class:active={activeTab === tab.id} onclick={() => openSettingsTab(tab.id)}>
-                                    <i class={tab.icon}></i><span>{$t(tab.label)}</span>
-                                </button>
-                            {/if}
+                            <a
+                                href={tab.id === "Temel Ayarlar"
+                                    ? "/settings"
+                                    : `/settings?tab=${encodeURIComponent(tab.id)}`}
+                                class:active={activeTab === tab.id}
+                            >
+                                <i class={tab.icon}></i><span>{$t(tab.label)}</span>
+                            </a>
                         </li>
                     {/each}
                 </ul>

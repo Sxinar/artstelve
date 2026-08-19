@@ -106,7 +106,10 @@ export async function GET({ url, setHeaders }) {
 
     const query = url.searchParams.get('i') || url.searchParams.get('q');
     const searchType = url.searchParams.get('t') || 'web'; // Renamed variable from 'type'
-    const engine = url.searchParams.get('engine') || 'Hybrid Proxy'; // Arama motoru parametresi
+    const requestedEngine = url.searchParams.get('engine') || 'Hybrid Proxy'; // Arama motoru parametresi
+    const engine = String(requestedEngine).trim().toLowerCase() === 'artado search'
+        ? 'Artado'
+        : requestedEngine;
     let proxyBaseUrl = url.searchParams.get('proxyBaseUrl') || PROXY_SEARCH_BASE_URL;
 
     // Force IPv4 for local proxy to avoid IPv6 resolution issues
