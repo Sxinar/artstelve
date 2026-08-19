@@ -265,6 +265,20 @@ export async function GET({ url, setHeaders }) {
                 ...html.matchAll(/<a[^>]+href="(https?:\/\/[^"]+)"[^>]*class="[^"]*result[^"]*"[^>]*>([\s\S]*?)<\/a>/gi)
             ];
 
+            // Yeni Artado HTML'inde sonuç linklerinde id/class bulunmayabiliyor.
+            // Eski seçiciler sonuç bulamazsa, harici HTTPS linklerini kontrollü olarak tara.
+            if (artadoBlocks.length === 0 && webBlocks.length === 0) {
+                webBlocks.push(...[...html.matchAll(
+                    /<a[^>]+href=["'](https?:\/\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
+                )].filter((block) => {
+                    const target = block[1].toLowerCase();
+                    return !target.includes('artadosearch.com') &&
+                        !target.includes('cdnjs.cloudflare.com') &&
+                        !target.includes('googleapis.com') &&
+                        !target.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico)(\?|$)/);
+                }));
+            }
+
             // Combine, deduplicate by URL
             const allBlocks = [...artadoBlocks, ...webBlocks];
             const seenUrls = new Set();

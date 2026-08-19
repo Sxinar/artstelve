@@ -28,14 +28,23 @@ export async function GET() {
 
         const data = await response.json();
         
+        const themes = Array.isArray(data.themes) ? data.themes : [];
+        const homeThemes = Array.isArray(data.plugins)
+            ? data.plugins.filter((item) => {
+                const category = String(item?.category || '').toLowerCase();
+                return category === 'home' || category === 'ana_sayfa';
+            })
+            : [];
+
         console.log("[API Workshop] Success:", data.success ? "Yes" : "No", 
-                    "Themes:", data.themes?.length || 0,
+                    "Themes:", themes.length,
+                    "Home themes:", homeThemes.length,
                     "Logos:", data.logos?.length || 0);
 
         // Workshop istemcisi yalnızca görsel tema ve logo verisi sunar.
         return json({
             success: Boolean(data.success),
-            themes: Array.isArray(data.themes) ? data.themes : [],
+            themes: [...themes, ...homeThemes],
             logos: Array.isArray(data.logos) ? data.logos : []
         }, { headers: commonHeaders });
 

@@ -111,7 +111,7 @@ export const blockedSites = createPersistentStore('blockedSites', []);
 // Search result preferences. Kept client-side until the project has accounts/a database.
 // A rule is: { domain, action: 'block' | 'boost', createdAt }
 export const siteRules = createPersistentStore('siteRules', []);
-export const searchResultsView = createPersistentStore('searchResultsView', 'grid');
+export const searchResultsView = createPersistentStore('searchResultsView', 'magazine');
 // A custom bang is: { id, trigger, name, urlTemplate, createdAt }
 export const customBangs = createPersistentStore('customBangs', []);
 

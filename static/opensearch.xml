@@ -7,10 +7,10 @@
   <Image width="16" height="16" type="image/png">/favicon.png</Image>
   <Url type="text/html"
        method="get"
-       template="https://beta.artadosearch.com/search?i={searchTerms}"/>
+       template="https://artadosearch.com/search?i={searchTerms}"/>
   <Url type="application/x-suggestions+json"
-       template="https://beta.artadosearch.com/api/suggest?q={searchTerms}"/>
-  <moz:SearchForm>https://beta.artadosearch.com/</moz:SearchForm>
+       template="https://artadosearch.com/api/suggest?q={searchTerms}"/>
+  <moz:SearchForm>https://artadosearch.com/</moz:SearchForm>
   <Language>tr-TR</Language>
   <OutputEncoding>UTF-8</OutputEncoding>
 </OpenSearchDescription>

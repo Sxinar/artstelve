@@ -603,8 +603,10 @@ body { background: #0a0a0a; }
         );
     }
 
+    let showBrowserHelp = $state(false);
+
     function installAsDefaultSearch() {
-        // Create OpenSearch description and trigger browser installation
+        // Legacy browsers can install OpenSearch directly; modern browsers require confirmation in settings.
         if (
             browser &&
             window.external &&
@@ -613,15 +615,7 @@ body { background: #0a0a0a; }
             // For Internet Explorer/Edge
             window.external.AddSearchProvider("/opensearch.xml");
         } else {
-            // For modern browsers - show instructions
-            alert(
-                "Tarayıcınızda varsayılan arama motoru olarak ayarlamak için:\n\n" +
-                    "1. Adres çubuğuna tıklayın\n" +
-                    "2. Arama motoru simgesine tıklayın\n" +
-                    "3. 'Arama motorlarını yönet' seçeneğini seçin\n" +
-                    "4. 'Artado Search'ü bulun ve varsayılan yapın\n\n" +
-                    "Veya doğrudan OpenSearch'i ekleyin:",
-            );
+            showBrowserHelp = true;
             window.open("/opensearch.xml", "_blank");
         }
     }
@@ -757,20 +751,53 @@ body { background: #0a0a0a; }
                                 </button>
                                 <button
                                     class="btn btn-outline"
-                                    onclick={() => {
-                                        alert(
-                                            "Tarayıcınızda varsayılan arama motoru olarak ayarlamak için:\n\n" +
-                                                "1. Adres çubuğuna tıklayın\n" +
-                                                "2. Arama motoru simgesine tıklayın\n" +
-                                                "3. 'Arama motorlarını yönet' seçeneğini seçin\n" +
-                                                "4. 'Artado Search'ü bulun ve varsayılan yapın",
-                                        );
-                                    }}
+                                    onclick={() => (showBrowserHelp = !showBrowserHelp)}
                                 >
                                     <i class="fas fa-info-circle"></i> Yardım
                                 </button>
                             </div>
                         </div>
+
+                        {#if showBrowserHelp}
+                            <div class="browser-help" transition:slide={{ duration: 200 }}>
+                                <div class="browser-help-header">
+                                    <div>
+                                        <h4>Tarayıcıya göre kurulum</h4>
+                                        <p>Tarayıcılar güvenlik nedeniyle varsayılan motor değişikliğini son adımda kullanıcıdan onaylar.</p>
+                                    </div>
+                                    <button class="browser-help-close" type="button" aria-label="Yardımı kapat" onclick={() => (showBrowserHelp = false)}>
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="browser-help-grid">
+                                    <div class="browser-help-item">
+                                        <h5><i class="fab fa-chrome"></i> Chrome, Edge, Brave, Opera, Vivaldi</h5>
+                                        <ol>
+                                            <li>Bu sayfayı arama motoru olarak eklemek için <strong>Tarayıcıya Ekle</strong> düğmesine basın.</li>
+                                            <li>Ayarlar &gt; Arama motoru &gt; Arama motorlarını ve site aramasını yönet bölümünü açın.</li>
+                                            <li>Listeden <strong>Artado Search</strong> satırının yanındaki menüyü açıp <strong>Varsayılan yap</strong> seçeneğini seçin.</li>
+                                        </ol>
+                                    </div>
+                                    <div class="browser-help-item">
+                                        <h5><i class="fab fa-firefox-browser"></i> Firefox</h5>
+                                        <ol>
+                                            <li>Adres çubuğuna bu siteyi açın ve arama simgesindeki <strong>+</strong> işaretini seçin.</li>
+                                            <li><strong>Artado Search ekle</strong> seçeneğine basın.</li>
+                                            <li>Ayarlar &gt; Arama &gt; Varsayılan arama motoru bölümünden Artado Search'ü seçin.</li>
+                                        </ol>
+                                    </div>
+                                    <div class="browser-help-item">
+                                        <h5><i class="fab fa-safari"></i> Safari</h5>
+                                        <ol>
+                                            <li>Safari, web sitelerinin özel arama motorunu doğrudan varsayılan yapmasına izin vermez.</li>
+                                            <li>macOS veya iOS'ta Safari Ayarları &gt; Arama bölümünü açın.</li>
+                                            <li>Artado Search listede yoksa, sorgu URL'si desteği sunan bir Safari arama motoru uzantısı kullanın.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                                <p class="browser-help-url">Manuel ekleme adresi: <code>https://artadosearch.com/search?i=%s</code></p>
+                            </div>
+                        {/if}
                     </div>
 
                     <div class="setting-card" style="margin-top: 2rem;">
@@ -2719,6 +2746,106 @@ body { background: #0a0a0a; }
     .btn-outline:hover {
         background: var(--primary-color);
         color: white;
+    }
+
+    .browser-help {
+        margin-top: 1.25rem;
+        padding: 1.25rem;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: var(--background-color-secondary);
+    }
+
+    .browser-help-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .browser-help-header h4 {
+        margin: 0 0 0.35rem;
+        color: var(--text-color);
+    }
+
+    .browser-help-header p,
+    .browser-help-url {
+        margin: 0;
+        color: var(--text-color-secondary);
+        font-size: 0.88rem;
+        line-height: 1.5;
+    }
+
+    .browser-help-close {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--border-color);
+        border-radius: 50%;
+        background: transparent;
+        color: var(--text-color-secondary);
+        cursor: pointer;
+    }
+
+    .browser-help-close:hover {
+        color: var(--text-color);
+        background: var(--hover-background);
+    }
+
+    .browser-help-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .browser-help-item {
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        background: var(--card-background);
+    }
+
+    .browser-help-item h5 {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin: 0 0 0.75rem;
+        color: var(--text-color);
+        font-size: 0.92rem;
+        line-height: 1.35;
+    }
+
+    .browser-help-item h5 i {
+        color: var(--primary-color);
+        margin-top: 0.1rem;
+    }
+
+    .browser-help-item ol {
+        margin: 0;
+        padding-left: 1.25rem;
+        color: var(--text-color-secondary);
+        font-size: 0.84rem;
+        line-height: 1.55;
+    }
+
+    .browser-help-item li + li {
+        margin-top: 0.45rem;
+    }
+
+    .browser-help-url {
+        margin-top: 1rem;
+        overflow-wrap: anywhere;
+    }
+
+    .browser-help-url code {
+        color: var(--primary-color);
+    }
+
+    @media (max-width: 900px) {
+        .browser-help-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     /* Bangs Preview Section */
