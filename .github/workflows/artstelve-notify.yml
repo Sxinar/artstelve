@@ -1,0 +1,54 @@
+name: Stoat Ultimate Notifier
+on:
+  push:
+  pull_request:
+    types: [opened, closed]
+  watch:
+    types: [started]  # Yıldız (Star) atıldığında
+  fork:               # Fork yapıldığında
+  issues:
+    types: [opened]   # Yeni Issue açıldığında
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and Send Notification
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ACTOR: ${{ github.actor }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          COMMIT_SHA: ${{ github.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_ACTION: ${{ github.event.action }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          WEBHOOK_URL: ${{ secrets.STOAT_WEBHOOK_URL }} # GitHub Secrets'tan okunur
+        run: |
+          URL="https://github.com/$REPOSITORY"
+
+          # Olay tipine göre mesajı şekillendirelim
+          if [ "$EVENT_NAME" == "watch" ]; then
+            MSG="⭐ **Yeni Star!**\n👤 **Kullanıcı:** $ACTOR\n✨ Depo parlamaya devam ediyor!"
+          elif [ "$EVENT_NAME" == "fork" ]; then
+            MSG="🍴 **Repo Forklandı!**\n👤 **Kullanıcı:** $ACTOR\n📦 Artık bir kopyası daha var!"
+          elif [ "$EVENT_NAME" == "push" ]; then
+            MSG="🚀 **Yeni Push!**\n👤 **Yapan:** $ACTOR\n📝 **Mesaj:** $COMMIT_MSG\n🔗 [Commit'i Gör]($URL/commit/$COMMIT_SHA)"
+          elif [ "$EVENT_NAME" == "pull_request" ]; then
+            MSG="🔀 **Pull Request:** $PR_TITLE\n👤 **Durum:** $PR_ACTION\n🔗 [PR Detay]($PR_URL)"
+          elif [ "$EVENT_NAME" == "issues" ]; then
+            MSG="📢 **Yeni Issue Açıldı!**\n👤 **Açan:** $ACTOR\n📌 **Başlık:** $ISSUE_TITLE\n🔗 [İncele]($ISSUE_URL)"
+          else
+            MSG="🔔 **GitHub Etkinliği:** $EVENT_NAME\n👤 **Yapan:** $ACTOR\n📍 **Repo:** $REPOSITORY"
+          fi
+
+          # jq kullanarak mesaj içeriğini güvenli bir JSON formatına çeviriyoruz.
+          # Bu sayede mesaj içindeki " (çift tırnak) veya özel karakterler scripti bozamaz.
+          JSON_PAYLOAD=$(jq -n --arg msg "$MSG" '{content: $msg}')
+
+          # Stoat Webhook'una güvenli gönderim
+          curl -X POST "$WEBHOOK_URL" \
+          -H "Content-Type: application/json" \
+          -d "$JSON_PAYLOAD"
