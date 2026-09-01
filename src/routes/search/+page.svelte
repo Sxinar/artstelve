@@ -88,7 +88,7 @@
 
     // Widget state — mobilde varsayılan kapalı
     const isDesktop = () => browser && window.innerWidth > 768;
-    let wikiOpen = $state(isDesktop());
+    let wikiOpen = $state(false);
     let newsWidgetOpen = $state(false);
     let searchesWidgetOpen = $state(false);
     let relatedNewsItems = $state([]);
@@ -133,7 +133,10 @@
         }
 
         const baseUrl = String($aiBaseUrl || "").trim().replace(/\/+$/, "");
-        const model = String($aiModel || "").trim();
+        const rawModel = String($aiModel || "").trim();
+        const isGemini = baseUrl.includes("generativelanguage.googleapis.com") || baseUrl.includes("googleapis.com");
+        const model = isGemini && (!rawModel || rawModel.startsWith("openai/")) ? "gemini-2.0-flash" : rawModel;
+
         if (!baseUrl || !model) {
             aiSummary = null;
             aiSummaryError = "";
@@ -165,17 +168,21 @@
             const headers = { "Content-Type": "application/json" };
             if ($aiApiKey) {
                 headers.Authorization = `Bearer ${$aiApiKey}`;
-                if (baseUrl.includes("generativelanguage.googleapis.com") || baseUrl.includes("googleapis.com")) {
+                if (isGemini) {
                     headers["x-goog-api-key"] = $aiApiKey;
                 }
             }
 
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), Number($aiTimeoutMs) || 30000);
-            const response = await fetch(endpoint, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({
+            const payload = isGemini
+                ? {
+                    model,
+                    messages: [
+                        { role: "user", content: `Kısa ve net Türkçe özet oluştur. 3-4 cümle yeterli olsun.\n\n${snippets}` }
+                    ],
+                    temperature: 0.4,
+                    max_tokens: 220
+                }
+                : {
                     model,
                     messages: [
                         { role: "system", content: $aiSystemPrompt || "Kısa, net ve Türkçe özet ver." },
@@ -186,7 +193,14 @@
                     ],
                     temperature: 0.4,
                     max_tokens: 220
-                }),
+                };
+
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), Number($aiTimeoutMs) || 30000);
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(payload),
                 signal: controller.signal
             }).finally(() => clearTimeout(timeout));
 
