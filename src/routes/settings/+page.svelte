@@ -96,44 +96,105 @@
         }
     }
 
+    function applyAiProvider(baseUrl, model) {
+        $aiBaseUrl = baseUrl;
+        $aiModel = model;
+        $aiEnabled = true;
+        aiTestResult = `✅ "${model}" seçildi! Şimdi yukarıdaki API anahtarı alanına anahtarınızı yapıştırıp bağlantıyı test edin.`;
+        if (browser) {
+            setTimeout(() => {
+                const el = document.getElementById('ai-api-key-input') || document.querySelector('.ai-config-card');
+                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const input = document.getElementById('ai-api-key-input');
+                if (input) input.focus();
+            }, 150);
+        }
+    }
+
     async function testAiConnection() {
         if (!browser) return;
 
         const baseUrl = ($aiBaseUrl || "").trim().replace(/\/+$/, "");
         if (!baseUrl) {
-            aiTestResult = "API Base URL boş, önce bağlantı noktasını yazın.";
+            aiTestResult = "⚠️ API Base URL boş, lütfen önce bağlantı adresi girin.";
             return;
         }
 
         try {
             isTestingAi = true;
-            aiTestResult = "Bağlanıyor...";
+            aiTestResult = "⏳ Bağlantı test ediliyor...";
 
             const controller = new AbortController();
-            const timeoutMs = Math.max(5000, Number($aiTimeoutMs) || 30000);
+            const timeoutMs = Math.max(5000, Number($aiTimeoutMs) || 15000);
             const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
             const headers = { "Content-Type": "application/json" };
+            const isGemini = baseUrl.includes("generativelanguage.googleapis.com") || baseUrl.includes("googleapis.com");
             if ($aiApiKey) {
                 headers.Authorization = `Bearer ${$aiApiKey}`;
+                if (isGemini) {
+                    headers["x-goog-api-key"] = $aiApiKey;
+                }
+            } else if (isGemini || baseUrl.includes("groq.com") || baseUrl.includes("openrouter.ai")) {
+                clearTimeout(timeoutId);
+                aiTestResult = "⚠️ Bu sağlayıcı için API anahtarı gereklidir. Lütfen aşağıdaki rehberden ücretsiz anahtar alıp yukarıdaki kutucuğa yapıştırın.";
+                isTestingAi = false;
+                return;
             }
 
-            const response = await fetch(`${baseUrl}/models`, {
-                method: "GET",
-                headers,
-                signal: controller.signal,
-            });
+            // Test 1: Try /models
+            let ok = false;
+            let status = 0;
+            let detail = "";
+            try {
+                const response = await fetch(`${baseUrl}/models`, {
+                    method: "GET",
+                    headers,
+                    signal: controller.signal,
+                });
+                status = response.status;
+                ok = response.ok;
+                if (!ok) detail = await response.text().catch(() => "");
+            } catch (e) {
+                detail = e.message;
+            }
+
+            // Test 2: If /models failed or 404, try chat completion ping
+            if (!ok) {
+                try {
+                    const endpoint = baseUrl.includes("/chat/completions") ? baseUrl : `${baseUrl}/chat/completions`;
+                    const chatRes = await fetch(endpoint, {
+                        method: "POST",
+                        headers,
+                        body: JSON.stringify({
+                            model: $aiModel || (isGemini ? "gemini-2.0-flash" : "gpt-3.5-turbo"),
+                            messages: [{ role: "user", content: "ping" }],
+                            max_tokens: 1
+                        }),
+                        signal: controller.signal
+                    });
+                    status = chatRes.status;
+                    ok = chatRes.ok;
+                    if (!ok) detail = await chatRes.text().catch(() => "");
+                } catch (e2) {
+                    detail = e2.message;
+                }
+            }
+
             clearTimeout(timeoutId);
 
-            if (!response.ok) {
-                const detail = await response.text();
-                throw new Error(detail || `HTTP ${response.status}`);
+            if (ok) {
+                aiTestResult = "✅ Bağlantı başarılı! Yapay zeka modeli yanıt veriyor ve aramalarınızda özet üretecek.";
+            } else if (status === 401 || status === 403) {
+                aiTestResult = "❌ Yetkilendirme hatası (401/403): API anahtarınız geçersiz veya süresi dolmuş.";
+            } else if (status === 404) {
+                aiTestResult = `❌ Model bulunamadı (404): "${$aiModel}" modeli bu sağlayıcıda mevcut değil. Model adını kontrol edin.`;
+            } else {
+                aiTestResult = `❌ Bağlantı başarısız (${status || 'hata'}): ${detail.slice(0, 150) || 'Sunucu yanıt vermedi.'}`;
             }
-
-            aiTestResult = "Bağlantı başarılı. OpenAI-compatible sunucuya erişilebildi.";
         } catch (e) {
             console.error("AI connection test failed:", e);
-            aiTestResult = `Bağlantı başarısız: ${e.message}`;
+            aiTestResult = `❌ Bağlantı hatası: ${e.message}`;
         } finally {
             isTestingAi = false;
         }
@@ -1330,88 +1391,132 @@ body { background: #0a0a0a; }
             {:else if activeTab === "AI"}
                 <section in:slide={{ duration: 300 }}>
                     <h2 class="section-heading">AI Ayarları</h2>
-
-                    <div class="setting-card">
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>AI özelliğini etkinleştir</h3>
-                                <p>Artado içinde OpenAI-compatible sağlayıcıları kullanmak için bu seçeneği açın.</p>
+                    
+                    <!-- AI Enable Banner Card -->
+                    <div class="ai-enable-banner">
+                        <div class="ai-banner-content">
+                            <div class="ai-banner-icon">
+                                <i class="fas fa-robot"></i>
                             </div>
-                            <label class="switch">
-                                <input type="checkbox" bind:checked={$aiEnabled} />
-                                <span class="slider"></span>
-                            </label>
+                            <div>
+                                <h3>AI Özet Özelliği</h3>
+                                <p>Arama sonuçlarından yapay zeka ile otomatik özet oluşturur. OpenAI uyumlu herhangi bir sağlayıcıyı destekler.</p>
+                            </div>
                         </div>
-
-                        <div class="divider"></div>
-
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>API base URL</h3>
-                                <p>OpenRouter, Gemini, NVIDIA NIM, local LM Studio, Ollama veya başka OpenAI-compatible sunucu.</p>
+                        <label class="switch ai-switch">
+                            <input type="checkbox" bind:checked={$aiEnabled} />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <!-- AI Config Card -->
+                    {#if $aiEnabled}
+                    <div class="setting-card ai-config-card" in:slide={{ duration: 250 }}>
+                        <div class="ai-field">
+                            <div class="ai-field-label">
+                                <i class="fas fa-link"></i>
+                                <div>
+                                    <strong>API Base URL</strong>
+                                    <span>OpenAI uyumlu sunucu adresi</span>
+                                </div>
                             </div>
                             <input
-                                class="text-input"
+                                class="text-input ai-input"
                                 type="text"
                                 bind:value={$aiBaseUrl}
                                 placeholder="https://generativelanguage.googleapis.com/v1beta/openai"
                             />
+                            <div class="ai-quickfill">
+                                <button class="quickfill-btn" onclick={() => $aiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta/openai'}>
+                                    <i class="fas fa-gem"></i> Gemini
+                                </button>
+                                <button class="quickfill-btn" onclick={() => $aiBaseUrl = 'https://api.groq.com/openai/v1'}>
+                                    <i class="fas fa-bolt"></i> Groq
+                                </button>
+                                <button class="quickfill-btn" onclick={() => $aiBaseUrl = 'https://openrouter.ai/api/v1'}>
+                                    <i class="fas fa-globe"></i> OpenRouter
+                                </button>
+                            </div>
                         </div>
-
-                        <div class="divider"></div>
-
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>API anahtarı</h3>
-                                <p>İsteğe bağlıdır; daha çok OpenRouter veya NIM gibi servislerde gereklidir.</p>
+                        
+                        <div class="ai-field-divider"></div>
+                        
+                        <div class="ai-field">
+                            <div class="ai-field-label">
+                                <i class="fas fa-key"></i>
+                                <div>
+                                    <strong>API Anahtarı</strong>
+                                    <span>İsteğe bağlı; cloud servislerde gereklidir</span>
+                                </div>
                             </div>
                             <input
-                                class="text-input"
+                                id="ai-api-key-input"
+                                class="text-input ai-input"
                                 type="password"
                                 bind:value={$aiApiKey}
-                                placeholder="sk-or-... veya API key"
+                                placeholder="sk-or-... veya Gemini API anahtarı"
                             />
                         </div>
-
-                        <div class="divider"></div>
-
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>Model</h3>
-                                <p>Sağlayıcı tarafından tanınan model adı. Örnekler: <code>openai/gpt-4o-mini</code>, <code>meta/llama-3.1-70b-instruct</code>, <code>deepseek-ai/deepseek-v3</code>.</p>
+                        
+                        <div class="ai-field-divider"></div>
+                        
+                        <div class="ai-field">
+                            <div class="ai-field-label">
+                                <i class="fas fa-microchip"></i>
+                                <div>
+                                    <strong>Model</strong>
+                                    <span>Sağlayıcının model adı</span>
+                                </div>
                             </div>
                             <input
-                                class="text-input"
+                                class="text-input ai-input"
                                 type="text"
                                 bind:value={$aiModel}
-                                placeholder="openai/gpt-4o-mini"
+                                placeholder="gemini-2.0-flash"
                             />
+                            <div class="ai-quickfill">
+                                <button class="quickfill-btn" onclick={() => $aiModel = 'gemini-2.0-flash'}>
+                                    <i class="fas fa-bolt"></i> gemini-2.0-flash
+                                </button>
+                                <button class="quickfill-btn" onclick={() => $aiModel = 'llama-3.3-70b-versatile'}>
+                                    <i class="fas fa-bolt"></i> llama-3.3-70b
+                                </button>
+                                <button class="quickfill-btn" onclick={() => $aiModel = 'google/gemini-2.0-flash'}>
+                                    <i class="fas fa-globe"></i> google/gemini-2.0-flash
+                                </button>
+                            </div>
                         </div>
-
-                        <div class="divider"></div>
-
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>System prompt</h3>
-                                <p>Varsayılan davranış ve ton için kullanılan istem metni.</p>
+                        
+                        <div class="ai-field-divider"></div>
+                        
+                        <div class="ai-field">
+                            <div class="ai-field-label">
+                                <i class="fas fa-comment-dots"></i>
+                                <div>
+                                    <strong>System Prompt</strong>
+                                    <span>Yapay zekanın davranış kuralları</span>
+                                </div>
                             </div>
                             <textarea
-                                class="text-area"
-                                rows="4"
+                                class="text-area ai-input"
+                                rows="3"
                                 bind:value={$aiSystemPrompt}
                                 placeholder="Asistanın davranış kuralları..."
                             ></textarea>
                         </div>
-
-                        <div class="divider"></div>
-
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <h3>İstek zaman aşımı</h3>
-                                <p>AI isteği için maksimum bekleme süresi (ms).</p>
+                        
+                        <div class="ai-field-divider"></div>
+                        
+                        <div class="ai-field ai-field-row">
+                            <div class="ai-field-label">
+                                <i class="fas fa-clock"></i>
+                                <div>
+                                    <strong>Zaman Aşımı</strong>
+                                    <span>Maksimum bekleme (ms)</span>
+                                </div>
                             </div>
                             <input
-                                class="text-input"
+                                class="text-input ai-input ai-input-narrow"
                                 type="number"
                                 min="5000"
                                 max="120000"
@@ -1419,37 +1524,107 @@ body { background: #0a0a0a; }
                                 bind:value={$aiTimeoutMs}
                             />
                         </div>
-
-                        <div class="divider"></div>
-
-                        <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 1rem;">
-                            <div class="setting-info">
-                                <h3>Bağlantı testi</h3>
-                                <p>OpenAI-compatible sunucuya erişilebildiğini kontrol eder. <strong>Localhost</strong> bağlantıları da desteklenir.</p>
+                        
+                        <div class="ai-field-divider"></div>
+                        
+                        <div class="ai-test-section">
+                            <div class="ai-field-label">
+                                <i class="fas fa-wifi"></i>
+                                <div>
+                                    <strong>Bağlantı Testi</strong>
+                                    <span>Sunucuya ve API anahtarına erişimi doğrular</span>
+                                </div>
                             </div>
-                            <div class="setting-actions">
-                                <button class="button" onclick={testAiConnection} disabled={isTestingAi}>
-                                    <i class="fas fa-wifi" class:fa-spin={isTestingAi}></i>
-                                    {isTestingAi ? "Test ediliyor..." : "Bağlantıyı test et"}
-                                </button>
-                            </div>
+                            <button class="button ai-test-btn" onclick={testAiConnection} disabled={isTestingAi}>
+                                <i class="fas fa-wifi" class:fa-spin={isTestingAi}></i>
+                                {isTestingAi ? "Test ediliyor..." : "Bağlantıyı Test Et"}
+                            </button>
                             {#if aiTestResult}
-                                <div class="ai-test-result" in:fade>{{ aiTestResult }}</div>
+                                <div class="ai-test-result" in:fade>{aiTestResult}</div>
                             {/if}
                         </div>
                     </div>
+                    {/if}
 
                     <div class="setting-card" style="margin-top: 1.5rem;">
-                        <h3>Desteklenen örnekler</h3>
+                        <h3>Hızlı Sağlayıcı Kurulumu & API Key Alma</h3>
+                        <p style="color: var(--text-color-secondary); margin-bottom: 1rem;">
+                            Aşağıdaki hazır sağlayıcılardan birine tıklayarak tek tuşla ayarları uygulayabilir ve ücretsiz API anahtarı alabilirsiniz:
+                        </p>
+                        
+                        <div class="ai-provider-cards">
+                            <div class="ai-provider-card">
+                                <h4><i class="fas fa-gem" style="color:#4285f4;"></i> Google Gemini (Ücretsiz)</h4>
+                                <p class="provider-badge">En popüler • Hızlı & Ücretsiz</p>
+                                <ol>
+                                    <li>Google AI Studio'dan tek tıkla anahtar oluşturun.</li>
+                                    <li>"Bu Sağlayıcıyı Kullan" butonuna basın ve anahtarınızı yapıştırın.</li>
+                                </ol>
+                                <div class="provider-config">
+                                    <p><strong>Base URL:</strong> <code class="selectable">https://generativelanguage.googleapis.com/v1beta/openai</code></p>
+                                    <p><strong>Model:</strong> <code class="selectable">gemini-2.0-flash</code></p>
+                                </div>
+                                <div class="provider-card-actions">
+                                    <button class="apply-provider-btn" onclick={() => applyAiProvider('https://generativelanguage.googleapis.com/v1beta/openai', 'gemini-2.0-flash')}>
+                                        <i class="fas fa-check"></i> Bu Sağlayıcıyı Kullan
+                                    </button>
+                                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="get-key-link-btn">
+                                        <i class="fas fa-external-link-alt"></i> Key Al ↗
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="ai-provider-card">
+                                <h4><i class="fas fa-bolt" style="color:#f59e0b;"></i> Groq (Çok Hızlı)</h4>
+                                <p class="provider-badge">Ultra Hızlı • Llama 3.3 70B</p>
+                                <ol>
+                                    <li>Groq Console'a gidin ve ücretsiz hesap açın.</li>
+                                    <li>"Create API Key" ile anahtarınızı alıp yapıştırın.</li>
+                                </ol>
+                                <div class="provider-config">
+                                    <p><strong>Base URL:</strong> <code class="selectable">https://api.groq.com/openai/v1</code></p>
+                                    <p><strong>Model:</strong> <code class="selectable">llama-3.3-70b-versatile</code></p>
+                                </div>
+                                <div class="provider-card-actions">
+                                    <button class="apply-provider-btn" onclick={() => applyAiProvider('https://api.groq.com/openai/v1', 'llama-3.3-70b-versatile')}>
+                                        <i class="fas fa-check"></i> Bu Sağlayıcıyı Kullan
+                                    </button>
+                                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" class="get-key-link-btn">
+                                        <i class="fas fa-external-link-alt"></i> Key Al ↗
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="ai-provider-card">
+                                <h4><i class="fas fa-globe" style="color:#10b981;"></i> OpenRouter</h4>
+                                <p class="provider-badge">Yüzlerce Model • Çoklu Sağlayıcı</p>
+                                <ol>
+                                    <li>OpenRouter hesabı ile ücretsiz modelleri kullanın.</li>
+                                    <li>API key oluşturup yukarıdaki alana ekleyin.</li>
+                                </ol>
+                                <div class="provider-config">
+                                    <p><strong>Base URL:</strong> <code class="selectable">https://openrouter.ai/api/v1</code></p>
+                                    <p><strong>Model:</strong> <code class="selectable">google/gemini-2.0-flash</code></p>
+                                </div>
+                                <div class="provider-card-actions">
+                                    <button class="apply-provider-btn" onclick={() => applyAiProvider('https://openrouter.ai/api/v1', 'google/gemini-2.0-flash')}>
+                                        <i class="fas fa-check"></i> Bu Sağlayıcıyı Kullan
+                                    </button>
+                                    <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" class="get-key-link-btn">
+                                        <i class="fas fa-external-link-alt"></i> Key Al ↗
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 style="margin-top: 2rem;">Desteklenen diğer örnekler</h3>
                         <div class="tag-list">
-                            <span class="tag">OpenRouter: https://openrouter.ai/api/v1</span>
-                            <span class="tag">Gemini: https://generativelanguage.googleapis.com/v1beta/openai</span>
                             <span class="tag">NVIDIA NIM: https://integrate.api.nvidia.com/v1</span>
                             <span class="tag">LM Studio: http://localhost:1234/v1</span>
                             <span class="tag">Ollama/OpenAI-compatible: http://127.0.0.1:11434/v1</span>
                         </div>
                         <p style="margin-top: 1rem; color: var(--text-color-secondary);">
-                            Bu yapı, herhangi bir tek sağlayıcıya kilitlenmez. Kullanıcı kendi API base URL'sini girer; provider ister OpenRouter olsun, ister Gemini, ister NVIDIA, ister yerel bir model sunucusu olsun hepsi aynı OpenAI-compatible standardı üzerinden çalışır. Gemini için model adı genelde <code>gemini-2.0-flash</code> veya benzeri bir değer olur.
+                            Bu yapı, herhangi bir tek sağlayıcıya kilitlenmez. Kullanıcı kendi API base URL'sini girer; provider ister OpenRouter olsun, ister Gemini, ister NVIDIA, ister yerel bir model sunucusu olsun hepsi aynı OpenAI-compatible standardı üzerinden çalışır.
                         </p>
                     </div>
                 </section>
@@ -1916,12 +2091,12 @@ body { background: #0a0a0a; }
     }
 
     .settings-sidebar nav {
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid var(--border-color);
-        border-radius: 18px;
-        padding: 0.75rem;
-        backdrop-filter: blur(8px);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.04);
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        backdrop-filter: none;
+        box-shadow: none;
     }
 
     .settings-sidebar nav li {
@@ -1977,11 +2152,166 @@ body { background: #0a0a0a; }
     }
 
     .setting-card {
-        background: linear-gradient(180deg, color-mix(in srgb, var(--card-background) 92%, var(--background-color)), var(--card-background));
+        background: var(--card-background);
         border: 1px solid var(--border-color);
         border-radius: 18px;
         padding: 1.8rem;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease;
+    }
+    
+    /* Support transparent card backgrounds in custom themes */
+    :global(body[data-custom-theme="true"]) .setting-card {
+        background: var(--card-background, rgba(255, 255, 255, 0.05));
+        backdrop-filter: blur(10px);
+    }
+    
+    .ai-provider-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1rem;
+    }
+    
+    .ai-provider-card {
+        background: var(--input-background);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.25rem;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    
+    .ai-provider-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--primary-color);
+    }
+    
+    .ai-provider-card h4 {
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-color);
+        font-size: 1.05rem;
+    }
+    
+    .ai-provider-card h4 i {
+        color: var(--primary-color);
+    }
+    
+    .provider-badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+        padding: 0.2rem 0.55rem;
+        border-radius: 20px;
+        margin: -0.5rem 0 0.75rem 0 !important;
+    }
+
+    .ai-provider-card ol {
+        margin: 0 0 0.85rem 0;
+        padding-left: 1.2rem;
+        color: var(--text-color-secondary);
+        font-size: 0.88rem;
+        line-height: 1.4;
+    }
+    
+    .ai-provider-card ol li {
+        margin-bottom: 0.35rem;
+    }
+    
+    .ai-provider-card a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .ai-provider-card a:hover {
+        text-decoration: underline;
+    }
+    
+    .provider-config {
+        background: var(--card-background);
+        padding: 0.75rem;
+        border-radius: 8px;
+        border: 1px dashed var(--border-color);
+        font-size: 0.85rem;
+        margin-bottom: 0.85rem;
+    }
+    
+    .provider-config p {
+        margin: 0.3rem 0 !important;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+    
+    .selectable {
+        user-select: all;
+        background: var(--hover-background);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        color: var(--text-color);
+        word-break: break-all;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        display: inline-block;
+    }
+
+    .provider-card-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+    }
+
+    .apply-provider-btn {
+        flex: 1;
+        min-width: 140px;
+        padding: 0.5rem 0.8rem;
+        border-radius: 8px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .apply-provider-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .get-key-link-btn {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        background: var(--hover-background);
+        border: 1px solid var(--border-color);
+        color: var(--text-color) !important;
+        font-size: 0.82rem;
+        font-weight: 500;
+        text-decoration: none !important;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+        transition: background 0.15s ease;
+    }
+
+    .get-key-link-btn:hover {
+        background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+        border-color: var(--primary-color);
     }
 
     .setting-row {
@@ -2644,15 +2974,6 @@ body { background: #0a0a0a; }
             gap: 0;
         }
 
-        .settings-sidebar {
-            width: 100%;
-            order: 1;
-            background: var(--card-background);
-            border-bottom: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 0.5rem;
-        }
-
         .settings-main-content {
             order: 2;
             width: 100%;
@@ -3281,10 +3602,25 @@ body { background: #0a0a0a; }
         }
 
         .settings-sidebar {
-            width: auto;
+            width: 100%;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 0.4rem;
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            box-sizing: border-box;
+            position: sticky;
+            top: 70px;
+            z-index: 50;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1.25rem;
+        }
+
+        .settings-sidebar::-webkit-scrollbar {
+            display: none;
         }
 
         .settings-sidebar nav ul {
@@ -3403,6 +3739,209 @@ body { background: #0a0a0a; }
 
         .divider {
             margin: 1rem 0;
+        }
+    }
+
+    /* === AI Settings Design === */
+    .ai-enable-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        background: linear-gradient(135deg, var(--primary-color, #6c63ff) 0%, color-mix(in srgb, var(--primary-color, #6c63ff) 60%, #000) 100%);
+        border-radius: 16px;
+        padding: 1.5rem 1.75rem;
+        margin-bottom: 1.5rem;
+        color: white;
+        box-shadow: 0 4px 20px rgba(108, 99, 255, 0.25);
+    }
+
+    .ai-banner-content {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        flex: 1;
+    }
+
+    .ai-banner-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+    }
+
+    .ai-banner-content h3 {
+        margin: 0 0 0.3rem 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .ai-banner-content p {
+        margin: 0;
+        font-size: 0.88rem;
+        opacity: 0.85;
+        color: white;
+    }
+
+    .ai-switch {
+        flex-shrink: 0;
+    }
+
+    .ai-config-card {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .ai-field {
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .ai-field-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .ai-field-label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .ai-field-label > i {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--primary-color, #6c63ff) 12%, transparent);
+        color: var(--primary-color, #6c63ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+    }
+
+    .ai-field-label div {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+    }
+
+    .ai-field-label strong {
+        font-size: 0.95rem;
+        color: var(--text-color);
+    }
+
+    .ai-field-label span {
+        font-size: 0.8rem;
+        color: var(--text-color-secondary);
+    }
+
+    .ai-input {
+        width: 100%;
+        box-sizing: border-box;
+        margin-left: 0;
+    }
+
+    .ai-input-narrow {
+        width: 160px;
+    }
+
+    .ai-field-divider {
+        height: 1px;
+        background: var(--border-color);
+        margin: 0;
+    }
+
+    .ai-quickfill {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .quickfill-btn {
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        border: 1px solid var(--border-color);
+        background: var(--input-background);
+        color: var(--text-color-secondary);
+        font-size: 0.78rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .quickfill-btn:hover {
+        background: color-mix(in srgb, var(--primary-color, #6c63ff) 12%, transparent);
+        border-color: var(--primary-color, #6c63ff);
+        color: var(--primary-color, #6c63ff);
+    }
+
+    .ai-test-section {
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .ai-test-btn {
+        align-self: flex-start;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.25rem;
+        font-size: 0.9rem;
+    }
+
+    /* Mobile settings */
+    @media (max-width: 640px) {
+        .ai-enable-banner {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 1.25rem;
+        }
+
+        .ai-field-row {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .ai-input-narrow {
+            width: 100%;
+        }
+
+        .ai-banner-icon {
+            width: 44px;
+            height: 44px;
+            font-size: 1.25rem;
+        }
+
+        .settings-tabs {
+            gap: 0.25rem;
+        }
+
+        .settings-page {
+            padding: 0.75rem;
+        }
+
+        .setting-card {
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        .section-heading {
+            font-size: 1.1rem;
         }
     }
 </style>

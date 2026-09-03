@@ -107,7 +107,7 @@ export async function GET({ url, setHeaders }) {
     const query = url.searchParams.get('i') || url.searchParams.get('q');
     const searchType = url.searchParams.get('t') || 'web'; // Renamed variable from 'type'
     const requestedEngine = url.searchParams.get('engine') || 'Hybrid Proxy'; // Arama motoru parametresi
-    const engine = String(requestedEngine).trim().toLowerCase() === 'artado search'
+    let engine = String(requestedEngine).trim().toLowerCase() === 'artado search'
         ? 'Artado'
         : requestedEngine;
     let proxyBaseUrl = url.searchParams.get('proxyBaseUrl') || PROXY_SEARCH_BASE_URL;
@@ -185,12 +185,12 @@ export async function GET({ url, setHeaders }) {
             // Step 1: GET the page to extract ASP.NET VIEWSTATE fields
             console.log(`[Artado] Step 1 GET: ${artadoUrl}`);
             const controller1 = new AbortController();
-            const timeout1 = setTimeout(() => controller1.abort(), 15000);
+            const timeout1 = setTimeout(() => controller1.abort(), 3000);
             const getResponse = await fetch(artadoUrl, { signal: controller1.signal, headers: fetchHeaders });
             clearTimeout(timeout1);
 
             if (!getResponse.ok) {
-                return json({ ok: false, error: `Artado arama hatası: ${getResponse.status}` }, { status: getResponse.status });
+                throw new Error(`artadosearch.com GET returned status ${getResponse.status}`);
             }
 
             const getHtml = await getResponse.text();
@@ -231,7 +231,7 @@ export async function GET({ url, setHeaders }) {
             clearTimeout(timeout2);
 
             if (!postResponse.ok) {
-                return json({ ok: false, error: `Artado POST hatası: ${postResponse.status}` }, { status: postResponse.status });
+                throw new Error(`artadosearch.com POST returned status ${postResponse.status}`);
             }
 
             const html = await postResponse.text();
@@ -411,6 +411,10 @@ export async function GET({ url, setHeaders }) {
                 }));
             }
 
+            if (!mappedResults || mappedResults.length === 0) {
+                throw new Error('Artado HTML scraper returned 0 results');
+            }
+
             return json({
                 ok: true,
                 type: searchType,
@@ -419,15 +423,13 @@ export async function GET({ url, setHeaders }) {
             });
 
         } catch (err) {
-            if (err.name === 'AbortError') {
-                return json({ ok: false, error: 'Artado arama zaman aşımına uğradı' }, { status: 504 });
-            }
-            return json({ ok: false, error: 'Artado sunucu hatası', details: err.message }, { status: 500 });
+            console.warn(`[Artado] Scraper exception: ${err.message}, falling back to Artado Proxy...`);
+            engine = 'Artado Proxy';
         }
     }
 
     // === ARTSTELVE PROXY ===
-    if (engine === 'Artado Proxy') {
+    if (engine === 'Artado Proxy' || engine === 'Artado') {
         // If proxyBaseUrl is the old artadoproxy (different API format), fall back to artados
         const rawBase = (!proxyBaseUrl || proxyBaseUrl.includes('artados.vercel.app'))
             ? 'https://artados.vercel.app'
@@ -436,6 +438,7 @@ export async function GET({ url, setHeaders }) {
         const spNumber = Math.min(Number(proxyLimitTotalRaw ?? count ?? 20), 50);
         const spTimeoutMs = Math.max(3000, Math.min(30000, Number(proxyTimeoutMsRaw ?? 12000)));
         const cacheEnabled = proxyCacheRaw == null ? true : !(String(proxyCacheRaw) === '0' || String(proxyCacheRaw).toLowerCase() === 'false');
+        const pageNumber = Math.max(1, offsetParam + 1);
 
         // Map proxyEngines → source param (artados supports: google | bing | all)
         let spSource = 'all';
@@ -454,15 +457,15 @@ export async function GET({ url, setHeaders }) {
         try {
             let proxyUrl = '';
             if (searchType === 'images') {
-                proxyUrl = `${SECURE_PROXY_BASE}/api/images?q=${spQuery}&number=${spNumber}`;
+                proxyUrl = `${SECURE_PROXY_BASE}/api/images?q=${spQuery}&number=${spNumber}&p=${pageNumber}`;
             } else if (searchType === 'news') {
                 const newsLang = url.searchParams.get('lang') || 'tr';
                 const newsRegion = (url.searchParams.get('region') || region || 'TR').toLowerCase();
-                proxyUrl = `${SECURE_PROXY_BASE}/api/news?q=${spQuery}&number=${spNumber}&lang=${newsLang}&region=${newsRegion}`;
+                proxyUrl = `${SECURE_PROXY_BASE}/api/news?q=${spQuery}&number=${spNumber}&lang=${newsLang}&region=${newsRegion}&p=${pageNumber}`;
             } else if (searchType === 'videos') {
-                proxyUrl = `${SECURE_PROXY_BASE}/api/videos?q=${spQuery}&number=${spNumber}`;
+                proxyUrl = `${SECURE_PROXY_BASE}/api/videos?q=${spQuery}&number=${spNumber}&p=${pageNumber}`;
             } else {
-                proxyUrl = `${SECURE_PROXY_BASE}/api?q=${spQuery}&number=${spNumber}&source=${spSource}${cacheEnabled ? '' : '&cache=0'}`;
+                proxyUrl = `${SECURE_PROXY_BASE}/api?q=${spQuery}&number=${spNumber}&source=${spSource}&p=${pageNumber}${cacheEnabled ? '' : '&cache=0'}`;
             }
 
             console.log(`[ArtStelveProxy] Fetching: ${proxyUrl}`);
@@ -531,21 +534,46 @@ export async function GET({ url, setHeaders }) {
                 searchResults = items.map(item => ({
                     title: item.title || '',
                     url: item.url || '#',
-                    thumbnail: item.thumbnailUrl || '',
+                    thumbnail: item.thumbnailUrl || item.thumbnail || '',
                     duration: item.duration || '',
-                    publisher: item.publisher || getDomain(item.url || ''),
-                    description: '',
-                    age: ''
+                    publisher: item.publisher || item.source || getDomain(item.url || ''),
+                    description: item.description || item.snippet || '',
+                    age: item.publishedAt || item.date || item.age || ''
                 }));
             } else if (searchType === 'news') {
                 searchResults = items.map(item => ({
                     title: item.title || '',
-                    url: item.url || '#',
-                    source: item.newsSource || getDomain(item.url || ''),
-                    age: item.publishedAt || '',
-                    thumbnail: item.thumbnailUrl || '',
-                    description: item.description || ''
+                    url: item.url || item.link || '#',
+                    source: item.newsSource || item.source || getDomain(item.url || item.link || ''),
+                    icon: item.favicon || item.icon || `https://icons.duckduckgo.com/ip3/${getDomain(item.url || item.link || '')}.ico`,
+                    age: item.publishedAt || item.date || item.age || '',
+                    thumbnail: item.thumbnailUrl || item.image || item.thumbnail || '',
+                    description: item.description || item.snippet || ''
                 }));
+                
+                // If proxy returned 0 news, try Google News RSS as fallback
+                if (searchResults.length === 0) {
+                    try {
+                        const newsLang = url.searchParams.get('lang') || 'tr';
+                        const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${newsLang}&gl=TR&ceid=TR:${newsLang}`;
+                        const rssCtrl = new AbortController();
+                        const rssTimeout = setTimeout(() => rssCtrl.abort(), 5000);
+                        const rssRes = await fetch(rssUrl, { signal: rssCtrl.signal }).finally(() => clearTimeout(rssTimeout));
+                        if (rssRes.ok) {
+                            const rssText = await rssRes.text();
+                            const items2 = [...rssText.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
+                            searchResults = items2.slice(0, 20).map(m => {
+                                const block = m[1];
+                                const title = (block.match(/<title><!\[CDATA\[(.+?)\]\]><\/title>/) || block.match(/<title>(.+?)<\/title>/) || [])[1] || '';
+                                const link = (block.match(/<link>(.+?)<\/link>/) || [])[1] || '';
+                                const pubDate = (block.match(/<pubDate>(.+?)<\/pubDate>/) || [])[1] || '';
+                                const source = (block.match(/<source[^>]*>(.+?)<\/source>/) || [])[1] || getDomain(link);
+                                const desc = (block.match(/<description><!\[CDATA\[(.+?)\]\]><\/description>/) || block.match(/<description>(.+?)<\/description>/) || [])[1] || '';
+                                return { title: title.trim(), url: link.trim(), source: source.trim(), age: pubDate, thumbnail: '', description: desc.replace(/<[^>]+>/g, '').trim(), icon: `https://icons.duckduckgo.com/ip3/${getDomain(link)}.ico` };
+                            }).filter(r => r.url && r.title);
+                        }
+                    } catch(rssErr) { /* ignore */ }
+                }
             } else {
                 searchResults = items.map(item => ({
                     title: item.title || 'Başlık Yok',

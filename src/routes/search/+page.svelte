@@ -97,6 +97,7 @@
     let aiSummary = $state(null);
     let aiSummaryLoading = $state(false);
     let aiSummaryError = $state("");
+    let selectedImage = $state(null);
 
     function stripHtml(value = "") {
         return String(value || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -135,11 +136,23 @@
         const baseUrl = String($aiBaseUrl || "").trim().replace(/\/+$/, "");
         const rawModel = String($aiModel || "").trim();
         const isGemini = baseUrl.includes("generativelanguage.googleapis.com") || baseUrl.includes("googleapis.com");
-        const model = isGemini && (!rawModel || rawModel.startsWith("openai/")) ? "gemini-2.0-flash" : rawModel;
+        let model = rawModel;
+        if (isGemini) {
+            if (!rawModel || rawModel.startsWith("openai/") || rawModel.includes("2.5")) {
+                model = "gemini-2.0-flash";
+            }
+        }
 
         if (!baseUrl || !model) {
             aiSummary = null;
             aiSummaryError = "";
+            aiSummaryLoading = false;
+            return;
+        }
+
+        if (!$aiApiKey && (isGemini || baseUrl.includes("groq.com") || baseUrl.includes("openrouter.ai"))) {
+            aiSummary = null;
+            aiSummaryError = "💡 AI özeti almak için Ayarlar > AI bölümünden ücretsiz API anahtarınızı ekleyin.";
             aiSummaryLoading = false;
             return;
         }
@@ -173,27 +186,18 @@
                 }
             }
 
-            const payload = isGemini
-                ? {
-                    model,
-                    messages: [
-                        { role: "user", content: `Kısa ve net Türkçe özet oluştur. 3-4 cümle yeterli olsun.\n\n${snippets}` }
-                    ],
-                    temperature: 0.4,
-                    max_tokens: 220
-                }
-                : {
-                    model,
-                    messages: [
-                        { role: "system", content: $aiSystemPrompt || "Kısa, net ve Türkçe özet ver." },
-                        {
-                            role: "user",
-                            content: `Aşağıdaki arama sonuçlarına göre kullanıcı için kısa ve net bir özet oluştur. Sadece 3-4 cümlelik Türkçe özet ver. Sorunun ana fikri, anlamı ve önemli noktaları belirt.\n\n${snippets}`
-                        }
-                    ],
-                    temperature: 0.4,
-                    max_tokens: 220
-                };
+            const payload = {
+                model,
+                messages: [
+                    { role: "system", content: $aiSystemPrompt || "Kısa, net ve Türkçe özet ver." },
+                    {
+                        role: "user",
+                        content: `Aşağıdaki arama sonuçlarına göre kullanıcı için kısa ve net bir özet oluştur. Sadece 3-4 cümlelik Türkçe özet ver. Sorunun ana fikri, anlamı ve önemli noktaları belirt.\n\n${snippets}`
+                    }
+                ],
+                temperature: 0.4,
+                max_tokens: 220
+            };
 
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), Number($aiTimeoutMs) || 30000);
@@ -317,7 +321,9 @@
                 if (newsEndDate) params.set("endDate", newsEndDate);
             }
             const pageIndex = Math.floor(offset / count);
+            const currentPageNum = pageIndex + 1;
             params.set("offset", String(pageIndex));
+            params.set("p", String(currentPageNum));
             params.set("count", String(count));
             const apiUrl = `/api/search?${params.toString()}`;
 
@@ -396,7 +402,7 @@
             }
         } catch (err) {
             console.error("[Frontend] Error fetching search results:", err);
-            // Önceki isteğin iptali ise sessizce geç (yeni istek zaten başladı)
+            // Önceki isteğin iptali ise sessizce geç (yeni istek zaten başladı )
             if (err.name === 'AbortError' && fetchController !== activeFetchController) return;
             const msg = err.name === 'AbortError'
                 ? 'Arama zaman aşımına uğradı. Lütfen tekrar deneyin.'
@@ -1001,7 +1007,12 @@
     (Kept structure if we want to re-enable or conditionally show for 'web' only if relevant)
     -->
 
-    <div class="search-main-content" class:images-mode={activeSearchType === 'images'}>
+    <div
+        class="search-main-content"
+        class:images-mode={activeSearchType === 'images'}
+        class:videos-mode={activeSearchType === 'videos'}
+        class:news-mode={activeSearchType === 'news'}
+    >
         <main class="results-container" aria-live="polite">
             {#if isLoading}
                 <div class="search-skeleton" class:image-skeleton={activeSearchType === "images"} aria-label="Sonuçlar yükleniyor" aria-busy="true" in:fade={{ duration: 200 }}>
@@ -1201,7 +1212,7 @@
                         {#if $searchResults.length > 0}
                             <div class="results-grid image-results">
                                 {#each $searchResults as result, i (result.thumbnail + i)}
-                                    <div class="image-result-item">
+                                    <div class="image-result-item" onclick={() => selectedImage = result} role="button" tabindex="0" onkeydown={(e) => { if(e.key === 'Enter') selectedImage = result; }}>
                                         <div class="image-wrapper">
                                             <img
                                                 src={result.thumbnail}
@@ -1223,6 +1234,7 @@
                                                     class="overlay-btn"
                                                     title="Siteye Git"
                                                     aria-label="Siteye Git"
+                                                    onclick={(e) => e.stopPropagation()}
                                                 >
                                                     <i
                                                         class="fas fa-external-link-alt"
@@ -1236,6 +1248,7 @@
                                                     class="overlay-btn"
                                                     title="Tam Boyut"
                                                     aria-label="Tam Boyut"
+                                                    onclick={(e) => e.stopPropagation()}
                                                 >
                                                     <i
                                                         class="fas fa-expand"
@@ -1244,12 +1257,7 @@
                                                 </a>
                                             </div>
                                         </div>
-                                        <a
-                                            href={result.url}
-                                            target={$searchResultsOpenNewTab ? "_blank" : "_self"}
-                                            rel="noopener noreferrer"
-                                            class="image-info"
-                                        >
+                                        <div class="image-info">
                                             <span class="image-title"
                                                 >{result.title}</span
                                             >
@@ -1261,10 +1269,43 @@
                                                     />{/if}
                                                 {getDomain(result.source)}
                                             </span>
-                                        </a>
+                                        </div>
                                     </div>
                                 {/each}
                             </div>
+                            
+                            {#if selectedImage}
+                                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                                <div class="image-sidebar-overlay" onclick={() => selectedImage = null} in:fade={{ duration: 200 }} out:fade={{ duration: 200 }}></div>
+                                <aside class="image-sidebar" in:slide={{ duration: 300, axis: 'x' }} out:slide={{ duration: 300, axis: 'x' }}>
+                                    <button class="close-sidebar-btn" onclick={() => selectedImage = null} aria-label="Kapat">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <div class="sidebar-content-scroll">
+                                        <div class="sidebar-image-container">
+                                            <img src={selectedImage.thumbnail} alt={selectedImage.title} />
+                                        </div>
+                                        <div class="sidebar-info">
+                                            <h3>{selectedImage.title}</h3>
+                                            <div class="sidebar-domain-row">
+                                                {#if selectedImage.sourceIcon}<img src={selectedImage.sourceIcon} class="source-icon" alt="" />{/if}
+                                                <span class="sidebar-domain">{getDomain(selectedImage.source)}</span>
+                                            </div>
+                                            <p class="sidebar-desc">{selectedImage.description || ""}</p>
+                                            
+                                            <div class="sidebar-actions">
+                                                <a href={selectedImage.url} target="_blank" rel="noopener noreferrer" class="action-btn primary">
+                                                    <i class="fas fa-external-link-alt"></i> Siteye Git
+                                                </a>
+                                                <a href={selectedImage.thumbnail} target="_blank" rel="noopener noreferrer" class="action-btn">
+                                                    <i class="fas fa-expand"></i> Tam Boyut
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </aside>
+                            {/if}
                         {:else if searchQuery}
                             <div class="no-results">
                                 <p>
@@ -1277,75 +1318,53 @@
                         <!-- === VIDEO RESULTS === -->
                     {:else if activeSearchType === "videos"}
                         {#if $searchResults.length > 0}
+                            <div class="search-category-header">
+                                <div class="category-header-title">
+                                    <i class="fas fa-video"></i>
+                                    <span>Videolar</span>
+                                    <span class="category-count-pill">{$searchResults.length} sonuç</span>
+                                </div>
+                            </div>
                             <div class="results-grid video-results-grid">
                                 {#each $searchResults as result (result.url)}
-                                    <div
-                                        class="result-item-card video-card-modern"
+                                    <a
+                                        href={result.url}
+                                        target={$searchResultsOpenNewTab ? "_blank" : "_self"}
+                                        rel="noopener noreferrer"
+                                        class="video-card-modern"
                                     >
                                         <div class="video-thumbnail-container">
-                                            <a
-                                                href={result.url}
-                                                target={$searchResultsOpenNewTab ? "_blank" : "_self"}
-                                                rel="noopener noreferrer"
-                                                aria-label={result.title}
-                                            >
-                                                <img
-                                                    src={result.thumbnail}
-                                                    alt=""
-                                                    class="video-thumbnail"
-                                                    loading="lazy"
-                                                    onerror={(e) => {
-                                                        e.target.style.visibility =
-                                                            "hidden";
-                                                    }}
-                                                />
-                                                <div class="play-overlay">
-                                                    <i class="fas fa-play"></i>
-                                                </div>
-                                                {#if result.duration}
-                                                    <span class="video-duration"
-                                                        >{formatDuration(
-                                                            result.duration,
-                                                        )}</span
-                                                    >
-                                                {/if}
-                                            </a>
+                                            <img
+                                                src={result.thumbnail}
+                                                alt={result.title || ''}
+                                                class="video-thumbnail"
+                                                loading="lazy"
+                                                onerror={(e) => {
+                                                    e.target.style.visibility = "hidden";
+                                                    e.target.parentElement.classList.add('no-thumb');
+                                                }}
+                                            />
+                                            <div class="play-overlay">
+                                                <i class="fas fa-play"></i>
+                                            </div>
+                                            {#if result.duration}
+                                                <span class="video-duration">{formatDuration(result.duration)}</span>
+                                            {/if}
                                         </div>
                                         <div class="video-details">
-                                            <h3
-                                                class="result-title video-title"
-                                            >
-                                                <a
-                                                    href={result.url}
-                                                    target={$searchResultsOpenNewTab ? "_blank" : "_self"}
-                                                    rel="noopener noreferrer"
-                                                    >{result.title}</a
-                                                >
-                                            </h3>
+                                            <h3 class="video-title">{result.title}</h3>
                                             <div class="video-meta-row">
-                                                <span class="video-publisher"
-                                                    >{result.publisher ||
-                                                        getDomain(
-                                                            result.url,
-                                                        )}</span
-                                                >
-                                                {#if result.age}<span
-                                                        class="separator"
-                                                        >•</span
-                                                    >
-                                                    <span class="video-age"
-                                                        >{formatAge(
-                                                            result.age,
-                                                        )}</span
-                                                    >{/if}
+                                                <span class="video-publisher">
+                                                    <i class="fas fa-circle" style="font-size:0.45rem; color:var(--primary-color);"></i>
+                                                    {result.publisher || getDomain(result.url)}
+                                                </span>
+                                                {#if result.age}<span class="video-age">• {formatAge(result.age)}</span>{/if}
                                             </div>
-                                            <p
-                                                class="result-description video-description"
-                                            >
-                                                {result.description || ""}
-                                            </p>
+                                            {#if result.description}
+                                                <p class="video-description">{result.description}</p>
+                                            {/if}
                                         </div>
-                                    </div>
+                                    </a>
                                 {/each}
                             </div>
                         {:else if searchQuery}
@@ -1360,46 +1379,35 @@
                         <!-- === NEWS RESULTS === -->
                     {:else if activeSearchType === "news"}
                         {#if $searchResults.length > 0}
+                            <div class="search-category-header">
+                                <div class="category-header-title">
+                                    <i class="fas fa-newspaper"></i>
+                                    <span>Haberler</span>
+                                    <span class="category-count-pill">{$searchResults.length} haber</span>
+                                </div>
+                            </div>
                             <div class="results-list news-results">
                                 {#each $searchResults as result (result.url)}
-                                    <div
-                                        class="result-item-card news-item-modern"
+                                    <a
+                                        href={result.url}
+                                        target={$searchResultsOpenNewTab ? "_blank" : "_self"}
+                                        rel="noopener noreferrer"
+                                        class="news-item-card"
                                     >
                                         <div class="news-content">
                                             <div class="news-header-meta">
-                                                {#if result.icon}<img
-                                                        src={result.icon}
-                                                        alt=""
-                                                        class="news-source-icon"
-                                                    />{/if}
-                                                <span class="news-source"
-                                                    >{result.source ||
-                                                        getDomain(
-                                                            result.url,
-                                                        )}</span
-                                                >
-                                                {#if result.age}<span
-                                                        class="separator"
-                                                        >•</span
-                                                    >
-                                                    <span class="news-age"
-                                                        >{result.age}</span
-                                                    >{/if}
+                                                <img
+                                                    src={result.icon || `https://icons.duckduckgo.com/ip3/${getDomain(result.url)}.ico`}
+                                                    alt=""
+                                                    class="news-source-icon"
+                                                    onerror={(e) => e.target.style.display='none'}
+                                                />
+                                                <span class="news-source">{result.source || getDomain(result.url)}</span>
+                                                {#if result.age}<span class="separator">•</span><span class="news-age">{result.age}</span>{/if}
                                             </div>
-                                            <h3 class="result-title news-title">
-                                                <a
-                                                    href={result.url}
-                                                    target={$searchResultsOpenNewTab ? "_blank" : "_self"}
-                                                    rel="noopener noreferrer"
-                                                    >{result.title}</a
-                                                >
-                                            </h3>
+                                            <h3 class="news-title">{result.title}</h3>
                                             {#if result.description}
-                                                <p
-                                                    class="result-description news-desc"
-                                                >
-                                                    {result.description}
-                                                </p>
+                                                <p class="news-desc">{result.description}</p>
                                             {/if}
                                         </div>
                                         {#if result.thumbnail}
@@ -1409,14 +1417,11 @@
                                                     alt=""
                                                     class="news-thumbnail"
                                                     loading="lazy"
-                                                    onerror={(e) => {
-                                                        e.target.style.display =
-                                                            "none";
-                                                    }}
+                                                    onerror={(e) => { e.target.style.display = "none"; }}
                                                 />
                                             </div>
                                         {/if}
-                                    </div>
+                                    </a>
                                 {/each}
                             </div>
                         {:else if searchQuery}
@@ -2007,7 +2012,9 @@
         margin-bottom: 2rem;
     }
 
-    .search-main-content.images-mode {
+    .search-main-content.images-mode,
+    .search-main-content.videos-mode,
+    .search-main-content.news-mode {
         max-width: 100%;
         width: 100%;
         margin: 1rem 0 0 0;
@@ -2016,6 +2023,47 @@
     .search-main-content.images-mode .results-container {
         max-width: 100%;
         width: 100%;
+    }
+
+    .search-main-content.videos-mode .results-container {
+        max-width: 1380px;
+        width: 100%;
+    }
+
+    .search-main-content.news-mode .results-container {
+        max-width: 980px;
+        width: 100%;
+    }
+
+    .search-category-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .category-header-title {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-color);
+    }
+
+    .category-header-title i {
+        color: var(--primary-color);
+    }
+
+    .category-count-pill {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.2rem 0.65rem;
+        border-radius: 20px;
+        background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+        color: var(--primary-color);
     }
 
     /* Card polish */
@@ -3058,64 +3106,229 @@
         text-overflow: ellipsis;
     }
 
-    /* === Video Results List === */
-    .video-item-card {
-        /* Inherits base card styles */
+    /* === Video Results === */
+    .video-results-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+    }
+    
+    .video-card-modern {
         display: flex;
-        gap: 1rem;
-        align-items: flex-start;
+        flex-direction: column;
+        background: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        overflow: hidden;
+        text-decoration: none;
+        color: var(--text-color);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+    
+    .video-card-modern:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        border-color: var(--primary-color);
+    }
+    
     .video-thumbnail-container {
-        flex-shrink: 0;
-        width: 180px; /* Larger thumbnail */
         position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        background: var(--input-background);
     }
-    .video-thumbnail-container a {
-        display: block;
+    
+    .video-thumbnail-container.no-thumb {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: var(--text-color-secondary);
     }
+    
     .video-thumbnail {
         display: block;
         width: 100%;
-        height: auto;
-        aspect-ratio: 16 / 9; /* Maintain aspect ratio */
-        border-radius: 4px;
-        background-color: var(--border-color);
-        object-fit: cover; /* Cover the area */
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
     }
+    
+    .video-card-modern:hover .video-thumbnail {
+        transform: scale(1.04);
+    }
+    
+    .play-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        background: rgba(0, 0, 0, 0.35);
+        transition: opacity 0.2s ease;
+    }
+    
+    .play-overlay i {
+        color: white;
+        font-size: 2.5rem;
+        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+    }
+    
+    .video-card-modern:hover .play-overlay {
+        opacity: 1;
+    }
+    
     .video-duration {
         position: absolute;
-        bottom: 5px;
-        right: 5px;
-        background-color: rgba(0, 0, 0, 0.75);
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.8);
         color: white;
         font-size: 0.75rem;
-        padding: 2px 5px;
-        border-radius: 3px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 5px;
+        letter-spacing: 0.02em;
     }
-
+    
     .video-details {
-        flex-grow: 1;
-        min-width: 0; /* Allow shrinking */
-    }
-    .video-title {
-        font-size: 1.1rem; /* Slightly smaller than web */
-    }
-    .video-meta {
+        padding: 0.9rem 1rem;
         display: flex;
-        gap: 0.8rem;
-        flex-wrap: wrap;
-        margin-bottom: 0.4rem;
-        font-size: 0.85rem;
-        color: var(--text-color-secondary);
+        flex-direction: column;
+        gap: 0.4rem;
     }
-    .video-description {
-        font-size: 0.85rem;
-        /* Limit lines shown */
+    
+    .video-title {
+        font-size: 0.97rem;
+        font-weight: 600;
+        color: var(--text-color);
+        margin: 0;
         display: -webkit-box;
-        -webkit-line-clamp: 3;
-        line-clamp: 3;
+        -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+        line-height: 1.4;
+    }
+    
+    .video-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.8rem;
+        color: var(--text-color-secondary);
+        flex-wrap: wrap;
+    }
+    
+    .video-publisher {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    
+    .video-age {
+        opacity: 0.75;
+    }
+    
+    .video-description {
+        font-size: 0.82rem;
+        color: var(--text-color-secondary);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin: 0;
+        line-height: 1.5;
+    }
+    
+    /* === News Card === */
+    .news-item-card {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        background: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        text-decoration: none;
+        color: var(--text-color);
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        margin-bottom: 0.5rem;
+    }
+    
+    .news-item-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        border-color: var(--primary-color);
+    }
+    
+    .news-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+    
+    .news-header-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        color: var(--text-color-secondary);
+    }
+    
+    .news-source-icon {
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        object-fit: cover;
+    }
+    
+    .news-source {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .news-age {
+        opacity: 0.7;
+    }
+    
+    .news-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+        line-height: 1.4;
+        color: var(--text-color);
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .news-desc {
+        font-size: 0.85rem;
+        color: var(--text-color-secondary);
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.5;
+    }
+    
+    .news-thumbnail-wrapper {
+        flex-shrink: 0;
+        width: 110px;
+        height: 80px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--input-background);
+    }
+    
+    .news-thumbnail {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 
     /* === Infobox Styles === */
@@ -3758,6 +3971,192 @@
         .more-options {
             width: 32px;
             height: 32px;
+        }
+    }
+
+    /* --- Image Sidebar --- */
+    .image-sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1999;
+        backdrop-filter: blur(4px);
+    }
+    
+    .image-sidebar {
+        position: fixed;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 400px;
+        max-width: 90vw;
+        background: var(--card-background);
+        box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--border-color);
+    }
+    
+    .close-sidebar-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 2001;
+        transition: background 0.2s;
+    }
+    
+    .close-sidebar-btn:hover {
+        background: rgba(0, 0, 0, 0.8);
+    }
+    
+    .sidebar-content-scroll {
+        flex: 1;
+        overflow-y: auto;
+    }
+    
+    .sidebar-image-container {
+        width: 100%;
+        background: var(--input-background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 250px;
+        padding: 1rem;
+    }
+    
+    .sidebar-image-container img {
+        max-width: 100%;
+        max-height: 50vh;
+        object-fit: contain;
+        border-radius: 8px;
+    }
+    
+    .sidebar-info {
+        padding: 1.5rem;
+    }
+    
+    .sidebar-info h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.25rem;
+        color: var(--text-color);
+        line-height: 1.4;
+    }
+    
+    .sidebar-domain-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .sidebar-domain {
+        color: var(--text-color-secondary);
+        font-weight: 500;
+    }
+    
+    .sidebar-desc {
+        color: var(--text-color-secondary);
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin-bottom: 1.5rem;
+    }
+    
+    .sidebar-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .sidebar-actions .action-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        background: var(--card-background);
+    }
+    
+    .sidebar-actions .action-btn:hover {
+        background: var(--hover-background);
+    }
+    
+    .sidebar-actions .action-btn.primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+    
+    .sidebar-actions .action-btn.primary:hover {
+        opacity: 0.9;
+    }
+    
+    /* Mobile improvements for video / news / sidebar */
+    @media (max-width: 768px) {
+        .video-results-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .video-card-modern {
+            border-radius: 10px;
+        }
+
+        .video-details {
+            padding: 0.6rem 0.75rem;
+        }
+
+        .video-title {
+            font-size: 0.85rem;
+        }
+
+        .news-item-card {
+            padding: 0.85rem;
+            border-radius: 10px;
+            gap: 0.75rem;
+        }
+        
+        .news-thumbnail-wrapper {
+            width: 80px;
+            height: 60px;
+        }
+        
+        .news-title {
+            font-size: 0.93rem;
+            -webkit-line-clamp: 2;
+        }
+        
+        .image-sidebar {
+            width: 100vw;
+            max-width: 100vw;
+            border-left: none;
+            border-top: 1px solid var(--border-color);
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        .sidebar-image-container {
+            min-height: 180px;
+        }
+        
+        .sidebar-info h3 {
+            font-size: 1.05rem;
         }
     }
 </style>
